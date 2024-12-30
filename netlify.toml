@@ -1,11 +1,9 @@
 [build]
   command = "npm run build"
-  publish = "out"
-  environment = { NODE_VERSION = "18" }
-
-[build.environment]
-  NEXT_PUBLIC_SITE_URL = "https://aianonymizer.com"
-  NEXT_TELEMETRY_DISABLED = "1"
+  publish = ".next"
+  environment.NODE_VERSION = "18"
+  environment.NEXT_PUBLIC_SITE_URL = "https://aianonymizer.com"
+  environment.NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
