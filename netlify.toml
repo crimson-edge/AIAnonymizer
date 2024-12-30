@@ -1,6 +1,38 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  environment = { NODE_VERSION = "18" }
+
+[build.environment]
+  NEXT_PUBLIC_SITE_URL = "https://aianonymizer.com"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[dev]
+  framework = "next"
+  targetPort = 3000
+
+# Production context: all deploys from the Production branch set in your site's
+# deploy contexts will inherit these settings.
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+# Deploy Preview context: all deploys generated from a pull/merge request will
+# inherit these settings.
+[context.deploy-preview]
+  environment = { NODE_ENV = "production" }
+
+# Branch Deploy context: all deploys that are not from a pull/merge request or
+# from the Production branch will inherit these settings.
+[context.branch-deploy]
+  environment = { NODE_ENV = "production" }
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.youtube.com *.ytimg.com; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https:;"
