@@ -1,4 +1,5 @@
 import Navigation from '@/components/Navigation';
+import Testimonials from '@/components/Testimonials';
 import Link from 'next/link';
 
 export default function Home() {
@@ -9,89 +10,69 @@ export default function Home() {
         {/* Hero Section (Above the fold) */}
         <section className="pt-16 bg-white min-h-screen">
           <div className="mx-auto max-w-6xl px-4">
-            <div className="grid lg:grid-cols-2 gap-8 items-start pt-8">
-              {/* Welcome Video */}
-              <div className="aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-900">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+                Your Privacy Matters in the AI Era
+              </h1>
+              <p className="mt-6 text-lg leading-8 text-gray-600">
+                Access AI language models securely and anonymously. Keep your queries private, data protected, and identity secure.
+              </p>
+              <div className="mt-10 flex items-center justify-center gap-x-6">
+                <Link
+                  href="/signup"
+                  className="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
+                  Get started
+                </Link>
+                <Link href="/features" className="text-sm font-semibold leading-6 text-gray-900">
+                  Learn more <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Video Section */}
+            <div className="mt-16 flex justify-center">
+              <div className="aspect-w-16 aspect-h-9 w-full max-w-4xl">
                 <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/rGW9tkXXwmg?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
-                  title="AI Anonymizer Welcome Video"
+                  src="https://www.youtube.com/embed/rGW9tkXXwmg"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                />
-              </div>
-
-              {/* Key Features */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="flex gap-3 items-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[rgb(var(--facebook-blue))] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Complete Privacy</h3>
-                    <p className="mt-1 text-sm text-gray-600">Your identity remains anonymous with our secure VPN tunnel</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[rgb(var(--facebook-blue))] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Zero Logs Policy</h3>
-                    <p className="mt-1 text-sm text-gray-600">We never store your conversations or personal data</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[rgb(var(--facebook-blue))] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Lightning Fast</h3>
-                    <p className="mt-1 text-sm text-gray-600">Optimized infrastructure for rapid AI responses</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[rgb(var(--facebook-blue))] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Multiple AI Models</h3>
-                    <p className="mt-1 text-sm text-gray-600">Access ChatGPT, Claude, and other leading AI models</p>
-                  </div>
-                </div>
+                  className="rounded-xl shadow-2xl"
+                ></iframe>
               </div>
             </div>
 
-            {/* CTA */}
-            <div className="mt-8 text-center">
-              <Link
-                href="/signup"
-                className="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-[rgb(var(--facebook-blue))] rounded-lg hover:bg-[rgb(var(--facebook-blue-hover))]"
-              >
-                Start Using AI Anonymously
-                <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+            {/* Features Grid */}
+            <div className="mt-24 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Complete Privacy */}
+              <div className="rounded-xl border border-gray-200 p-8 shadow-sm">
+                <h3 className="text-lg font-semibold">Complete Privacy</h3>
+                <p className="mt-4 text-gray-600">Your queries are fully encrypted and anonymized.</p>
+              </div>
+
+              {/* Zero Logs */}
+              <div className="rounded-xl border border-gray-200 p-8 shadow-sm">
+                <h3 className="text-lg font-semibold">Zero Logs Policy</h3>
+                <p className="mt-4 text-gray-600">We never store your data or interaction history.</p>
+              </div>
+
+              {/* Lightning Fast */}
+              <div className="rounded-xl border border-gray-200 p-8 shadow-sm">
+                <h3 className="text-lg font-semibold">Lightning Fast</h3>
+                <p className="mt-4 text-gray-600">Optimized infrastructure for rapid response times.</p>
+              </div>
+
+              {/* Multiple Models */}
+              <div className="rounded-xl border border-gray-200 p-8 shadow-sm">
+                <h3 className="text-lg font-semibold">Multiple AI Models</h3>
+                <p className="mt-4 text-gray-600">Access various AI models through one secure interface.</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Additional content below the fold */}
-        <section className="py-20 bg-gray-50">
-          <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-3xl font-bold text-center text-gray-900">Why Choose AI Anonymizer?</h2>
-            {/* Add more content here */}
-          </div>
-        </section>
+        {/* Testimonials Section */}
+        <Testimonials />
       </main>
     </>
   );
