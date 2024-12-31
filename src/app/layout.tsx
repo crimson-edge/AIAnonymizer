@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
+import KommunicateChat from '@/components/KommunicateChat';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -74,6 +75,7 @@ export default function RootLayout({
           </div>
           <Footer />
         </div>
+        <KommunicateChat />
       </body>
     </html>
   );

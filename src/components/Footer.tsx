@@ -82,20 +82,12 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
-              <li>
-                <a
-                  href="mailto:support@aianonymizer.com"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Contact Support
-                </a>
-              </li>
             </ul>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-          <p>© {new Date().getFullYear()} AI Anonymizer. All rights reserved.</p>
+          <p> 2024 AI Anonymizer. All rights reserved.</p>
         </div>
       </div>
     </footer>
