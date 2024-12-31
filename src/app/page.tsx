@@ -47,7 +47,7 @@ export default function Home() {
               {/* Complete Privacy */}
               <div className="rounded-xl border border-gray-200 p-8 shadow-sm">
                 <h3 className="text-lg font-semibold">Complete Privacy</h3>
-                <p className="mt-4 text-gray-600">Your queries are fully encrypted and anonymized.</p>
+                <p className="mt-4 text-gray-600">Your queries are fully encrypted and anonymized, private even from the AI providers.</p>
               </div>
 
               {/* Zero Logs */}

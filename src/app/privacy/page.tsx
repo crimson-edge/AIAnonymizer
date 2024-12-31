@@ -1,5 +1,4 @@
 import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 
 export default function PrivacyPage() {
   return (
@@ -56,7 +55,6 @@ export default function PrivacyPage() {
           <p>If you have any questions about this Privacy Policy, please contact us at: <a href="mailto:support@aianonymizer.com" className="text-blue-600 hover:text-blue-800">support@aianonymizer.com</a></p>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
