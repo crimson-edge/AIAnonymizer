@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const navigation = [
-  { name: 'Features', href: '/#features' },
-  { name: 'About', href: '/#about' },
-  { name: 'Pricing', href: '/#pricing' },
+  { name: 'Features', href: '/features' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'About', href: '/about' },
+  { name: 'Pricing', href: '/pricing' },
 ];
 
 export default function Navigation() {
@@ -18,10 +20,14 @@ export default function Navigation() {
         <div className="flex h-full items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-x-2">
-            <div className="w-8 h-8 rounded-lg bg-[rgb(var(--facebook-blue))] flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+            <div className="w-10 h-10 relative">
+              <Image
+                src="/logo.svg"
+                alt="AI Anonymizer"
+                width={40}
+                height={40}
+                priority
+              />
             </div>
             <span className="text-xl font-bold text-gray-900">AI Anonymizer</span>
           </Link>
@@ -32,17 +38,17 @@ export default function Navigation() {
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
               >
                 {link.name}
               </Link>
             ))}
-            <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link href="/login" className="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
               Login
             </Link>
             <Link
               href="/signup"
-              className="bg-[rgb(var(--facebook-blue))] text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-[rgb(var(--facebook-blue-hover))]"
+              className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
               Sign up free
             </Link>
@@ -83,7 +89,7 @@ export default function Navigation() {
             <div className="px-4 py-2">
               <Link
                 href="/signup"
-                className="block w-full text-center bg-[rgb(var(--facebook-blue))] text-white rounded-lg py-2 text-sm font-medium hover:bg-[rgb(var(--facebook-blue-hover))]"
+                className="block w-full text-center bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign up free
