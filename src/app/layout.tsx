@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
 import KommunicateChat from '@/components/KommunicateChat';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -76,6 +77,7 @@ export default function RootLayout({
           <Footer />
         </div>
         <KommunicateChat />
+        <GoogleAnalytics />
       </body>
     </html>
   );
