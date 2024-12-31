@@ -1,22 +1,30 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import Footer from '@/components/Footer';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AI Anonymizer - Secure AI Access with Complete Privacy',
-  description: 'Access ChatGPT, Claude, and other AI models through our secure VPN interface. Your conversations stay private, your identity remains protected.',
-}
+  title: 'AI Anonymizer - Private & Secure AI Interactions',
+  description: 'Access AI language models securely and anonymously. Keep your queries private, data protected, and identity secure.',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-grow">
+            {children}
+          </div>
+          <Footer />
+        </div>
+      </body>
     </html>
-  )
+  );
 }

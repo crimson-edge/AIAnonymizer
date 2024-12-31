@@ -7,14 +7,14 @@ export default function Home() {
     <>
       <Navigation />
       <main>
-        {/* Hero Section (Above the fold) */}
-        <section className="pt-16 bg-white min-h-screen">
-          <div className="mx-auto max-w-6xl px-4">
+        {/* Hero Section */}
+        <section className="bg-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                 Your Privacy Matters in the AI Era
               </h1>
-              <p className="mt-6 text-lg leading-8 text-gray-600">
+              <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
                 Access AI language models securely and anonymously. Keep your queries private, data protected, and identity secure.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
@@ -31,13 +31,13 @@ export default function Home() {
             </div>
 
             {/* Video Section */}
-            <div className="mt-16 flex justify-center">
-              <div className="aspect-w-16 aspect-h-9 w-full max-w-4xl">
+            <div className="mt-16">
+              <div className="aspect-w-16 aspect-h-9 max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
                 <iframe
                   src="https://www.youtube.com/embed/rGW9tkXXwmg"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  className="rounded-xl shadow-2xl"
+                  className="w-full h-full"
                 ></iframe>
               </div>
             </div>

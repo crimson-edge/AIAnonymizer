@@ -5,19 +5,19 @@ const testimonials = [
     content: "AI Anonymizer has transformed how I interact with AI. As a business consultant, I need to maintain client confidentiality while leveraging AI tools. This service gives me complete peace of mind.",
     author: "Sarah Chen",
     title: "Business Strategy Consultant",
-    image: "/testimonials/sarah.jpg"
+    image: "https://i.pravatar.cc/150?img=1"
   },
   {
     content: "Privacy concerns were holding me back from fully utilizing AI in my research. AI Anonymizer solved this completely. Now I can focus on my work without worrying about data security.",
     author: "Dr. Michael Rodriguez",
     title: "Research Scientist",
-    image: "/testimonials/michael.jpg"
+    image: "https://i.pravatar.cc/150?img=3"
   },
   {
     content: "As a privacy advocate, I was skeptical of AI tools. AI Anonymizer's zero-logs policy and robust security measures have won me over. It's the gold standard for private AI interactions.",
     author: "Emma Thompson",
     title: "Cybersecurity Specialist",
-    image: "/testimonials/emma.jpg"
+    image: "https://i.pravatar.cc/150?img=5"
   }
 ];
 
@@ -34,7 +34,8 @@ export default function Testimonials() {
                   <Image
                     src={testimonial.image}
                     alt={testimonial.author}
-                    fill
+                    width={48}
+                    height={48}
                     className="object-cover"
                   />
                 </div>

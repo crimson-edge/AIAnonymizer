@@ -2,8 +2,14 @@
 const nextConfig = {
   output: 'export',
   images: {
-    unoptimized: true
-  }
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+    ],
+  },
 }
 
 module.exports = nextConfig
