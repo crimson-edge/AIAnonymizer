@@ -12,7 +12,7 @@ const tiers = [
       'Access to GPT-3.5 Turbo',
       'Basic anonymization',
       '1,000 tokens per month',
-      '10 requests per minute',
+      '5 requests per minute',
       'Community support',
       'Public API access',
     ],
@@ -28,7 +28,7 @@ const tiers = [
       'Everything in Free',
       'Enhanced anonymization',
       '10,000 tokens per month',
-      '30 requests per minute',
+      '15 requests per minute',
       'Email support',
       'Private API access',
       'Priority queue',
@@ -46,10 +46,12 @@ const tiers = [
     features: [
       'Everything in Basic',
       'Military-grade encryption',
-      'Unlimited tokens',
-      '100 requests per minute',
+      '100,000 tokens per month',
+      '50 requests per minute',
       'Priority support',
-      'Advanced API features',
+      'Import/Export conversations',
+      'Behavioral assist',
+      'Advanced data analytics',
       'Custom rate limits',
       'Early access to new features',
     ],
@@ -168,15 +170,15 @@ export default async function PricingPage() {
                   What happens if I exceed my monthly tokens?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  Free and Basic plans will be paused until the next billing cycle. Premium users have unlimited tokens.
+                  Free and Basic plans will be paused until the next billing cycle. Premium users get 100,000 tokens per month.
                 </dd>
               </div>
               <div>
                 <dt className="text-lg font-semibold text-gray-900">
-                  How secure is my data?
+                  What are the rate limits?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  We use industry-standard encryption and never store your queries. Premium users get additional military-grade encryption.
+                  Free tier: 5/min, Basic: 15/min, Premium: 50/min. Premium users also get custom rate limit options.
                 </dd>
               </div>
             </dl>
