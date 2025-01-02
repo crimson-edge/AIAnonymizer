@@ -43,14 +43,14 @@ export default function Navigation() {
                 {link.name}
               </Link>
             ))}
-            <Link href="/login" className="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
-              Login
+            <Link href="/auth/signin" className="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+              Log in
             </Link>
             <Link
-              href="/signup"
+              href="/pricing"
               className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
-              Sign up free
+              Get started
             </Link>
           </div>
 
@@ -80,19 +80,19 @@ export default function Navigation() {
             ))}
             <div className="border-t border-gray-200 my-2"></div>
             <Link
-              href="/login"
+              href="/auth/signin"
               className="block px-4 py-2 text-gray-600 hover:bg-gray-100"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Login
+              Log in
             </Link>
             <div className="px-4 py-2">
               <Link
-                href="/signup"
+                href="/pricing"
                 className="block w-full text-center bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Sign up free
+                Get started
               </Link>
             </div>
           </div>
