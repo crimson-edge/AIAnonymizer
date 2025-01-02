@@ -12,7 +12,7 @@ const nextConfig = {
       },
     ],
   },
-  output: 'standalone',
+  output: 'export',
   env: {
     NEXT_PUBLIC_BASE_URL: 'https://aianonymizer.com',
   },
