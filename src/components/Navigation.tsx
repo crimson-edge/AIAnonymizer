@@ -22,11 +22,12 @@ export default function Navigation() {
           <Link href="/" className="flex items-center gap-x-2">
             <div className="w-10 h-10 relative">
               <Image
-                src="/logo.svg"
+                src="/logo.svg?v=2"
                 alt="AI Anonymizer"
                 width={40}
                 height={40}
                 priority
+                unoptimized
               />
             </div>
             <span className="text-xl font-bold text-gray-900">AI Anonymizer</span>
