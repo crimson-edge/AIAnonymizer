@@ -8,7 +8,7 @@ export default function MarketingContent() {
   return (
     <>
       <Navigation />
-      <main>
+      <main className="pt-16">
         {/* Hero Section */}
         <section className="relative bg-white py-16">
           {/* Background Video */}
