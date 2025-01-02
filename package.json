@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^6.1.0",
+    "@prisma/client": "^5.7.1",
     "@stripe/stripe-js": "^5.4.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/next-auth": "^3.13.0",
