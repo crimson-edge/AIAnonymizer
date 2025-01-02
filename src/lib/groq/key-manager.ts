@@ -28,16 +28,8 @@ export class GroqKeyManager {
     isInUse: boolean;
     currentSession: string | null;
     lastUsed: Date | null;
-    totalUses: number;
   }>> {
     const keys = await prisma.groqKey.findMany({
-      include: {
-        _count: {
-          select: {
-            usageHistory: true,
-          },
-        },
-      },
       orderBy: {
         lastUsed: 'desc',
       },
@@ -48,7 +40,6 @@ export class GroqKeyManager {
       isInUse: key.isInUse,
       currentSession: key.currentSession,
       lastUsed: key.lastUsed,
-      totalUses: key._count.usageHistory,
     }));
   }
 
