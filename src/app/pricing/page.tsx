@@ -1,52 +1,62 @@
 import Navigation from '@/components/Navigation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import Link from 'next/link';
 
 const tiers = [
+  {
+    name: 'Free Forever',
+    price: '$0',
+    features: [
+      'Access to GPT-3.5 Turbo',
+      'Basic anonymization',
+      '50 queries per month',
+      'Community support',
+      'Public API access',
+    ],
+    cta: 'Get Started',
+    description: 'Perfect for trying out AI with privacy.',
+    href: '/auth/signin',
+  },
   {
     name: 'Basic',
     price: '$9',
     features: [
-      'Access to GPT-3.5 Turbo',
-      'Basic anonymization',
-      '100 queries per month',
+      'Everything in Free',
+      'Enhanced anonymization',
+      '500 queries per month',
       'Email support',
-      'Basic API access',
+      'Private API access',
+      'Priority queue',
     ],
-    cta: 'Start Basic',
-    description: 'Perfect for individual users who need basic AI access with privacy.',
-  },
-  {
-    name: 'Pro',
-    price: '$29',
-    features: [
-      'Access to GPT-4',
-      'Advanced anonymization',
-      '1000 queries per month',
-      'Priority support',
-      'Full API access',
-      'Custom rate limits',
-    ],
-    cta: 'Start Pro',
-    description: 'Best for professionals who need advanced features and higher usage limits.',
+    cta: 'Start Basic Plan',
+    description: 'For individuals who need more power and privacy.',
+    href: '/auth/signin?plan=basic',
+    priceId: process.env.STRIPE_BASIC_PRICE_ID,
     featured: true,
   },
   {
-    name: 'Enterprise',
-    price: 'Custom',
+    name: 'Premium',
+    price: '$29',
     features: [
-      'Access to all AI models',
-      'Enterprise-grade security',
+      'Everything in Basic',
+      'Military-grade encryption',
       'Unlimited queries',
-      '24/7 dedicated support',
-      'Custom API integration',
-      'SLA guarantees',
-      'Custom features',
+      'Priority support',
+      'Advanced API features',
+      'Custom rate limits',
+      'Early access to new features',
     ],
-    cta: 'Contact Sales',
-    description: 'For organizations that need maximum security and customization.',
+    cta: 'Start Premium Plan',
+    description: 'For professionals who need the ultimate in privacy and performance.',
+    href: '/auth/signin?plan=premium',
+    priceId: process.env.STRIPE_PREMIUM_PRICE_ID,
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const session = await getServerSession(authOptions);
+
   return (
     <>
       <Navigation />
@@ -55,10 +65,10 @@ export default function PricingPage() {
           {/* Header */}
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-              Simple, Transparent Pricing
+              Choose Your Privacy Level
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              Choose the plan that best fits your needs. All plans include our core privacy features.
+              Start with our free tier and upgrade as your needs grow. All plans include our core privacy features.
             </p>
           </div>
 
@@ -83,15 +93,13 @@ export default function PricingPage() {
                 </p>
                 <p className="mt-6">
                   <span className="text-4xl font-bold">{tier.price}</span>
-                  {tier.price !== 'Custom' && (
-                    <span
-                      className={`text-sm ${
-                        tier.featured ? 'text-blue-100' : 'text-gray-600'
-                      }`}
-                    >
-                      /month
-                    </span>
-                  )}
+                  <span
+                    className={`text-sm ${
+                      tier.featured ? 'text-blue-100' : 'text-gray-600'
+                    }`}
+                  >
+                    /month
+                  </span>
                 </p>
 
                 <ul className="mt-8 space-y-3">
@@ -121,8 +129,8 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <a
-                  href={tier.name === 'Enterprise' ? '/contact' : '/auth/signin'}
+                <Link
+                  href={tier.href}
                   className={`mt-8 block w-full rounded-lg px-4 py-2 text-center text-sm font-semibold ${
                     tier.featured
                       ? 'bg-white text-blue-600 hover:bg-blue-50'
@@ -130,7 +138,7 @@ export default function PricingPage() {
                   }`}
                 >
                   {tier.cta}
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -143,26 +151,26 @@ export default function PricingPage() {
             <dl className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <dt className="text-lg font-semibold text-gray-900">
-                  How does the anonymization work?
+                  Can I change plans anytime?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  We use advanced encryption and data sanitization techniques to remove all personally identifiable information before processing your queries.
+                  Yes, you can upgrade, downgrade, or cancel your plan at any time. Changes take effect at your next billing cycle.
                 </dd>
               </div>
               <div>
                 <dt className="text-lg font-semibold text-gray-900">
-                  Can I upgrade or downgrade my plan?
+                  What happens if I exceed my monthly queries?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  Yes, you can change your plan at any time. Changes take effect at the start of your next billing cycle.
+                  Free and Basic plans will be paused until the next billing cycle. Premium users have unlimited queries.
                 </dd>
               </div>
               <div>
                 <dt className="text-lg font-semibold text-gray-900">
-                  What payment methods do you accept?
+                  How secure is my data?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  We accept all major credit cards and support payment via PayPal for business accounts.
+                  We use industry-standard encryption and never store your queries. Premium users get additional military-grade encryption.
                 </dd>
               </div>
             </dl>
