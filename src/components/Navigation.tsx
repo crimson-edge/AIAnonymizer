@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const navigation = [
   { name: 'Features', href: '/features' },
@@ -19,10 +20,14 @@ export default function Navigation() {
         <div className="flex h-full items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-x-2">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+            <div className="w-10 h-10 relative">
+              <Image
+                src="/logo.svg"
+                alt="AI Anonymizer"
+                width={40}
+                height={40}
+                priority
+              />
             </div>
             <span className="text-xl font-bold text-gray-900">AI Anonymizer</span>
           </Link>
