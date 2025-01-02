@@ -2,31 +2,58 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignInForm({ providers }: { providers: any }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
+      console.log('Attempting sign in with:', { email });
       const result = await signIn('credentials', {
-        email,
+        email: email.toLowerCase().trim(),
         password,
         redirect: false,
       });
 
+      console.log('Sign in result:', result);
+
       if (result?.error) {
-        setError('Invalid email or password');
+        console.error('Sign in error:', result.error);
+        setError('Invalid email or password. Please try again.');
         return;
       }
 
-      router.push('/dashboard');
+      if (!result?.ok) {
+        setError('An error occurred during sign in');
+        return;
+      }
+
+      // Check if user is admin and redirect accordingly
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      console.log('Session data:', session);
+      
+      if (session?.user?.role === 'admin') {
+        router.push('/admin/api-keys');
+      } else {
+        router.push(callbackUrl);
+      }
     } catch (error) {
-      setError('An error occurred during sign in');
+      console.error('Sign in error:', error);
+      setError('An error occurred during sign in. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,9 +103,14 @@ export default function SignInForm({ providers }: { providers: any }) {
         <div>
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={loading}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+              loading
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
           >
-            Sign in
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </div>
       </form>

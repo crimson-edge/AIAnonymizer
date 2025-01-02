@@ -4,6 +4,7 @@ import './globals.css';
 import Footer from '@/components/Footer';
 import KommunicateChat from '@/components/KommunicateChat';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -70,14 +71,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen flex flex-col">
-          <div className="flex-grow">
-            {children}
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-grow">
+              {children}
+            </div>
+            <Footer />
           </div>
-          <Footer />
-        </div>
-        <KommunicateChat />
-        <GoogleAnalytics />
+          <KommunicateChat />
+          <GoogleAnalytics />
+        </AuthProvider>
       </body>
     </html>
   );
