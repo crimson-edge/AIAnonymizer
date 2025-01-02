@@ -10,7 +10,6 @@ export default async function MarketingPage() {
 
   // If user is logged in, redirect to appropriate page
   if (session?.user) {
-    // @ts-ignore - we know isAdmin exists on the user
     if (session.user.isAdmin) {
       redirect('/admin/api-keys');
     } else {
