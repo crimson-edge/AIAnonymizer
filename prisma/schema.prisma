@@ -14,17 +14,15 @@ model User {
   password                 String
   emailVerified            DateTime?
   verificationToken        String?       @unique
-  resetToken               String?       @unique
-  resetTokenExpiry         DateTime?
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
-  stripeCustomerId         String?
-  stripePriceId            String?
-  stripeSubscriptionStatus String?       @default("FREE")
-  isAdmin                  Boolean       @default(false)
-  apiKeys                  ApiKey[]
-  subscription             Subscription?
-  Usage                    Usage[]
+  resetToken              String?       @unique
+  resetTokenExpiry        DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  stripeCustomerId        String?
+  isAdmin                 Boolean       @default(false)
+  apiKeys                 ApiKey[]
+  subscription            Subscription?
+  Usage                   Usage[]
 }
 
 model Subscription {
@@ -37,6 +35,7 @@ model Subscription {
   isActive             Boolean          @default(true)
   stripeCustomerId     String?          @unique
   stripeSubscriptionId String?          @unique
+  stripePriceId        String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   user                 User             @relation(fields: [userId], references: [id])
