@@ -1,6 +1,7 @@
 [build]
-  command = "npm install && npm run build"
+  command = "npm run build"
   publish = ".next"
+  ignore = "git log -1 --pretty=%B | grep dependabot"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
@@ -9,3 +10,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
