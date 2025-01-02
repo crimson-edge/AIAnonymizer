@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 const handler = NextAuth({
@@ -9,7 +9,7 @@ const handler = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -41,7 +41,7 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session?.user) {
-        (session.user as any).role = token.role;
+        session.user.role = token.role;
       }
       return session;
     }
