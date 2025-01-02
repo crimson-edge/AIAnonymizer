@@ -3,13 +3,15 @@ import Testimonials from '@/components/Testimonials';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
+import { authOptions } from '@/lib/auth';
 
 export default async function MarketingPage() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
 
   // If user is logged in, redirect to appropriate page
   if (session?.user) {
-    if (session.user.role === 'admin') {
+    // @ts-ignore - we know isAdmin exists on the user
+    if (session.user.isAdmin) {
       redirect('/admin/api-keys');
     } else {
       redirect('/dashboard');

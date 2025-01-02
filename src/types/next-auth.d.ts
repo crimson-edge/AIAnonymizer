@@ -3,21 +3,26 @@ import { Subscription } from "@prisma/client"
 
 declare module "next-auth" {
   interface User {
-    role?: string
-    subscription?: Subscription
+    id: string
+    email: string
+    name?: string | null
+    isAdmin: boolean
+    subscription?: Subscription | null
   }
 
   interface Session {
     user: User & {
-      role?: string
-      subscription?: Subscription
+      id: string
+      isAdmin: boolean
+      subscription?: Subscription | null
     }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role?: string
-    subscription?: Subscription
+    id: string
+    isAdmin: boolean
+    subscription?: Subscription | null
   }
 }
