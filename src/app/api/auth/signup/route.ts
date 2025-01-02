@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email.toLowerCase() }
     });
 
     if (existingUser) {
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
     const user = await prisma.user.create({
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         name,
         email,
         password: hashedPassword,
-        role: 'user'
+        isAdmin: false
       }
     });
 
