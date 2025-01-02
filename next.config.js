@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -13,6 +11,19 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
       },
     ],
+  },
+  output: 'standalone',
+  env: {
+    NEXT_PUBLIC_BASE_URL: 'https://aianonymizer.com',
+  },
+  async redirects() {
+    return [
+      {
+        source: '/login',
+        destination: '/auth/signin',
+        permanent: true,
+      },
+    ];
   },
 }
 
