@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
+    "@stripe/stripe-js": "^5.4.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/next-auth": "^3.13.0",
     "bcryptjs": "^2.4.3",
@@ -17,7 +18,8 @@
     "next": "14.0.4",
     "next-auth": "^4.24.11",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "stripe": "^17.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",
