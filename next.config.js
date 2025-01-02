@@ -12,7 +12,6 @@ const nextConfig = {
       },
     ],
   },
-  output: 'export',
   env: {
     NEXT_PUBLIC_BASE_URL: 'https://aianonymizer.com',
   },

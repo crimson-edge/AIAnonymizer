@@ -1,8 +1,9 @@
 [build]
-  command = "npm run build"
-  publish = "out"
+  command = "npm install && npm run build"
+  publish = ".next"
 
 [build.environment]
+  NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
   NEXT_PUBLIC_BASE_URL = "https://aianonymizer.com"
 
