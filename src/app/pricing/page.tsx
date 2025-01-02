@@ -7,10 +7,12 @@ const tiers = [
   {
     name: 'Free Forever',
     price: '$0',
+    tier: 'FREE',
     features: [
       'Access to GPT-3.5 Turbo',
       'Basic anonymization',
-      '50 queries per month',
+      '1,000 tokens per month',
+      '10 requests per minute',
       'Community support',
       'Public API access',
     ],
@@ -21,10 +23,12 @@ const tiers = [
   {
     name: 'Basic',
     price: '$9',
+    tier: 'BASIC',
     features: [
       'Everything in Free',
       'Enhanced anonymization',
-      '500 queries per month',
+      '10,000 tokens per month',
+      '30 requests per minute',
       'Email support',
       'Private API access',
       'Priority queue',
@@ -38,10 +42,12 @@ const tiers = [
   {
     name: 'Premium',
     price: '$29',
+    tier: 'PREMIUM',
     features: [
       'Everything in Basic',
       'Military-grade encryption',
-      'Unlimited queries',
+      'Unlimited tokens',
+      '100 requests per minute',
       'Priority support',
       'Advanced API features',
       'Custom rate limits',
@@ -159,10 +165,10 @@ export default async function PricingPage() {
               </div>
               <div>
                 <dt className="text-lg font-semibold text-gray-900">
-                  What happens if I exceed my monthly queries?
+                  What happens if I exceed my monthly tokens?
                 </dt>
                 <dd className="mt-3 text-gray-600">
-                  Free and Basic plans will be paused until the next billing cycle. Premium users have unlimited queries.
+                  Free and Basic plans will be paused until the next billing cycle. Premium users have unlimited tokens.
                 </dd>
               </div>
               <div>
