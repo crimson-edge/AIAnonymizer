@@ -3,8 +3,11 @@
 import Navigation from '@/components/Navigation';
 import Testimonials from '@/components/Testimonials';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function MarketingContent() {
+  const router = useRouter();
+
   return (
     <>
       <Navigation />
@@ -20,15 +23,18 @@ export default function MarketingContent() {
                 Access AI language models securely and anonymously. Keep your queries private, data protected, and identity secure.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link
-                  href="/auth/signin"
+                <button
+                  onClick={() => router.push('/auth/signin')}
                   className="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                 >
                   Get started
-                </Link>
-                <Link href="/features" className="text-sm font-semibold leading-6 text-gray-900">
+                </button>
+                <button 
+                  onClick={() => router.push('/features')}
+                  className="text-sm font-semibold leading-6 text-gray-900"
+                >
                   Learn more <span aria-hidden="true">→</span>
-                </Link>
+                </button>
               </div>
             </div>
 

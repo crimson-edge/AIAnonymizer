@@ -1,21 +1,19 @@
-import Navigation from '@/components/Navigation';
-import Testimonials from '@/components/Testimonials';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
+import MarketingContent from '@/components/MarketingContent';
 
-export default async function Home() {
+export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
-    redirect('/auth/signin');
+  // If user is logged in, redirect to appropriate page
+  if (session?.user) {
+    if (session.user.isAdmin) {
+      redirect('/admin/api-keys');
+    } else {
+      redirect('/dashboard');
+    }
   }
 
-  // If user is logged in, redirect based on admin status
-  if (session.user.isAdmin) {
-    redirect('/admin/api-keys');
-  }
-
-  redirect('/dashboard');
+  return <MarketingContent />;
 }
