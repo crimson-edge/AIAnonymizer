@@ -1,53 +1,30 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
-
 async function main() {
+  // Delete existing users and subscriptions
+  await prisma.subscription.deleteMany();
+  await prisma.user.deleteMany();
+
   // Create admin user
-  const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
-  
-  const admin = await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@aianonymizer.com' },
-    update: {},
-    create: {
-      email: process.env.ADMIN_EMAIL || 'admin@aianonymizer.com',
+  const email = 'info@aianonymizer.com';
+  const password = 'admin123!';
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      email,
       name: 'Admin User',
       password: hashedPassword,
-      role: 'admin',
+      isAdmin: true,
     },
   });
 
-  console.log('Created admin user:', admin.email);
-
-  // Initialize Groq key pool
-  const groqKeys = process.env.GROQ_API_KEYS ? JSON.parse(process.env.GROQ_API_KEYS) : [];
-  
-  for (const key of groqKeys) {
-    await prisma.groqKey.upsert({
-      where: { key },
-      update: {},
-      create: {
-        key,
-        isInUse: false,
-      },
-    });
-  }
-
-  console.log('Initialized Groq key pool with', groqKeys.length, 'keys');
-
-  // Create free subscription for admin
-  await prisma.subscription.upsert({
-    where: { userId: admin.id },
-    update: {},
-    create: {
-      userId: admin.id,
-      plan: 'admin',
-      status: 'active',
-    },
+  console.log('Created admin user:', {
+    id: user.id,
+    email: user.email,
+    isAdmin: user.isAdmin,
   });
-
-  console.log('Created admin subscription');
 }
 
 main()
