@@ -1,3 +1,5 @@
+'use client';
+
 import Navigation from '@/components/Navigation';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
