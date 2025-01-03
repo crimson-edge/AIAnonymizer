@@ -26,10 +26,10 @@ export default function AboutPage() {
         <section className="relative bg-gradient-to-b from-blue-50 to-white py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+              <h1 className="text-3xl md:text-4xl lg:text-6xl font-bold tracking-tight text-gray-900">
                 Protecting Your Future in the AI Revolution
               </h1>
-              <p className="mt-6 text-xl leading-8 text-gray-600 max-w-3xl mx-auto">
+              <p className="mt-6 text-lg md:text-xl leading-8 text-gray-600 max-w-3xl mx-auto px-4">
                 In an era where AI shapes our world, your privacy isn't just a right—it's a necessity.
               </p>
             </div>
@@ -39,26 +39,28 @@ export default function AboutPage() {
         {/* Mission Section */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900">Our Mission</h2>
-                <p className="mt-4 text-lg text-gray-600">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              <div className="px-4 sm:px-0">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Our Mission</h2>
+                <p className="mt-4 text-base md:text-lg text-gray-600">
                   At AI Anonymizer, we believe that innovation shouldn't come at the cost of privacy. 
                   Our mission is to empower individuals and organizations to harness the full potential 
                   of AI while maintaining complete control over their sensitive data.
                 </p>
-                <p className="mt-4 text-lg text-gray-600">
+                <p className="mt-4 text-base md:text-lg text-gray-600">
                   Every query you make to an AI system contains valuable information about your thoughts, 
                   projects, and intellectual property. Without proper protection, this data becomes 
                   vulnerable to exploitation, competitive analysis, and privacy breaches.
                 </p>
               </div>
-              <div className="relative h-96 rounded-xl overflow-hidden shadow-xl">
+              <div className="relative h-64 sm:h-96 rounded-xl overflow-hidden shadow-xl">
                 <Image
                   src="https://images.unsplash.com/photo-1633265486064-086b219458ec"
                   alt="Secure data visualization"
                   fill
                   className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority
                 />
               </div>
             </div>
@@ -71,9 +73,9 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
               Why AI Privacy Matters
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-xl shadow-sm">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+              <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">
                   Intellectual Property Protection
                 </h3>
                 <p className="text-gray-600">
@@ -81,8 +83,8 @@ export default function AboutPage() {
                   ideas. Without anonymization, this valuable IP is exposed to potential competitors.
                 </p>
               </div>
-              <div className="bg-white p-8 rounded-xl shadow-sm">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">
                   Data Mining Prevention
                 </h3>
                 <p className="text-gray-600">
@@ -90,8 +92,8 @@ export default function AboutPage() {
                   strategy, research directions, and competitive advantages. We prevent this data mining.
                 </p>
               </div>
-              <div className="bg-white p-8 rounded-xl shadow-sm">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">
                   Regulatory Compliance
                 </h3>
                 <p className="text-gray-600">

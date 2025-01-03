@@ -110,92 +110,68 @@ export default function PricingUI() {
   };
 
   return (
-    <>
+    <div className="mt-16">
       {/* Pricing Cards */}
-      <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8 px-4 sm:px-6">
         {tiers.map((tier) => (
           <div
             key={tier.name}
-            className={`rounded-2xl p-8 ${
+            className={`relative rounded-2xl p-6 md:p-8 shadow-sm ring-1 ${
               tier.featured
-                ? 'bg-blue-600 text-white ring-4 ring-blue-600'
-                : 'bg-white ring-1 ring-gray-200'
-            } relative`}
+                ? 'ring-2 ring-blue-600 scale-105 md:scale-105 z-10 bg-white'
+                : 'ring-1 ring-gray-200 bg-white'
+            }`}
           >
-            {tier.featured && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-yellow-400 text-black px-4 py-1 rounded-full text-sm font-semibold">
-                  Most Popular
-                </span>
-              </div>
-            )}
-            <h2 className="text-2xl font-bold">{tier.name}</h2>
-            <p
-              className={`mt-4 text-sm ${
-                tier.featured ? 'text-blue-100' : 'text-gray-600'
-              }`}
-            >
-              {tier.description}
-            </p>
-            <p className="mt-6">
-              <span className="text-4xl font-bold">{tier.price}</span>
+            <h3 className="text-lg md:text-xl font-semibold leading-8 text-gray-900">
+              {tier.name}
+            </h3>
+            <p className="mt-4 text-sm leading-6 text-gray-600">{tier.description}</p>
+            <div className="mt-6 flex items-baseline gap-x-1">
+              <span className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">
+                {tier.price}
+              </span>
               {tier.price !== 'Custom' && (
-                <span
-                  className={`text-sm ${
-                    tier.featured ? 'text-blue-100' : 'text-gray-600'
-                  }`}
-                >
-                  /month
-                </span>
+                <span className="text-sm font-semibold leading-6 text-gray-600">/month</span>
               )}
-            </p>
+            </div>
 
-            <ul className="mt-8 space-y-3">
+            {/* Features */}
+            <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-gray-600">
               {tier.features.map((feature) => (
-                <li key={feature} className="flex items-center gap-x-2">
+                <li key={feature} className="flex gap-x-3">
                   <svg
-                    className={`h-5 w-5 ${
-                      tier.featured ? 'text-white' : 'text-blue-600'
-                    }`}
+                    className="h-6 w-5 flex-none text-blue-600"
                     viewBox="0 0 20 20"
                     fill="currentColor"
+                    aria-hidden="true"
                   >
                     <path
                       fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span
-                    className={`text-sm ${
-                      tier.featured ? 'text-blue-100' : 'text-gray-600'
-                    }`}
-                  >
-                    {feature}
-                  </span>
+                  {feature}
                 </li>
               ))}
             </ul>
 
-            {tier.tier === 'ENTERPRISE' ? (
-              <button
-                onClick={() => setShowEnterpriseForm(true)}
-                className={`mt-8 block w-full rounded-lg px-4 py-2 text-center text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500`}
-              >
-                {tier.cta}
-              </button>
-            ) : (
-              <Link
-                href={tier.href}
-                className={`mt-8 block w-full rounded-lg px-4 py-2 text-center text-sm font-semibold ${
-                  tier.featured
-                    ? 'bg-white text-blue-600 hover:bg-blue-50'
-                    : 'bg-blue-600 text-white hover:bg-blue-500'
-                }`}
-              >
-                {tier.cta}
-              </Link>
-            )}
+            <Link
+              href={tier.href}
+              onClick={(e) => {
+                if (tier.tier === 'ENTERPRISE') {
+                  e.preventDefault();
+                  setShowEnterpriseForm(true);
+                }
+              }}
+              className={`mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                tier.featured
+                  ? 'bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-blue-600'
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              {tier.cta}
+            </Link>
           </div>
         ))}
       </div>
@@ -273,6 +249,6 @@ export default function PricingUI() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
