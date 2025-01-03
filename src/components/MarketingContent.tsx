@@ -27,16 +27,28 @@ export default function MarketingContent() {
                   Get started
                 </Link>
                 <Link 
-                  href="/features"
+                  href="/blog"
                   className="text-sm font-semibold leading-6 text-gray-900"
                 >
                   Learn more <span aria-hidden="true">→</span>
                 </Link>
               </div>
+
+              {/* Video Section */}
+              <div className="mt-16 relative max-w-2xl mx-auto aspect-video">
+                <iframe
+                  className="w-full h-full rounded-lg shadow-xl"
+                  src="https://www.youtube.com/embed/rGW9tkXXwmg?rel=0&showinfo=0&modestbranding=1"
+                  title="AI Anonymizer Demo"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  frameBorder="0"
+                />
+              </div>
             </div>
 
             {/* Features Grid */}
-            <div className="mt-24 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div id="features" className="mt-24 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {/* Complete Privacy */}
               <div className="rounded-xl border border-gray-200 p-8 shadow-sm bg-white">
                 <h3 className="text-lg font-semibold">Complete Privacy</h3>

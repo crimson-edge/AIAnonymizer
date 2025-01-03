@@ -3,6 +3,7 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SignInForm({ providers }: { providers: any }) {
   const [email, setEmail] = useState('');
@@ -114,6 +115,12 @@ export default function SignInForm({ providers }: { providers: any }) {
           </button>
         </div>
       </form>
+      
+      <div className="mt-6 text-center">
+        <Link href="/pricing" className="text-sm text-blue-600 hover:text-blue-500">
+          Register a New Account
+        </Link>
+      </div>
 
       {providers && Object.values(providers).map((provider: any) => {
         if (provider.id === 'credentials') return null;

@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 const navigation = [
-  { name: 'Features', href: '/features' },
+  { name: 'Features', href: '/#features' },
+  { name: 'Pricing', href: '/pricing' },
   { name: 'Blog', href: '/blog' },
   { name: 'About', href: '/about' },
-  { name: 'Pricing', href: '/pricing' },
 ];
 
 export default function Navigation() {
@@ -20,14 +19,16 @@ export default function Navigation() {
         <div className="flex h-full items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-x-2">
-            <div className="w-10 h-10 relative">
-              <Image
-                src="/logo.svg?v=2"
-                alt="AI Anonymizer"
-                width={40}
-                height={40}
-                priority
-                unoptimized
+            <div className="w-10 h-10 relative flex items-center justify-center bg-blue-600">
+              <img
+                src="/logo.svg"
+                alt="AI Anonymizer Logo"
+                className="w-8 h-8"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.style.display = 'none';
+                }}
               />
             </div>
             <span className="text-xl font-bold text-gray-900">AI Anonymizer</span>

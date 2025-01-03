@@ -5,12 +5,21 @@ import { getToken } from 'next-auth/jwt'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow all auth-related routes
+  // Allow all auth-related routes and public pages
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/auth/signin') ||
     pathname === '/login' ||
-    pathname === '/signin'
+    pathname === '/signin' ||
+    pathname === '/pricing' ||
+    pathname === '/about' ||
+    pathname === '/terms' ||
+    pathname === '/privacy' ||
+    pathname.startsWith('/blog') ||
+    pathname === '/' ||
+    // Allow static files
+    pathname.startsWith('/_next') ||  // Next.js assets
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/) // Static files
   ) {
     return NextResponse.next()
   }
@@ -18,7 +27,7 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
 
   // Redirect to login if not authenticated and trying to access protected routes
-  if (!token && pathname !== '/') {
+  if (!token) {
     const url = new URL('/auth/signin', request.url)
     url.searchParams.set('callbackUrl', encodeURI(pathname))
     return NextResponse.redirect(url)
@@ -50,8 +59,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public (public files)
+     * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
