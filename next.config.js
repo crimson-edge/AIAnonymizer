@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  experimental: {
+    esmExternals: true,
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
+  },
   images: {
     remotePatterns: [
       {
@@ -21,6 +25,12 @@ const nextConfig = {
     NEXT_PUBLIC_BASE_URL: process.env.NODE_ENV === 'production' 
       ? 'https://aianonymizer.com'
       : 'http://localhost:3010',
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...config.externals, '@prisma/client'];
+    }
+    return config;
   }
 };
 
