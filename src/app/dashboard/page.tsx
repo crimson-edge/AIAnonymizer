@@ -100,7 +100,12 @@ export default function DashboardPage() {
             />
           )}
         </div>
-        <SubscriptionManager subscription={subscription} />
+        <SubscriptionManager 
+          currentTier={subscription.tier}
+          isActive={subscription.isActive}
+          stripeCustomerId={subscription.stripeCustomerId}
+          stripeSubscriptionId={subscription.stripeSubscriptionId}
+        />
       </div>
 
       <OveragePurchaseDialog
