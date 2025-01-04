@@ -3,9 +3,10 @@ import OveragePurchaseDialog from './OveragePurchaseDialog';
 
 interface TokenPurchaseButtonProps {
   tier: 'FREE' | 'BASIC' | 'PREMIUM';
+  onPurchase?: () => void;
 }
 
-export default function TokenPurchaseButton({ tier }: TokenPurchaseButtonProps) {
+export default function TokenPurchaseButton({ tier, onPurchase }: TokenPurchaseButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
 
   const handlePurchase = async () => {
@@ -32,7 +33,10 @@ export default function TokenPurchaseButton({ tier }: TokenPurchaseButtonProps) 
   return (
     <>
       <button
-        onClick={() => setShowDialog(true)}
+        onClick={() => {
+          setShowDialog(true);
+          onPurchase?.();
+        }}
         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
         Purchase Additional Tokens
