@@ -3,9 +3,10 @@
 interface TokenPurchaseDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onPurchase: () => Promise<void>;
 }
 
-export default function TokenPurchaseDialog({ isOpen, onClose }: TokenPurchaseDialogProps) {
+export default function TokenPurchaseDialog({ isOpen, onClose, onPurchase }: TokenPurchaseDialogProps) {
   if (!isOpen) return null;
 
   return (
@@ -23,8 +24,8 @@ export default function TokenPurchaseDialog({ isOpen, onClose }: TokenPurchaseDi
             Cancel
           </button>
           <button
-            onClick={onClose}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={onPurchase}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Purchase
           </button>

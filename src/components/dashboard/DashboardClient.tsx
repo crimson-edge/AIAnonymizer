@@ -97,6 +97,29 @@ export default function DashboardClient() {
     }
   };
 
+  const handleTokenPurchase = async () => {
+    try {
+      const response = await fetch('/api/billing/purchase-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate token purchase');
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error purchasing tokens:', error);
+      setError('Failed to initiate token purchase');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
@@ -156,7 +179,7 @@ export default function DashboardClient() {
 
       {showOverageDialog && (
         <OveragePurchaseDialog
-          open={showOverageDialog}
+          isOpen={showOverageDialog}
           onClose={() => setShowOverageDialog(false)}
           onPurchase={handleOveragePurchase}
         />
@@ -164,8 +187,9 @@ export default function DashboardClient() {
 
       {showTokenDialog && (
         <TokenPurchaseDialog
-          open={showTokenDialog}
+          isOpen={showTokenDialog}
           onClose={() => setShowTokenDialog(false)}
+          onPurchase={handleTokenPurchase}
         />
       )}
     </div>
