@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // Calculate price based on token amount (e.g., $1 per 10,000 tokens)
     const unitAmount = Math.ceil((amount / 10000) * 100); // Convert to cents
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       payment_method_types: ['card'],
       line_items: [
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
     console.error('Error creating token checkout session:', error);
     return new NextResponse('Error creating checkout session', { status: 500 });
