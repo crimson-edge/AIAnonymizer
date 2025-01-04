@@ -75,12 +75,8 @@ export class GroqKeyService {
 
   static async getKeyForUser(userId: string): Promise<string | null> {
     try {
-      for (const [key, status] of keyPool.entries()) {
-        if (status.currentSession === userId) {
-          return key;
-        }
-      }
-      return null;
+      const keyEntry = Array.from(keyPool.entries()).find(([_, status]) => status.currentSession === userId);
+      return keyEntry ? keyEntry[0] : null;
     } catch (error) {
       console.error('Error getting Groq API key for user:', error);
       return null;
