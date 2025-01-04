@@ -108,16 +108,26 @@ export async function POST(req: Request) {
       }, { status: 201 });
 
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('Database error details:', {
+        name: dbError.name,
+        message: dbError.message,
+        code: dbError.code,
+        stack: dbError.stack
+      });
       return NextResponse.json(
-        { message: 'Error creating account' },
+        { message: 'Error creating account: ' + dbError.message },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Signup error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return NextResponse.json(
-      { message: 'Error creating account' },
+      { message: 'Error creating account: ' + error.message },
       { status: 500 }
     );
   }
