@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import KommunicateChat from '@/components/KommunicateChat';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -82,6 +83,7 @@ export default function RootLayout({
           </div>
           <KommunicateChat />
           <GoogleAnalytics />
+          <Toaster position="top-right" />
         </AuthProvider>
       </body>
     </html>
