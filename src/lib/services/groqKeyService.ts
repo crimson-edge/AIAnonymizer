@@ -33,15 +33,16 @@ export class GroqKeyService {
   static async allocateKey(userId: string, tier: SubscriptionTier): Promise<string | null> {
     try {
       // Find an available key
-      for (const [key, status] of keyPool.entries()) {
-        if (!status.isInUse) {
-          keyPool.set(key, {
-            isInUse: true,
-            currentSession: userId,
-            lastUsed: new Date()
-          });
-          return key;
-        }
+      const availableKey = Array.from(keyPool.entries()).find(([_, status]) => !status.isInUse);
+      
+      if (availableKey) {
+        const [key] = availableKey;
+        keyPool.set(key, {
+          isInUse: true,
+          currentSession: userId,
+          lastUsed: new Date()
+        });
+        return key;
       }
 
       // No available keys
