@@ -73,14 +73,6 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
 
-// Add error handling for connection issues
-prisma.$on('error', (e) => {
-  console.error('Prisma Client Error:', {
-    message: e.message,
-    target: e.target,
-    timestamp: new Date().toISOString()
-  });
-});
-
+// Export the prisma instance
 export { prisma };
 export default prisma;

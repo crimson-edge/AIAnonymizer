@@ -1,13 +1,13 @@
 [build]
-  command = "DEBUG=* npm run build"
+  command = "npm install && npx prisma generate && next build"
   publish = ".next"
-  ignore = "git log -1 --pretty=%B | grep dependabot"
 
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "true"
   NEXT_TELEMETRY_DISABLED = "1"
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.17.0"
   NEXT_PUBLIC_BASE_URL = "https://aianonymizer.com"
+  NPM_FLAGS = "--legacy-peer-deps --force"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -16,7 +16,11 @@
   node_bundler = "esbuild"
   included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
 
-[[headers]]
-  for = "/logo.svg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  framework = "next"
+  targetPort = 3000
