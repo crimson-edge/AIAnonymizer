@@ -6,6 +6,14 @@ import { prisma } from '@/lib/prisma';
 import { UserStatus } from '@prisma/client';
 import './env'; // This will ensure NEXTAUTH_URL is set correctly
 
+if (!process.env.NEXTAUTH_URL) {
+  console.error('NEXTAUTH_URL is not set');
+}
+
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error('NEXTAUTH_SECRET is not set');
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -16,6 +24,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       id: 'credentials',
@@ -25,11 +34,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log('Starting authorization for:', credentials?.email);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.error('Missing credentials');
           throw new Error('Missing credentials');
         }
 
         try {
+          console.log('Looking up user in database...');
           const user = await prisma.user.findUnique({
             where: { 
               email: credentials.email.toLowerCase().trim()
@@ -38,25 +51,33 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user) {
+            console.error('User not found:', credentials.email);
             throw new Error('Invalid email or password');
           }
 
+          console.log('User found, checking status...');
+          
           // Check if user is pending verification
           if (user.status === UserStatus.PENDING_VERIFICATION) {
+            console.error('User pending verification:', credentials.email);
             throw new Error('Please verify your email before signing in');
           }
 
           // Check if user is suspended
           if (user.status === UserStatus.SUSPENDED) {
+            console.error('User is suspended:', credentials.email);
             throw new Error('Your account has been suspended. Please contact support.');
           }
 
+          console.log('Checking password...');
           const isValidPassword = await bcrypt.compare(credentials.password, user.password);
 
           if (!isValidPassword) {
+            console.error('Invalid password for user:', credentials.email);
             throw new Error('Invalid email or password');
           }
 
+          console.log('Authorization successful for:', credentials.email);
           return {
             id: user.id,
             email: user.email,
@@ -100,5 +121,4 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true,
 };

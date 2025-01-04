@@ -4,16 +4,51 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL is not set in environment variables');
+}
+
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: ['query', 'error', 'warn'],
+    log: [
+      {
+        emit: 'event',
+        level: 'query',
+      },
+      {
+        emit: 'event',
+        level: 'error',
+      },
+      {
+        emit: 'event',
+        level: 'info',
+      },
+      {
+        emit: 'stdout',
+        level: 'warn',
+      },
+    ],
   });
 };
 
-export const prisma = globalThis.prisma ?? prismaClientSingleton();
+const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+// Log all queries in development
+if (process.env.NODE_ENV !== 'production') {
+  prisma.$on('query', (e: any) => {
+    console.log('Query: ' + e.query);
+    console.log('Params: ' + e.params);
+    console.log('Duration: ' + e.duration + 'ms');
+  });
+}
+
+prisma.$on('error', (e: any) => {
+  console.error('Prisma Error:', e);
+});
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
 
+export { prisma };
 export default prisma;
