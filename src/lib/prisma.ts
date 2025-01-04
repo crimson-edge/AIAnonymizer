@@ -23,14 +23,14 @@ const prisma = globalThis.prisma ?? prismaClientSingleton();
 
 // Log all queries in development
 if (process.env.NODE_ENV !== 'production') {
-  prisma.$on('query' as never, (e) => {
+  prisma.$on('query', (e: Prisma.QueryEvent) => {
     console.log('Query:', e.query);
     console.log('Params:', e.params);
     console.log('Duration:', e.duration + 'ms');
   });
 }
 
-prisma.$on('error' as never, (e) => {
+prisma.$on('error', (e: Prisma.LogEvent) => {
   console.error('Prisma Error:', e);
 });
 
