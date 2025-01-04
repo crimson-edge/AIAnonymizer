@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -11,22 +11,10 @@ if (!process.env.DATABASE_URL) {
 const prismaClientSingleton = () => {
   return new PrismaClient({
     log: [
-      {
-        emit: 'event',
-        level: 'query',
-      },
-      {
-        emit: 'event',
-        level: 'error',
-      },
-      {
-        emit: 'event',
-        level: 'info',
-      },
-      {
-        emit: 'stdout',
-        level: 'warn',
-      },
+      { level: 'query', emit: 'event' },
+      { level: 'error', emit: 'event' },
+      { level: 'info', emit: 'event' },
+      { level: 'warn', emit: 'stdout' },
     ],
   });
 };
@@ -35,14 +23,14 @@ const prisma = globalThis.prisma ?? prismaClientSingleton();
 
 // Log all queries in development
 if (process.env.NODE_ENV !== 'production') {
-  prisma.$on('query', (e: any) => {
-    console.log('Query: ' + e.query);
-    console.log('Params: ' + e.params);
-    console.log('Duration: ' + e.duration + 'ms');
+  prisma.$on('query' as never, (e) => {
+    console.log('Query:', e.query);
+    console.log('Params:', e.params);
+    console.log('Duration:', e.duration + 'ms');
   });
 }
 
-prisma.$on('error', (e: any) => {
+prisma.$on('error' as never, (e) => {
   console.error('Prisma Error:', e);
 });
 
