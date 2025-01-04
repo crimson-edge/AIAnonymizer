@@ -39,7 +39,8 @@ async function main() {
     const newAdmin = await prisma.user.create({
       data: {
         email: adminEmail,
-        name: 'Admin User',
+        firstName: 'Admin',
+        lastName: 'User',
         password: hashedPassword,
         isAdmin: true,
         subscription: {
