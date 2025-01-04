@@ -1,5 +1,5 @@
 import NextAuth from "next-auth"
-import { Subscription } from "@prisma/client"
+import { Subscription, UserStatus } from "@prisma/client"
 
 declare module "next-auth" {
   interface User {
@@ -9,6 +9,7 @@ declare module "next-auth" {
     firstName: string
     lastName: string
     isAdmin: boolean
+    status: UserStatus
     subscription?: Subscription | null
   }
 
@@ -18,6 +19,7 @@ declare module "next-auth" {
       firstName: string
       lastName: string
       isAdmin: boolean
+      status: UserStatus
       subscription?: Subscription | null
     }
   }
@@ -29,6 +31,7 @@ declare module "next-auth/jwt" {
     firstName: string
     lastName: string
     isAdmin: boolean
+    status: UserStatus
     subscription?: Subscription | null
   }
 }
