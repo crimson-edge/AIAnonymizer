@@ -8,21 +8,29 @@ if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not set in environment variables');
 }
 
-// Test database connection
-async function testConnection() {
-  try {
-    const testClient = new PrismaClient();
-    console.log('Testing database connection...');
-    await testClient.$connect();
-    console.log('Database connection successful');
-    await testClient.$disconnect();
-  } catch (error) {
-    console.error('Database connection test failed:', {
-      error: error.message,
-      code: error.code,
-      meta: error.meta,
-    });
+// Test database connection with retries
+async function testConnection(retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const testClient = new PrismaClient();
+      console.log(`Testing database connection (attempt ${i + 1}/${retries})...`);
+      await testClient.$connect();
+      console.log('Database connection successful');
+      await testClient.$disconnect();
+      return true;
+    } catch (error) {
+      console.error(`Database connection test failed (attempt ${i + 1}/${retries}):`, {
+        error: error.message,
+        code: error.code,
+        meta: error.meta,
+      });
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  return false;
 }
 
 // Run the test in non-production environments
@@ -49,16 +57,37 @@ const prisma = globalThis.prisma ?? new PrismaClient({
       level: 'warn',
     },
   ],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+  // Add connection pool configuration
+  connection: {
+    pool: {
+      min: 2,
+      max: 10
+    }
+  }
 });
 
 // Test connection in production too, but don't block
 if (process.env.NODE_ENV === 'production') {
-  testConnection();
+  testConnection(5, 2000); // More retries and longer delay in production
 }
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
+
+// Add error handling for connection issues
+prisma.$on('error', (e) => {
+  console.error('Prisma Client Error:', {
+    message: e.message,
+    target: e.target,
+    timestamp: new Date().toISOString()
+  });
+});
 
 export { prisma };
 export default prisma;
