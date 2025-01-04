@@ -1,5 +1,16 @@
 import prisma from '@/lib/prisma';
 
+interface KeyUsageInfo {
+  id: string;
+  key: string;
+  createdAt: Date;
+  isInUse: boolean;
+  currentSession: string | null;
+  lastUsed: Date | null;
+  updatedAt: Date;
+  totalUsage: number;
+}
+
 export class GroqKeyManager {
   private static initialized = false;
 
@@ -81,18 +92,35 @@ export class GroqKeyManager {
     };
   }
 
-  static async getKeyUsage() {
+  static async getKeyUsage(): Promise<KeyUsageInfo[]> {
     await this.initialize();
     
     const keys = await prisma.groqKey.findMany({
-      orderBy: { lastUsed: 'desc' }
+      select: {
+        id: true,
+        key: true,
+        createdAt: true,
+        isInUse: true,
+        currentSession: true,
+        lastUsed: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            usageRecords: true
+          }
+        }
+      }
     });
 
     return keys.map(key => ({
+      id: key.id,
       key: key.key,
+      createdAt: key.createdAt,
       isInUse: key.isInUse,
+      currentSession: key.currentSession,
       lastUsed: key.lastUsed,
-      currentSession: key.currentSession
+      updatedAt: key.updatedAt,
+      totalUsage: key._count?.usageRecords || 0
     }));
   }
 

@@ -497,7 +497,7 @@ export default function AdminUsersClient() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
             </Transition.Child>
 
             <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
