@@ -18,7 +18,7 @@ export async function GET() {
       where: { email: session.user.email },
       include: {
         subscription: true,
-        usage: true,
+        Usage: true,
       },
     });
 
@@ -31,7 +31,7 @@ export async function GET() {
 
     const response = {
       usage: {
-        used: user.usage?.count || 0,
+        used: user.Usage?.count || 0,
         total: user.subscription?.limit || 100,
       },
       subscription: {
