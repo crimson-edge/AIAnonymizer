@@ -72,13 +72,7 @@ export class GroqKeyManager {
   static async getStats() {
     await this.initialize();
     
-    const keys = await prisma.groqKey.findMany({
-      select: {
-        isInUse: true,
-        currentSession: true
-      }
-    });
-    
+    const keys = await prisma.groqKey.findMany();
     const activeKeys = keys.filter(key => key.isInUse).length;
     const inUseKeys = keys.filter(key => key.currentSession !== null).length;
     
@@ -92,23 +86,10 @@ export class GroqKeyManager {
   static async getKeyUsage(): Promise<KeyUsageInfo[]> {
     await this.initialize();
     
-    const keys = await prisma.groqKey.findMany({
-      select: {
-        id: true,
-        key: true,
-        createdAt: true,
-        isInUse: true,
-        currentSession: true,
-        lastUsed: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            usageRecords: true
-          }
-        }
-      }
-    });
+    // Get all keys with their basic information
+    const keys = await prisma.groqKey.findMany();
 
+    // Map to KeyUsageInfo format
     return keys.map(key => ({
       id: key.id,
       key: key.key,
@@ -117,7 +98,7 @@ export class GroqKeyManager {
       currentSession: key.currentSession,
       lastUsed: key.lastUsed,
       updatedAt: key.updatedAt,
-      totalUsage: key._count?.usageRecords || 0
+      totalUsage: 0 // Since we don't track usage in the GroqKey model
     }));
   }
 
