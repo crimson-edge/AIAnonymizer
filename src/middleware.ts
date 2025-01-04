@@ -7,6 +7,10 @@ const publicPaths = [
   '/api/auth',
   '/auth/signin',
   '/auth/signup',
+  '/auth/verify',
+  '/auth/verify-email',
+  '/auth/verify-success',
+  '/auth/error',
   '/login',
   '/signin',
   '/signup',
@@ -18,6 +22,19 @@ const publicPaths = [
   '/',
   '/_next',
   '/favicon.ico',
+  '/api/webhooks',
+];
+
+// List of paths that should always be dynamic
+const dynamicPaths = [
+  '/settings',
+  '/dashboard',
+  '/admin',
+  '/api/dashboard',
+  '/api/admin',
+  '/api/user',
+  '/api/subscription',
+  '/api/billing',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -31,13 +48,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // For dynamic paths, set the appropriate headers
+  if (dynamicPaths.some(path => pathname.startsWith(path))) {
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-cache', 'no-cache');
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
+  }
+
   const token = await getToken({ req: request });
   
   if (!token) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    const url = new URL('/auth/signin', request.url);
+    url.searchParams.set('callbackUrl', encodeURI(request.url));
+    return NextResponse.redirect(url);
   }
 
-  // For admin routes, redirect to the check-admin API
+  // For admin routes, check admin status
   if (pathname.startsWith('/admin')) {
     try {
       const adminCheck = await fetch(new URL('/api/auth/check-admin', request.url));
@@ -50,7 +77,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set('x-middleware-cache', 'no-cache');
+  return response;
 }
 
 export const config = {

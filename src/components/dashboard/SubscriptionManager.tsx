@@ -40,7 +40,7 @@ export default function SubscriptionManager({
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        router.push(data.url);
       } else {
         throw new Error('No checkout URL received');
       }
@@ -64,7 +64,7 @@ export default function SubscriptionManager({
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        router.push(data.url);
       } else {
         throw new Error('No checkout URL received');
       }

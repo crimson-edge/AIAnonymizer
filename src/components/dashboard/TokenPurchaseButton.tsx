@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import OveragePurchaseDialog from './OveragePurchaseDialog';
 
 interface TokenPurchaseButtonProps {
@@ -8,6 +9,7 @@ interface TokenPurchaseButtonProps {
 
 export default function TokenPurchaseButton({ tier, onPurchase }: TokenPurchaseButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
+  const router = useRouter();
 
   const handlePurchase = async () => {
     try {
@@ -20,7 +22,7 @@ export default function TokenPurchaseButton({ tier, onPurchase }: TokenPurchaseB
       }
 
       const { url } = await response.json();
-      window.location.href = url;
+      router.push(url);
     } catch (error) {
       console.error('Error purchasing overage tokens:', error);
     }
