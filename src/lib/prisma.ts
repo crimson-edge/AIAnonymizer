@@ -61,13 +61,6 @@ const prisma = globalThis.prisma ?? new PrismaClient({
     db: {
       url: process.env.DATABASE_URL,
     },
-  },
-  // Add connection pool configuration
-  connection: {
-    pool: {
-      min: 2,
-      max: 10
-    }
   }
 });
 
