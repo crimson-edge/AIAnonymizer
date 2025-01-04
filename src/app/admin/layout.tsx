@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export default async function AdminLayout({
   children,
@@ -21,7 +21,7 @@ export default async function AdminLayout({
   });
 
   if (!user?.isAdmin) {
-    redirect('/');
+    redirect('/dashboard');
   }
 
   return (
@@ -36,13 +36,13 @@ export default async function AdminLayout({
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <a
                   href="/admin/users"
-                  className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ease-in-out hover:border-gray-300 hover:text-gray-700"
                 >
                   Users
                 </a>
                 <a
                   href="/admin/api-keys"
-                  className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ease-in-out hover:border-gray-300 hover:text-gray-700"
                 >
                   API Keys
                 </a>
@@ -51,9 +51,8 @@ export default async function AdminLayout({
           </div>
         </div>
       </nav>
-
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">{children}</div>
+        {children}
       </main>
     </div>
   );

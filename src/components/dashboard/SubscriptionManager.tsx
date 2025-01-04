@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import UpgradeDialog from './UpgradeDialog';
 
 interface SubscriptionProps {
   currentTier: 'FREE' | 'BASIC' | 'PREMIUM';
@@ -11,12 +12,6 @@ interface SubscriptionProps {
   onPurchaseOverage: () => void;
   onPurchaseTokens: () => void;
 }
-
-const tiers = {
-  FREE: { price: '$0', features: ['1,000 tokens/month', '5 requests/minute'] },
-  BASIC: { price: '$8', features: ['10,000 tokens/month', '15 requests/minute'] },
-  PREMIUM: { price: '$15', features: ['100,000 tokens/month', '50 requests/minute'] }
-};
 
 export default function SubscriptionManager({ 
   currentTier, 
@@ -30,6 +25,7 @@ export default function SubscriptionManager({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDowngradeConfirm, setShowDowngradeConfirm] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [targetTier, setTargetTier] = useState<'FREE' | 'BASIC' | null>(null);
 
   const handleUpgrade = async (tier: 'BASIC' | 'PREMIUM') => {
@@ -53,30 +49,7 @@ export default function SubscriptionManager({
       console.error('Upgrade error:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePurchaseTokens = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await fetch('/api/subscription/create-token-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 100000 })
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        router.push(data.url);
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (err) {
-      setError('Failed to start token purchase. Please try again.');
-      console.error('Token purchase error:', err);
-    } finally {
-      setLoading(false);
+      setShowUpgradeDialog(false);
     }
   };
 
@@ -116,28 +89,22 @@ export default function SubscriptionManager({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
         <h3 className="text-lg font-semibold text-blue-900 mb-2">Upgrade Your Plan</h3>
         <p className="text-blue-700 mb-4">
-          Upgrade to Basic or Premium to unlock more features and higher usage limits.
+          Upgrade to unlock more features and higher usage limits.
         </p>
-        <div className="flex gap-4">
-          <button
-            onClick={() => handleUpgrade('BASIC')}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Upgrade to Basic
-          </button>
-          <button
-            onClick={() => handleUpgrade('PREMIUM')}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-          >
-            Upgrade to Premium
-          </button>
-        </div>
+        <button
+          onClick={() => setShowUpgradeDialog(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          View Plans
+        </button>
+        <UpgradeDialog
+          isOpen={showUpgradeDialog}
+          onClose={() => setShowUpgradeDialog(false)}
+          onUpgrade={handleUpgrade}
+        />
       </div>
     );
   }
-
-  // Only show token purchase for Premium tier
-  const showTokenPurchase = currentTier === 'PREMIUM';
 
   return (
     <>
@@ -152,13 +119,13 @@ export default function SubscriptionManager({
           <div className="flex gap-4">
             {currentTier === 'BASIC' && (
               <button
-                onClick={() => handleUpgrade('PREMIUM')}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                onClick={() => setShowUpgradeDialog(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                Upgrade to Premium
+                View Premium Plan
               </button>
             )}
-            {showTokenPurchase && (
+            {currentTier === 'PREMIUM' && (
               <button
                 onClick={onPurchaseTokens}
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -171,7 +138,6 @@ export default function SubscriptionManager({
         {error && (
           <div className="text-red-600 mb-4">{error}</div>
         )}
-        {/* Show downgrade option for BASIC and PREMIUM tiers */}
         {(currentTier === 'BASIC' || currentTier === 'PREMIUM') && (
           <div className="mt-4 border-t pt-4">
             <p className="text-sm text-gray-600">
@@ -189,6 +155,13 @@ export default function SubscriptionManager({
           </div>
         )}
       </div>
+
+      {/* Upgrade Dialog */}
+      <UpgradeDialog
+        isOpen={showUpgradeDialog}
+        onClose={() => setShowUpgradeDialog(false)}
+        onUpgrade={handleUpgrade}
+      />
 
       {/* Downgrade Confirmation Dialog */}
       {showDowngradeConfirm && targetTier && (

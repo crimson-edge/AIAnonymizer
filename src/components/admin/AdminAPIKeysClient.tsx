@@ -4,16 +4,32 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+interface APIKey {
+  id: string;
+  key: string;
+  inUse: boolean;
+  lastUsed?: string;
+  totalUsage: number;
+}
+
+interface APIStats {
+  totalKeys: number;
+  activeKeys: number;
+  totalUsage: number;
+}
+
 export default function AdminAPIKeysClient() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
-  const [apiKeys, setApiKeys] = useState([]);
+  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<APIStats | null>(null);
 
   useEffect(() => {
-    if (session === null) {
+    if (sessionStatus === 'loading') return;
+    
+    if (!session) {
       router.push('/auth/signin');
       return;
     }
@@ -45,141 +61,132 @@ export default function AdminAPIKeysClient() {
     };
 
     fetchData();
-  }, [session, router]);
+  }, [session, sessionStatus, router]);
 
   const refreshKey = async (keyId: string) => {
     try {
-      const res = await fetch(`/api/admin/api-keys/refresh`, {
+      const res = await fetch('/api/admin/api-keys/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyId }),
+        body: JSON.stringify({ keyId })
       });
 
       if (!res.ok) {
-        throw new Error('Failed to refresh API key');
+        throw new Error('Failed to refresh key');
       }
 
-      const updatedKey = await res.json();
-      setApiKeys(keys => keys.map(key => 
-        key.id === keyId ? updatedKey : key
-      ));
+      const data = await res.json();
+      setApiKeys(keys => keys.map(k => k.id === keyId ? { ...k, key: data.key } : k));
     } catch (err) {
-      console.error('Error refreshing API key:', err);
-      setError('Failed to refresh API key');
+      console.error('Error refreshing key:', err);
+      setError('Failed to refresh key');
     }
   };
 
-  if (!session) {
-    return null;
-  }
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="rounded-lg bg-white p-8 shadow-sm">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-3">
+            <div className="h-5 bg-gray-200 rounded"></div>
+            <div className="h-5 bg-gray-200 rounded"></div>
+            <div className="h-5 bg-gray-200 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+      <div className="rounded-lg bg-white p-8 shadow-sm">
+        <div className="text-red-600">
+          <h3 className="text-lg font-semibold mb-2">Error Loading API Keys</h3>
+          <p>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">API Key Management</h1>
-
+    <div className="space-y-6">
       {/* Stats Overview */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-700">Total Keys</h3>
-            <p className="text-3xl font-bold text-blue-600">{stats.totalKeys}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.totalKeys}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-700">Active Keys</h3>
-            <p className="text-3xl font-bold text-green-600">{stats.activeKeys}</p>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.activeKeys}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-700">Total Usage</h3>
-            <p className="text-3xl font-bold text-purple-600">{stats.totalUsage.toLocaleString()}</p>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.totalUsage}</p>
           </div>
         </div>
       )}
 
       {/* API Keys Table */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Key ID
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Usage
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {apiKeys.map((key: any) => (
-              <tr key={key.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-mono text-gray-900">{key.id}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{key.user.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    key.active
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {key.active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {key.usage.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(key.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => refreshKey(key.id)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    Refresh
-                  </button>
-                  <button
-                    onClick={() => {/* Handle revoke */}}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Revoke
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="bg-white shadow-sm rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <h2 className="text-lg font-semibold mb-4">API Keys</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Key
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Used
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Usage
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {apiKeys.map((key) => (
+                  <tr key={key.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-mono text-gray-900">{key.key}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        key.inUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {key.inUse ? 'In Use' : 'Available'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {key.totalUsage}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => refreshKey(key.id)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Refresh
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
