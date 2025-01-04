@@ -5,6 +5,7 @@ const nextConfig = {
     esmExternals: true,
     serverComponentsExternalPackages: ['@prisma/client', 'prisma']
   },
+  transpilePackages: ['@prisma/client'],
   images: {
     remotePatterns: [
       {
@@ -30,6 +31,11 @@ const nextConfig = {
     if (isServer) {
       config.externals = [...config.externals, '@prisma/client'];
     }
+    // Properly resolve path aliases
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': '/opt/build/repo/src',
+    };
     return config;
   }
 };
