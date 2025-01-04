@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "DEBUG=* npm run build"
   publish = ".next"
   ignore = "git log -1 --pretty=%B | grep dependabot"
 
@@ -19,4 +19,4 @@
 [[headers]]
   for = "/logo.svg"
   [headers.values]
-    cache-control = "no-cache"
+    Cache-Control = "public, max-age=31536000, immutable"
