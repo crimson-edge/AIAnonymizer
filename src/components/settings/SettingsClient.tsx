@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import DeleteAccountDialog from './DeleteAccountDialog';
 
 export default function SettingsClient() {
   const { data: session, update: updateSession } = useSession();
@@ -17,6 +18,7 @@ export default function SettingsClient() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -180,6 +182,24 @@ export default function SettingsClient() {
           {isLoading ? 'Updating...' : 'Update Settings'}
         </button>
       </form>
+
+      <div className="mt-12 pt-8 border-t">
+        <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+        <p className="text-gray-600 mb-4">
+          Once you delete your account, there is no going back. Please be certain.
+        </p>
+        <button
+          onClick={() => setShowDeleteDialog(true)}
+          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        >
+          Delete Account
+        </button>
+      </div>
+
+      <DeleteAccountDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+      />
     </div>
   );
 }
