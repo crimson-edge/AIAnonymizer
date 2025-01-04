@@ -8,6 +8,8 @@ interface SubscriptionProps {
   isActive: boolean;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  onPurchaseOverage: () => void;
+  onPurchaseTokens: () => void;
 }
 
 const tiers = {
@@ -20,7 +22,9 @@ export default function SubscriptionManager({
   currentTier, 
   isActive,
   stripeCustomerId,
-  stripeSubscriptionId 
+  stripeSubscriptionId,
+  onPurchaseOverage,
+  onPurchaseTokens
 }: SubscriptionProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);

@@ -145,7 +145,10 @@ export default function DashboardClient() {
         </div>
 
         <SubscriptionManager
-          subscription={subscriptionData}
+          currentTier={subscriptionData?.tier || 'FREE'}
+          isActive={subscriptionData?.isActive || false}
+          stripeCustomerId={subscriptionData?.stripeCustomerId}
+          stripeSubscriptionId={subscriptionData?.stripeSubscriptionId}
           onPurchaseOverage={() => setShowOverageDialog(true)}
           onPurchaseTokens={() => setShowTokenDialog(true)}
         />

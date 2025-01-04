@@ -16,11 +16,6 @@
   node_bundler = "esbuild"
   included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
 [dev]
   framework = "next"
   targetPort = 3000
