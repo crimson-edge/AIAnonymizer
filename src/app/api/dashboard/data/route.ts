@@ -29,14 +29,17 @@ export async function GET() {
       );
     }
 
+    // Calculate total tokens used by summing up all usage records
+    const totalTokensUsed = user.Usage.reduce((sum, record) => sum + record.tokens, 0);
+
     const response = {
       usage: {
-        used: user.Usage?.count || 0,
-        total: user.subscription?.limit || 100,
+        used: totalTokensUsed,
+        total: user.subscription?.tokenLimit || 1000,
       },
       subscription: {
         tier: user.subscription?.tier || 'FREE',
-        isActive: user.subscription?.status === 'active',
+        isActive: user.subscription?.isActive || false,
         stripeCustomerId: user.stripeCustomerId,
         stripeSubscriptionId: user.subscription?.stripeSubscriptionId,
       },
