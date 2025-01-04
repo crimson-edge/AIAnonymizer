@@ -65,6 +65,8 @@ export const authOptions: NextAuthOptions = {
             isAdmin: user.isAdmin,
             status: user.status,
             subscription: user.subscription,
+            firstName: user.firstName,
+            lastName: user.lastName,
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -83,6 +85,8 @@ export const authOptions: NextAuthOptions = {
         token.isAdmin = user.isAdmin;
         token.status = user.status;
         token.subscription = user.subscription;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
       }
       return token;
     },
@@ -92,6 +96,8 @@ export const authOptions: NextAuthOptions = {
         session.user.isAdmin = token.isAdmin;
         session.user.status = token.status;
         session.user.subscription = token.subscription;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
       }
       return session;
     },

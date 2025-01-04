@@ -6,6 +6,8 @@ declare module "next-auth" {
     id: string
     email: string
     name?: string | null
+    firstName: string
+    lastName: string
     isAdmin: boolean
     subscription?: Subscription | null
   }
@@ -13,6 +15,8 @@ declare module "next-auth" {
   interface Session {
     user: User & {
       id: string
+      firstName: string
+      lastName: string
       isAdmin: boolean
       subscription?: Subscription | null
     }
@@ -22,6 +26,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
+    firstName: string
+    lastName: string
     isAdmin: boolean
     subscription?: Subscription | null
   }
