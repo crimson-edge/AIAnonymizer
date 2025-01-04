@@ -32,26 +32,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check for existing user first
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (existingUser) {
+      console.log('User already exists:', email);
+      return NextResponse.json(
+        { message: 'An account with this email already exists' },
+        { status: 409 }
+      );
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     try {
-      // Check for existing user first
-      const existingUser = await prisma.user.findUnique({
-        where: { email: email.toLowerCase().trim() },
-      });
-
-      if (existingUser) {
-        // Delete existing user and related records
-        await prisma.$transaction([
-          prisma.subscription.deleteMany({ where: { userId: existingUser.id } }),
-          prisma.apiKey.deleteMany({ where: { userId: existingUser.id } }),
-          prisma.usage.deleteMany({ where: { userId: existingUser.id } }),
-          prisma.user.delete({ where: { id: existingUser.id } })
-        ]);
-      }
-
       // Create new user
       const user = await prisma.user.create({
         data: {
@@ -75,9 +73,12 @@ export async function POST(req: Request) {
         }
       });
 
+      console.log('User created successfully:', user.id);
+
       // Send verification email
       try {
         await sendVerificationEmail(email.toLowerCase().trim(), verificationToken);
+        console.log('Verification email sent successfully');
       } catch (emailError) {
         console.error('Error sending verification email:', emailError);
         return NextResponse.json({
@@ -102,22 +103,21 @@ export async function POST(req: Request) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          status: user.status,
-          verificationToken: verificationToken
+          status: user.status
         }
       }, { status: 201 });
 
-    } catch (error) {
-      console.error('Database error:', error);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
       return NextResponse.json(
         { message: 'Error creating account' },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Server error:', error);
+    console.error('Signup error:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { message: 'Error creating account' },
       { status: 500 }
     );
   }
