@@ -46,9 +46,9 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Please verify your email before signing in');
           }
 
-          // Check if user is disabled
-          if (user.status === UserStatus.DISABLED) {
-            throw new Error('Your account has been disabled. Please contact support.');
+          // Check if user is suspended
+          if (user.status === UserStatus.SUSPENDED) {
+            throw new Error('Your account has been suspended. Please contact support.');
           }
 
           const isValidPassword = await bcrypt.compare(credentials.password, user.password);
