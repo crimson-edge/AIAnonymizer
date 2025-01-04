@@ -10,12 +10,9 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
+    // If user is logged in, redirect to dashboard regardless of admin status
     if (session?.user) {
-      if (session.user.isAdmin) {
-        router.push('/admin/api-keys');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     }
   }, [session, router]);
 
