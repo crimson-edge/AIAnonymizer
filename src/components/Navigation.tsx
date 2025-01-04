@@ -18,6 +18,11 @@ const authenticatedNavigation = [
   { name: 'Back to AI', href: '/ai' },
 ];
 
+const adminNavigation = [
+  { name: 'User Management', href: '/admin/users' },
+  { name: 'API Keys', href: '/admin/api-keys' },
+];
+
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
@@ -45,6 +50,7 @@ export default function Navigation() {
   }
 
   const isAuthenticated = status === 'authenticated';
+  const isAdmin = session?.user?.isAdmin;
   const navigation = isAuthenticated ? authenticatedNavigation : publicNavigation;
 
   return (
@@ -79,6 +85,20 @@ export default function Navigation() {
                 {link.name}
               </Link>
             ))}
+            {isAdmin && (
+              <>
+                <div className="h-4 w-px bg-gray-200" aria-hidden="true" />
+                {adminNavigation.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </>
+            )}
             {isAuthenticated ? (
               <button
                 onClick={handleSignOut}
@@ -135,6 +155,20 @@ export default function Navigation() {
                   {link.name}
                 </Link>
               ))}
+              {isAdmin && (
+                <>
+                  <div className="my-2 h-px bg-gray-200" aria-hidden="true" />
+                  {adminNavigation.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      className="block px-3 py-2 text-base font-medium text-indigo-600 hover:text-indigo-500"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </>
+              )}
               {isAuthenticated ? (
                 <button
                   onClick={handleSignOut}

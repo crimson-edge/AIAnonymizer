@@ -135,7 +135,10 @@ export default function AdminUsersClient() {
   };
 
   const handleAddTokens = async () => {
-    if (!tokenDialog.userId || addTokensAmount <= 0) return;
+    if (!tokenDialog.userId || addTokensAmount <= 0) {
+      setError('Please enter a valid token amount');
+      return;
+    }
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -148,15 +151,17 @@ export default function AdminUsersClient() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to add tokens');
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add tokens');
       }
 
       setTokenDialog({ isOpen: false, userId: null, userName: '' });
       setAddTokensAmount(0);
+      setError('');
       fetchUsers(pagination.currentPage);
     } catch (err) {
       console.error('Error adding tokens:', err);
-      setError('Failed to add tokens');
+      setError(err instanceof Error ? err.message : 'Failed to add tokens');
     }
   };
 
@@ -276,6 +281,7 @@ export default function AdminUsersClient() {
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
               <option value="SUSPENDED">Suspended</option>
+              <option value="PENDING_VERIFICATION">Pending Verification</option>
             </select>
             <select
               value={filters.tier}
@@ -289,131 +295,236 @@ export default function AdminUsersClient() {
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('email')}
-                >
-                  User
-                  {filters.sortBy === 'email' && (
-                    <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  )}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('status')}
-                >
-                  Status
-                  {filters.sortBy === 'status' && (
-                    <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  )}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('subscription')}
-                >
-                  Plan
-                  {filters.sortBy === 'subscription' && (
-                    <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  )}
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('createdAt')}
-                >
-                  Joined
-                  {filters.sortBy === 'createdAt' && (
-                    <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  )}
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Admin
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>
-                      <div>{user.subscription?.tier || 'FREE'}</div>
-                      <div className="text-xs text-gray-400">
-                        Tokens: {user.subscription?.tokenLimit || 0}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => toggleAdminStatus(user.id, user.isAdmin)}
-                      className={`px-2 py-1 rounded ${
-                        user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                      } hover:opacity-75`}
-                    >
-                      {user.isAdmin ? 'Yes' : 'No'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => toggleUserStatus(user.id, user.status)}
-                      className={`text-sm px-2 py-1 rounded ${
-                        user.status === 'ACTIVE' 
-                          ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                          : 'bg-green-100 text-green-800 hover:bg-green-200'
-                      }`}
-                    >
-                      {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => setTokenDialog({
-                        isOpen: true,
-                        userId: user.id,
-                        userName: `${user.firstName} ${user.lastName}`
-                      })}
-                      className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-                    >
-                      Add Tokens
-                    </button>
-                    <button
-                      onClick={() => deleteUser(user.id)}
-                      className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        
+        <div className="grid grid-cols-12 gap-6">
+          {/* User List Table - 7 columns */}
+          <div className="col-span-7 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('email')}
+                  >
+                    User
+                    {filters.sortBy === 'email' && (
+                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('status')}
+                  >
+                    Status
+                    {filters.sortBy === 'status' && (
+                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('subscription.tier')}
+                  >
+                    Plan
+                    {filters.sortBy === 'subscription.tier' && (
+                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Joined
+                    {filters.sortBy === 'createdAt' && (
+                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Admin
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr 
+                    key={user.id} 
+                    onClick={() => setSelectedUserId(user.id)}
+                    className={`cursor-pointer transition-colors ${
+                      selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.firstName} {user.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                        user.status === 'PENDING_VERIFICATION' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {user.status === 'PENDING_VERIFICATION' ? 'Pending Verification' : user.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div>
+                        <div>{user.subscription?.tier || 'FREE'}</div>
+                        <div className="text-xs text-gray-400">
+                          Tokens: {user.subscription?.tokenLimit?.toLocaleString() || 0}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => toggleAdminStatus(user.id, user.isAdmin)}
+                        className={`px-2 py-1 rounded ${
+                          user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        } hover:opacity-75`}
+                      >
+                        {user.isAdmin ? 'Yes' : 'No'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => toggleUserStatus(user.id, user.status)}
+                        className={`text-sm px-2 py-1 rounded ${
+                          user.status === 'ACTIVE' 
+                            ? 'bg-red-100 text-red-800 hover:bg-red-200' 
+                            : 'bg-green-100 text-green-800 hover:bg-green-200'
+                        }`}
+                      >
+                        {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => setTokenDialog({
+                          isOpen: true,
+                          userId: user.id,
+                          userName: `${user.firstName} ${user.lastName}`
+                        })}
+                        className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                      >
+                        Add Tokens
+                      </button>
+                      <button
+                        onClick={() => deleteUser(user.id)}
+                        className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* User Details Panel - 5 columns */}
+          <div className="col-span-5">
+            {selectedUserId && users.find(u => u.id === selectedUserId) ? (
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">User Details</h3>
+                <div className="space-y-4">
+                  {/* Selected user's detailed information */}
+                  {(() => {
+                    const user = users.find(u => u.id === selectedUserId)!;
+                    return (
+                      <>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Account Information</h4>
+                          <div className="mt-2 grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-500">Name</p>
+                              <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Email</p>
+                              <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Status</p>
+                              <p className="text-sm font-medium text-gray-900">{user.status}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Admin</p>
+                              <p className="text-sm font-medium text-gray-900">{user.isAdmin ? 'Yes' : 'No'}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Subscription Details</h4>
+                          <div className="mt-2 grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-500">Plan</p>
+                              <p className="text-sm font-medium text-gray-900">{user.subscription?.tier || 'FREE'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Status</p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {user.subscription?.isActive ? 'Active' : 'Inactive'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Monthly Limit</p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {user.subscription?.monthlyLimit?.toLocaleString() || 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Token Limit</p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {user.subscription?.tokenLimit?.toLocaleString() || 0}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            onClick={() => toggleUserStatus(user.id, user.status)}
+                            className={`text-sm px-3 py-2 rounded-md ${
+                              user.status === 'ACTIVE' 
+                                ? 'bg-red-100 text-red-800 hover:bg-red-200' 
+                                : 'bg-green-100 text-green-800 hover:bg-green-200'
+                            }`}
+                          >
+                            {user.status === 'ACTIVE' ? 'Suspend User' : 'Activate User'}
+                          </button>
+                          <button
+                            onClick={() => setTokenDialog({
+                              isOpen: true,
+                              userId: user.id,
+                              userName: `${user.firstName} ${user.lastName}`
+                            })}
+                            className="text-sm px-3 py-2 rounded-md bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                          >
+                            Manage Tokens
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center text-gray-500">
+                Select a user to view details
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Pagination Controls */}
@@ -485,7 +596,11 @@ export default function AdminUsersClient() {
         <Dialog
           as="div"
           className="fixed inset-0 z-10 overflow-y-auto"
-          onClose={() => setTokenDialog({ isOpen: false, userId: null, userName: '' })}
+          onClose={() => {
+            setTokenDialog({ isOpen: false, userId: null, userName: '' });
+            setAddTokensAmount(0);
+            setError('');
+          }}
         >
           <div className="min-h-screen px-4 text-center">
             <Transition.Child
@@ -516,21 +631,35 @@ export default function AdminUsersClient() {
                   Add Tokens for {tokenDialog.userName}
                 </Dialog.Title>
                 <div className="mt-4">
+                  <label htmlFor="tokenAmount" className="block text-sm font-medium text-gray-700">
+                    Number of Tokens
+                  </label>
                   <input
                     type="number"
-                    min="0"
+                    id="tokenAmount"
+                    min="1"
                     value={addTokensAmount}
-                    onChange={(e) => setAddTokensAmount(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border rounded-md"
-                    placeholder="Enter number of tokens"
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setAddTokensAmount(value >= 0 ? value : 0);
+                      if (error) setError('');
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
+                  {error && (
+                    <p className="mt-2 text-sm text-red-600">{error}</p>
+                  )}
                 </div>
 
                 <div className="mt-4 flex justify-end space-x-2">
                   <button
                     type="button"
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                    onClick={() => setTokenDialog({ isOpen: false, userId: null, userName: '' })}
+                    onClick={() => {
+                      setTokenDialog({ isOpen: false, userId: null, userName: '' });
+                      setAddTokensAmount(0);
+                      setError('');
+                    }}
                   >
                     Cancel
                   </button>
