@@ -73,6 +73,7 @@ export default function DashboardClient() {
 
   const usagePercentage = (usage.used / usage.total) * 100;
   const isOverLimit = usage.used > usage.total;
+  const currentTier = subscriptionData?.tier || 'FREE';
 
   const handleOveragePurchase = async () => {
     try {
@@ -143,32 +144,44 @@ export default function DashboardClient() {
           </div>
           {isOverLimit && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              You have exceeded your API usage limit. Please purchase additional capacity.
+              You have exceeded your API usage limit. {currentTier === 'FREE' ? 'Please upgrade your plan.' : 'Please purchase additional capacity.'}
             </div>
           )}
           {usagePercentage > 90 && !isOverLimit && (
             <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-              You are approaching your API usage limit.
+              You are approaching your API usage limit. {currentTier === 'FREE' ? 'Consider upgrading your plan.' : 'Consider purchasing additional capacity.'}
             </div>
           )}
-          <div className="flex gap-4">
-            <button
-              onClick={() => setShowOverageDialog(true)}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Purchase Additional Capacity
-            </button>
-            <button
-              onClick={() => setShowTokenDialog(true)}
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Purchase Tokens
-            </button>
-          </div>
+          {currentTier === 'PREMIUM' && (
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowOverageDialog(true)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Purchase Additional Capacity
+              </button>
+              <button
+                onClick={() => setShowTokenDialog(true)}
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Purchase Tokens
+              </button>
+            </div>
+          )}
+          {currentTier === 'BASIC' && (
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowOverageDialog(true)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Purchase Additional Capacity
+              </button>
+            </div>
+          )}
         </div>
 
         <SubscriptionManager
-          currentTier={subscriptionData?.tier || 'FREE'}
+          currentTier={currentTier}
           isActive={subscriptionData?.isActive || false}
           stripeCustomerId={subscriptionData?.stripeCustomerId}
           stripeSubscriptionId={subscriptionData?.stripeSubscriptionId}

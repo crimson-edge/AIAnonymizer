@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Dialog, Transition } from '@headlessui/react';
 
 interface APIKey {
   id: string;
@@ -25,6 +26,9 @@ export default function AdminAPIKeysClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState<APIStats | null>(null);
+  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [addKeyError, setAddKeyError] = useState('');
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -34,34 +38,83 @@ export default function AdminAPIKeysClient() {
       return;
     }
 
-    const fetchData = async () => {
-      try {
-        const [keysRes, statsRes] = await Promise.all([
-          fetch('/api/admin/api-keys'),
-          fetch('/api/admin/api-keys/stats')
-        ]);
-
-        if (!keysRes.ok || !statsRes.ok) {
-          throw new Error('Failed to fetch API keys data');
-        }
-
-        const [keysData, statsData] = await Promise.all([
-          keysRes.json(),
-          statsRes.json()
-        ]);
-
-        setApiKeys(keysData);
-        setStats(statsData);
-      } catch (err) {
-        setError('Failed to load API keys data');
-        console.error('API keys data fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [session, sessionStatus, router]);
+
+  const fetchData = async () => {
+    try {
+      const [keysRes, statsRes] = await Promise.all([
+        fetch('/api/admin/api-keys'),
+        fetch('/api/admin/api-keys/stats')
+      ]);
+
+      if (!keysRes.ok || !statsRes.ok) {
+        throw new Error('Failed to fetch API keys data');
+      }
+
+      const [keysData, statsData] = await Promise.all([
+        keysRes.json(),
+        statsRes.json()
+      ]);
+
+      setApiKeys(keysData);
+      setStats(statsData);
+    } catch (err) {
+      setError('Failed to load API keys data');
+      console.error('API keys data fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addKey = async () => {
+    try {
+      setAddKeyError('');
+      if (!newKey.trim()) {
+        setAddKeyError('API key is required');
+        return;
+      }
+
+      const res = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: newKey.trim() })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to add key');
+      }
+
+      setNewKey('');
+      setIsAddKeyModalOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error adding key:', err);
+      setAddKeyError(err instanceof Error ? err.message : 'Failed to add key');
+    }
+  };
+
+  const deleteKey = async (key: string) => {
+    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/api-keys?key=${encodeURIComponent(key)}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete key');
+      }
+
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting key:', err);
+      setError('Failed to delete key');
+    }
+  };
 
   const refreshKey = async (keyId: string) => {
     try {
@@ -81,6 +134,11 @@ export default function AdminAPIKeysClient() {
       console.error('Error refreshing key:', err);
       setError('Failed to refresh key');
     }
+  };
+
+  const maskKey = (key: string) => {
+    if (key.length <= 16) return '********';
+    return `${key.slice(0, 8)}...${key.slice(-8)}`;
   };
 
   if (loading) {
@@ -112,27 +170,33 @@ export default function AdminAPIKeysClient() {
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.totalKeys}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.activeKeys}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats.totalUsage}</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalKeys || 0}</p>
         </div>
-      )}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.activeKeys || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalUsage?.toLocaleString() || 0}</p>
+        </div>
+      </div>
 
       {/* API Keys Table */}
       <div className="bg-white shadow-sm rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-semibold mb-4">API Keys</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">API Keys</h2>
+            <button
+              onClick={() => setIsAddKeyModalOpen(true)}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            >
+              Add New Key
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -158,7 +222,9 @@ export default function AdminAPIKeysClient() {
                 {apiKeys.map((key) => (
                   <tr key={key.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono text-gray-900">{key.key}</div>
+                      <div className="text-sm font-mono text-gray-900">
+                        {maskKey(key.key)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -171,14 +237,20 @@ export default function AdminAPIKeysClient() {
                       {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {key.totalUsage}
+                      {key.totalUsage.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
                         onClick={() => refreshKey(key.id)}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         Refresh
+                      </button>
+                      <button
+                        onClick={() => deleteKey(key.key)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -188,6 +260,76 @@ export default function AdminAPIKeysClient() {
           </div>
         </div>
       </div>
+
+      {/* Add Key Modal */}
+      <Transition appear show={isAddKeyModalOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-10 overflow-y-auto"
+          onClose={() => setIsAddKeyModalOpen(false)}
+        >
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+            </Transition.Child>
+
+            <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                  Add New API Key
+                </Dialog.Title>
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    value={newKey}
+                    onChange={(e) => setNewKey(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md"
+                    placeholder="Enter API key"
+                  />
+                  {addKeyError && (
+                    <p className="mt-2 text-sm text-red-600">{addKeyError}</p>
+                  )}
+                </div>
+
+                <div className="mt-4 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    onClick={() => setIsAddKeyModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                    onClick={addKey}
+                  >
+                    Add Key
+                  </button>
+                </div>
+              </div>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

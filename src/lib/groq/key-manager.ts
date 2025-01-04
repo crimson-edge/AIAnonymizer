@@ -61,13 +61,23 @@ export class GroqKeyManager {
   static async getStats() {
     await this.initialize();
     
-    const keys = await prisma.groqKey.findMany();
-    const inUse = keys.filter(key => key.isInUse).length;
+    const keys = await prisma.groqKey.findMany({
+      include: {
+        _count: {
+          select: {
+            usage: true
+          }
+        }
+      }
+    });
+    
+    const totalUsage = keys.reduce((sum, key) => sum + (key._count.usage || 0), 0);
+    const activeKeys = keys.filter(key => key.isInUse).length;
     
     return {
-      total: keys.length,
-      inUse,
-      available: keys.length - inUse
+      totalKeys: keys.length,
+      activeKeys,
+      totalUsage
     };
   }
 
