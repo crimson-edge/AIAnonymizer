@@ -29,12 +29,16 @@ const publicPaths = [
 const dynamicPaths = [
   '/settings',
   '/dashboard',
-  '/admin',
   '/api/dashboard',
-  '/api/admin',
   '/api/user',
   '/api/subscription',
   '/api/billing',
+];
+
+// List of admin-only paths
+const adminPaths = [
+  '/admin',
+  '/api/admin',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -48,38 +52,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For dynamic paths, set the appropriate headers
-  if (dynamicPaths.some(path => pathname.startsWith(path))) {
-    const response = NextResponse.next();
-    response.headers.set('x-middleware-cache', 'no-cache');
-    response.headers.set('Cache-Control', 'no-store');
-    return response;
-  }
-
+  // Get the token and check authentication
   const token = await getToken({ req: request });
-  
+
+  // If no token is present, redirect to login
   if (!token) {
     const url = new URL('/auth/signin', request.url);
     url.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(url);
   }
 
-  // For admin routes, check admin status
-  if (pathname.startsWith('/admin')) {
-    try {
-      const adminCheck = await fetch(new URL('/api/auth/check-admin', request.url));
-      if (!adminCheck.ok) {
-        return new NextResponse('Forbidden', { status: 403 });
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      return new NextResponse('Internal Server Error', { status: 500 });
+  // Check admin access for admin paths
+  if (adminPaths.some(path => pathname.startsWith(path))) {
+    // @ts-ignore - isAdmin exists on token
+    if (!token.isAdmin) {
+      // Redirect non-admin users to dashboard
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 
-  const response = NextResponse.next();
-  response.headers.set('x-middleware-cache', 'no-cache');
-  return response;
+  // For dynamic paths, set the appropriate headers
+  if (dynamicPaths.some(path => pathname.startsWith(path))) {
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-cache', 'no-cache');
+    return response;
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

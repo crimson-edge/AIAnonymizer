@@ -104,217 +104,66 @@ export default function SubscriptionManager({
     }
   };
 
-  // Render upgrade options dialog
-  const renderUpgradeOptions = () => {
-    if (!showUpgradeOptions) return null;
-
-    const getUpgradeOptions = () => {
-      switch (currentTier) {
-        case 'FREE':
-          return (
-            <>
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer"
-                     onClick={() => handleUpgrade('BASIC')}>
-                  <h4 className="text-lg font-semibold">Basic Plan - {tiers.BASIC.price}/month</h4>
-                  <ul className="mt-2 space-y-2">
-                    {tiers.BASIC.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-600">
-                        <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer"
-                     onClick={() => handleUpgrade('PREMIUM')}>
-                  <h4 className="text-lg font-semibold">Premium Plan - {tiers.PREMIUM.price}/month</h4>
-                  <ul className="mt-2 space-y-2">
-                    {tiers.PREMIUM.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-600">
-                        <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </>
-          );
-        case 'BASIC':
-          return (
-            <div className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer"
-                 onClick={() => handleUpgrade('PREMIUM')}>
-              <h4 className="text-lg font-semibold">Premium Plan - {tiers.PREMIUM.price}/month</h4>
-              <ul className="mt-2 space-y-2">
-                {tiers.PREMIUM.features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-sm text-gray-600">
-                    <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        default:
-          return (
-            <div className="space-y-4">
-              <div className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer"
-                   onClick={() => handleUpgrade('BASIC')}>
-                <h4 className="text-lg font-semibold">Basic Plan - {tiers.BASIC.price}/month</h4>
-                <ul className="mt-2 space-y-2">
-                  {tiers.BASIC.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm text-gray-600">
-                      <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                        <path d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer"
-                   onClick={() => handleUpgrade('PREMIUM')}>
-                <h4 className="text-lg font-semibold">Premium Plan - {tiers.PREMIUM.price}/month</h4>
-                <ul className="mt-2 space-y-2">
-                  {tiers.PREMIUM.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm text-gray-600">
-                      <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                        <path d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          );
-      }
-    };
-
+  // Show upgrade banner for FREE tier
+  if (currentTier === 'FREE') {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full">
-          <h3 className="text-xl font-semibold mb-4">Choose Your Plan</h3>
-          {getUpgradeOptions()}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h3 className="text-lg font-semibold text-blue-900 mb-2">Upgrade Your Plan</h3>
+        <p className="text-blue-700 mb-4">
+          Upgrade to Basic or Premium to unlock more features and higher usage limits.
+        </p>
+        <div className="flex gap-4">
           <button
-            onClick={() => setShowUpgradeOptions(false)}
-            className="mt-6 w-full py-2 px-4 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+            onClick={() => handleUpgrade('BASIC')}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Cancel
+            Upgrade to Basic
           </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Render downgrade confirmation dialog
-  const renderDowngradeConfirmation = () => {
-    if (!showConfirmDowngrade) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full">
-          <h3 className="text-lg font-semibold mb-4">Choose Your Plan</h3>
-          <p className="text-gray-600 mb-4">
-            Select the plan you want to downgrade to. Changes will take effect at the end of your current billing period.
-          </p>
-          <div className="space-y-4">
-            {currentTier === 'PREMIUM' && (
-              <button
-                onClick={() => handleDowngrade('BASIC')}
-                disabled={loading}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                Downgrade to Basic - {tiers.BASIC.price}/month
-                <div className="text-sm mt-1 text-white opacity-80">
-                  {tiers.BASIC.features.join(' • ')}
-                </div>
-              </button>
-            )}
-            <button
-              onClick={() => handleDowngrade('FREE')}
-              disabled={loading}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              Downgrade to Free - {tiers.FREE.price}/month
-              <div className="text-sm mt-1 text-white opacity-80">
-                {tiers.FREE.features.join(' • ')}
-              </div>
-            </button>
-          </div>
           <button
-            onClick={() => setShowConfirmDowngrade(false)}
-            className="mt-4 w-full py-2 px-4 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+            onClick={() => handleUpgrade('PREMIUM')}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
-            Cancel
+            Upgrade to Premium
           </button>
-        </div>
-      </div>
-    );
-  };
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
         </div>
       </div>
     );
   }
 
+  // Only show token purchase for Premium tier
+  const showTokenPurchase = currentTier === 'PREMIUM';
+
   return (
-    <div className="space-y-4">
-      {/* Main subscription action button */}
-      {currentTier === 'PREMIUM' ? (
-        <button
-          onClick={handlePurchaseTokens}
-          disabled={loading}
-          className="w-full sm:w-auto py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Processing...' : 'Purchase Additional Tokens'}
-        </button>
-      ) : (
-        <button
-          onClick={() => setShowUpgradeOptions(true)}
-          disabled={loading}
-          className="w-full sm:w-auto py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Processing...' : 'Upgrade Your Plan'}
-        </button>
-      )}
-
-      {/* Downgrade link - only show if on BASIC or PREMIUM plan */}
-      {(currentTier === 'BASIC' || currentTier === 'PREMIUM') && (
-        <div className="mt-4 text-sm">
-          <button
-            onClick={() => setShowConfirmDowngrade(true)}
-            className="text-gray-600 hover:text-gray-800 underline"
-          >
-            Downgrade Subscription
-          </button>
+    <div className="bg-white border rounded-lg p-6 mb-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Current Plan: {currentTier}</h3>
+          <p className="text-gray-600">
+            Status: {isActive ? 'Active' : 'Inactive'}
+          </p>
         </div>
+        <div className="flex gap-4">
+          {currentTier === 'BASIC' && (
+            <button
+              onClick={() => handleUpgrade('PREMIUM')}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              Upgrade to Premium
+            </button>
+          )}
+          {showTokenPurchase && (
+            <button
+              onClick={onPurchaseTokens}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Purchase Additional Tokens
+            </button>
+          )}
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-600 mb-4">{error}</div>
       )}
-
-      {/* Render dialogs */}
-      {renderUpgradeOptions()}
-      {renderDowngradeConfirmation()}
     </div>
   );
 }

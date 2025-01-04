@@ -105,24 +105,19 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // @ts-ignore - these fields exist on our User type
         token.id = user.id;
+        token.email = user.email;
         token.name = user.name;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
         token.isAdmin = user.isAdmin;
-        token.status = user.status;
-        token.subscription = user.subscription;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (session?.user) {
+        // @ts-ignore - we added these fields to the token
         session.user.id = token.id;
         session.user.isAdmin = token.isAdmin;
-        session.user.status = token.status;
-        session.user.subscription = token.subscription;
-        session.user.firstName = token.firstName;
-        session.user.lastName = token.lastName;
       }
       return session;
     },
