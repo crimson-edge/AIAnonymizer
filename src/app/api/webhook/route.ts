@@ -69,7 +69,7 @@ export async function POST(req: Request) {
           await prisma.subscription.update({
             where: { userId },
             data: {
-              additionalTokens: {
+              tokenLimit: {
                 increment: tokens
               }
             }
