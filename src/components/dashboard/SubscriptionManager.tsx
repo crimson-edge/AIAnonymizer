@@ -171,7 +171,8 @@ export default function SubscriptionManager({
         {error && (
           <div className="text-red-600 mb-4">{error}</div>
         )}
-        {currentTier !== 'FREE' && (
+        {/* Show downgrade option for BASIC and PREMIUM tiers */}
+        {(currentTier === 'BASIC' || currentTier === 'PREMIUM') && (
           <div className="mt-4 border-t pt-4">
             <p className="text-sm text-gray-600">
               Need to change your plan?{' '}

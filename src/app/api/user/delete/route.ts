@@ -13,25 +13,34 @@ export async function DELETE(request: Request) {
 
     const userId = session.user.id;
 
-    // Delete all related data first
-    await prisma.$transaction([
+    // Delete all related data in a transaction
+    await prisma.$transaction(async (tx) => {
       // Delete API keys
-      prisma.apiKey.deleteMany({
+      await tx.apiKey.deleteMany({
         where: { userId }
-      }),
+      });
+
       // Delete usage records
-      prisma.usage.deleteMany({
+      await tx.usage.deleteMany({
         where: { userId }
-      }),
-      // Delete subscription
-      prisma.subscription.delete({
+      });
+
+      // Delete subscription if exists
+      const subscription = await tx.subscription.findUnique({
         where: { userId }
-      }).catch(() => {}), // Ignore if no subscription exists
+      });
+      
+      if (subscription) {
+        await tx.subscription.delete({
+          where: { userId }
+        });
+      }
+
       // Finally delete the user
-      prisma.user.delete({
+      await tx.user.delete({
         where: { id: userId }
-      })
-    ]);
+      });
+    });
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
