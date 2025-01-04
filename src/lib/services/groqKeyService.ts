@@ -56,14 +56,17 @@ export class GroqKeyService {
 
   static async releaseKey(userId: string): Promise<boolean> {
     try {
-      for (const [key, status] of keyPool.entries()) {
-        if (status.currentSession === userId) {
-          keyPool.set(key, {
-            isInUse: false
-          });
-        }
+      const keyToRelease = Array.from(keyPool.entries()).find(([_, status]) => status.currentSession === userId);
+      
+      if (keyToRelease) {
+        const [key] = keyToRelease;
+        keyPool.set(key, {
+          isInUse: false
+        });
+        return true;
       }
-      return true;
+
+      return false;
     } catch (error) {
       console.error('Error releasing Groq API key:', error);
       return false;
