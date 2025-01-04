@@ -61,12 +61,11 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             email: user.email,
             name: `${user.firstName} ${user.lastName}`,
-            image: user.image,
+            firstName: user.firstName,
+            lastName: user.lastName,
             isAdmin: user.isAdmin,
             status: user.status,
             subscription: user.subscription,
-            firstName: user.firstName,
-            lastName: user.lastName,
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -79,14 +78,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
         token.name = user.name;
-        token.picture = user.image;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
         token.isAdmin = user.isAdmin;
         token.status = user.status;
         token.subscription = user.subscription;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
       }
       return token;
     },
