@@ -75,21 +75,17 @@ export class GroqKeyManager {
     const keys = await prisma.groqKey.findMany({
       select: {
         isInUse: true,
-        _count: {
-          select: {
-            usage: true
-          }
-        }
+        currentSession: true
       }
     });
     
-    const totalUsage = keys.reduce((sum, key) => sum + (key._count.usage || 0), 0);
     const activeKeys = keys.filter(key => key.isInUse).length;
+    const inUseKeys = keys.filter(key => key.currentSession !== null).length;
     
     return {
       totalKeys: keys.length,
       activeKeys,
-      totalUsage
+      inUseKeys
     };
   }
 
