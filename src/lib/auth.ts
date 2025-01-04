@@ -14,6 +14,13 @@ if (!process.env.NEXTAUTH_SECRET) {
   console.error('NEXTAUTH_SECRET is not set');
 }
 
+console.log('Auth configuration:', {
+  nextAuthUrl: process.env.NEXTAUTH_URL,
+  hasSecret: !!process.env.NEXTAUTH_SECRET,
+  environment: process.env.NODE_ENV,
+  debug: process.env.NODE_ENV === 'development'
+});
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
