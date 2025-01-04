@@ -73,7 +73,8 @@ export class GroqKeyManager {
     await this.initialize();
     
     const keys = await prisma.groqKey.findMany({
-      include: {
+      select: {
+        isInUse: true,
         _count: {
           select: {
             usage: true
