@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
+import Navigation from '@/components/Navigation';
 import KommunicateChat from '@/components/KommunicateChat';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
@@ -73,6 +74,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <div className="min-h-screen flex flex-col">
+            <Navigation />
             <div className="flex-grow">
               {children}
             </div>

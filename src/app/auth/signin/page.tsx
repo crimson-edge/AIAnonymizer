@@ -1,6 +1,8 @@
 import { getProviders } from 'next-auth/react';
 import SignInForm from '@/components/auth/SignInForm';
 
+export const runtime = 'nodejs';
+
 export default async function SignIn() {
   const providers = await getProviders();
 

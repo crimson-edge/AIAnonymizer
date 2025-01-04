@@ -1,20 +1,32 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    console.log('GET /api/admin/api-keys session:', session);
+
+    if (!session?.user?.email) {
+      console.error('No session or email found');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!user?.isAdmin) {
+      console.error('User is not admin:', user);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const keys = await GroqKeyManager.getKeyUsage();
     return NextResponse.json(keys);
   } catch (error) {
-    console.error('Error fetching API keys:', error);
+    console.error('Error in GET /api/admin/api-keys:', error);
     return NextResponse.json(
       { error: 'Failed to fetch API keys' },
       { status: 500 }
@@ -23,13 +35,24 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    console.log('POST /api/admin/api-keys session:', session);
+
+    if (!session?.user?.email) {
+      console.error('No session or email found in POST');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!user?.isAdmin) {
+      console.error('User is not admin in POST:', user);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { key } = await req.json();
     
     if (!key) {
@@ -42,7 +65,7 @@ export async function POST(req: Request) {
     await GroqKeyManager.addKeyToPool(key);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding API key:', error);
+    console.error('Error in POST /api/admin/api-keys:', error);
     return NextResponse.json(
       { error: 'Failed to add API key' },
       { status: 500 }
@@ -51,13 +74,24 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    console.log('DELETE /api/admin/api-keys session:', session);
+
+    if (!session?.user?.email) {
+      console.error('No session or email found in DELETE');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!user?.isAdmin) {
+      console.error('User is not admin in DELETE:', user);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const key = searchParams.get('key');
     
@@ -71,7 +105,7 @@ export async function DELETE(req: Request) {
     await GroqKeyManager.removeKeyFromPool(key);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error removing API key:', error);
+    console.error('Error in DELETE /api/admin/api-keys:', error);
     return NextResponse.json(
       { error: 'Failed to remove API key' },
       { status: 500 }

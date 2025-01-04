@@ -18,7 +18,7 @@ const tiers = [
     ],
     cta: 'Get Started',
     description: 'Perfect for trying out AI with privacy.',
-    href: '/auth/signin',
+    href: '/auth/signup',
   },
   {
     name: 'Basic',
@@ -35,7 +35,7 @@ const tiers = [
     ],
     cta: 'Start Basic Plan',
     description: 'For individuals who need more power and privacy.',
-    href: '/auth/signin?plan=basic',
+    href: '/auth/signup?plan=basic',
     priceId: process.env.STRIPE_BASIC_PRICE_ID,
     featured: true,
   },
@@ -57,7 +57,7 @@ const tiers = [
     ],
     cta: 'Start Premium Plan',
     description: 'For professionals who need the ultimate in privacy and performance.',
-    href: '/auth/signin?plan=premium',
+    href: '/auth/signup?plan=premium',
     priceId: process.env.STRIPE_PREMIUM_PRICE_ID,
   },
   {

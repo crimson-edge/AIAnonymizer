@@ -1,9 +1,21 @@
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { UserStatus } from '@prisma/client';
+import './env'; // This will ensure NEXTAUTH_URL is set correctly
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+  },
   providers: [
     CredentialsProvider({
       id: 'credentials',
@@ -13,11 +25,8 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log('Auth attempt for email:', credentials?.email);
-
         if (!credentials?.email || !credentials?.password) {
-          console.error('Missing credentials');
-          return null;
+          throw new Error('Missing credentials');
         }
 
         try {
@@ -28,66 +37,64 @@ export const authOptions: NextAuthOptions = {
             include: { subscription: true }
           });
 
-          console.log('Found user:', user ? {
-            id: user.id,
-            email: user.email,
-            isAdmin: user.isAdmin,
-          } : 'null');
-
-          if (!user?.password) {
-            console.error('User not found or no password set');
-            return null;
+          if (!user) {
+            throw new Error('Invalid email or password');
           }
 
-          console.log('Comparing passwords...');
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          console.log('Password valid:', isValid);
+          // Check if user is pending verification
+          if (user.status === UserStatus.PENDING_VERIFICATION) {
+            throw new Error('Please verify your email before signing in');
+          }
 
-          if (!isValid) {
-            console.error('Invalid password');
-            return null;
+          // Check if user is disabled
+          if (user.status === UserStatus.DISABLED) {
+            throw new Error('Your account has been disabled. Please contact support.');
+          }
+
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValidPassword) {
+            throw new Error('Invalid email or password');
           }
 
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: `${user.firstName} ${user.lastName}`,
+            image: user.image,
             isAdmin: user.isAdmin,
-            subscription: user.subscription
+            status: user.status,
+            subscription: user.subscription,
           };
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          throw error;
         }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
         token.isAdmin = user.isAdmin;
+        token.status = user.status;
         token.subscription = user.subscription;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.id as string;
-        session.user.isAdmin = token.isAdmin as boolean;
+      if (token) {
+        session.user.id = token.id;
+        session.user.isAdmin = token.isAdmin;
+        session.user.status = token.status;
         session.user.subscription = token.subscription;
       }
       return session;
-    }
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,

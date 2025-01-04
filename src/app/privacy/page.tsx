@@ -1,10 +1,6 @@
-import Navigation from '@/components/Navigation';
-
 export default function PrivacyPage() {
   return (
-    <>
-      <Navigation />
-      <main className="max-w-4xl mx-auto px-4 py-12">
+    <main className="min-h-screen bg-gray-50">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
         
         <div className="prose max-w-none">
@@ -55,6 +51,5 @@ export default function PrivacyPage() {
           <p>If you have any questions about this Privacy Policy, please contact us at: <a href="mailto:support@aianonymizer.com" className="text-blue-600 hover:text-blue-800">support@aianonymizer.com</a></p>
         </div>
       </main>
-    </>
   );
 }

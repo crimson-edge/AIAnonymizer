@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Navigation from '@/components/Navigation';
 import { Metadata } from 'next';
 import Script from 'next/script';
 
@@ -81,38 +80,35 @@ export default function BlogPage() {
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-gray-50">
       <Script id="blog-schema" type="application/ld+json">
         {JSON.stringify(jsonLd)}
       </Script>
-      <Navigation />
-      <main className="pt-24">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <h1 className="text-4xl font-bold mb-8">AI Privacy & Security Insights</h1>
-          <div className="space-y-8">
-            {blogPosts.map((post) => (
-              <article key={post.slug} className="border-b border-gray-200 pb-8">
-                <Link href={`/blog/${post.slug}`} className="block group">
-                  <h2 className="text-2xl font-semibold mb-2 group-hover:text-blue-600">
-                    {post.title}
-                  </h2>
-                  <div className="flex items-center text-gray-600 text-sm mb-3">
-                    <time>{post.date}</time>
-                    <span className="mx-2">•</span>
-                    <span>{post.readTime}</span>
-                  </div>
-                  <p className="text-gray-600">
-                    {post.excerpt}
-                  </p>
-                  <span className="inline-block mt-4 text-blue-600 font-medium group-hover:text-blue-800">
-                    Read more →
-                  </span>
-                </Link>
-              </article>
-            ))}
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold mb-8">AI Privacy & Security Insights</h1>
+        <div className="space-y-8">
+          {blogPosts.map((post) => (
+            <article key={post.slug} className="border-b border-gray-200 pb-8">
+              <Link href={`/blog/${post.slug}`} className="block group">
+                <h2 className="text-2xl font-semibold mb-2 group-hover:text-blue-600">
+                  {post.title}
+                </h2>
+                <div className="flex items-center text-gray-600 text-sm mb-3">
+                  <time>{post.date}</time>
+                  <span className="mx-2">•</span>
+                  <span>{post.readTime}</span>
+                </div>
+                <p className="text-gray-600">
+                  {post.excerpt}
+                </p>
+                <span className="inline-block mt-4 text-blue-600 font-medium group-hover:text-blue-800">
+                  Read more →
+                </span>
+              </Link>
+            </article>
+          ))}
         </div>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

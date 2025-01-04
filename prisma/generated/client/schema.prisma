@@ -1,0 +1,104 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  output          = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String        @unique
+  password          String
+  emailVerified     DateTime?
+  verificationToken String?       @unique
+  resetToken        String?       @unique
+  resetTokenExpiry  DateTime?
+  isAdmin           Boolean       @default(false)
+  status            UserStatus    @default(ACTIVE)
+  apiKeys           ApiKey[]
+  subscription      Subscription?
+  Usage             Usage[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  stripeCustomerId  String?
+  stripePriceId     String?
+}
+
+model Subscription {
+  id                   String           @id @default(cuid())
+  userId               String           @unique
+  tier                 SubscriptionTier @default(FREE)
+  monthlyLimit         Int              @default(1000)
+  tokenLimit           Int              @default(1000) // Current token limit including overage purchases
+  startDate            DateTime         @default(now())
+  endDate              DateTime?
+  isActive             Boolean          @default(true)
+  stripeCustomerId     String?          @unique
+  stripeSubscriptionId String?          @unique
+  stripePriceId        String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  user                 User             @relation(fields: [userId], references: [id])
+}
+
+model GroqKey {
+  id             String    @id @default(cuid())
+  key            String    @unique
+  isInUse        Boolean   @default(false)
+  currentSession String?
+  lastUsed       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([currentSession])
+  @@index([isInUse])
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  userId    String
+  key       String    @unique
+  name      String?
+  lastUsed  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  isActive  Boolean   @default(true)
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model GroqKeyPool {
+  id         String   @id
+  apiKey     String   @unique
+  isActive   Boolean  @default(true)
+  usageCount Int      @default(0)
+  lastUsed   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+}
+
+model Usage {
+  id        String   @id
+  userId    String
+  tokens    Int
+  createdAt DateTime @default(now())
+  type      String
+  cost      Float
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}

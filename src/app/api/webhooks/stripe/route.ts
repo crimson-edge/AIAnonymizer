@@ -28,6 +28,40 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        
+        // Handle overage payment
+        if (session.metadata?.type === 'overage') {
+          const userId = session.metadata.userId;
+          if (!userId) {
+            console.error('No userId found in overage session metadata');
+            return new Response('No userId found in session metadata', { status: 400 });
+          }
+
+          // Add 100,000 tokens to the user's limit
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { subscription: true }
+          });
+
+          if (!user || !user.subscription) {
+            console.error('User or subscription not found:', userId);
+            return new Response('User or subscription not found', { status: 404 });
+          }
+
+          // Update user's token limit
+          await prisma.subscription.update({
+            where: { userId: user.id },
+            data: {
+              tokenLimit: {
+                increment: 100000 // Add 100,000 tokens
+              }
+            }
+          });
+
+          break;
+        }
+
+        // Handle regular subscription
         const subscriptionId = session.subscription as string;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0].price.id;

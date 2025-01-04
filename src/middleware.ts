@@ -1,66 +1,60 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+
+// List of public paths that don't require authentication
+const publicPaths = [
+  '/api/auth',
+  '/auth/signin',
+  '/auth/signup',
+  '/login',
+  '/signin',
+  '/signup',
+  '/pricing',
+  '/about',
+  '/terms',
+  '/privacy',
+  '/blog',
+  '/',
+  '/_next',
+  '/favicon.ico',
+];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname } = request.nextUrl;
 
-  // Allow all auth-related routes and public pages
+  // Allow public paths and static files
   if (
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/auth/signin') ||
-    pathname === '/login' ||
-    pathname === '/signin' ||
-    pathname === '/pricing' ||
-    pathname === '/about' ||
-    pathname === '/terms' ||
-    pathname === '/privacy' ||
-    pathname.startsWith('/blog') ||
-    pathname === '/' ||
-    // Allow static files
-    pathname.startsWith('/_next') ||  // Next.js assets
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/) // Static files
+    publicPaths.some(path => pathname.startsWith(path)) ||
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/)
   ) {
-    return NextResponse.next()
+    return NextResponse.next();
   }
 
-  const token = await getToken({ req: request })
-
-  // Redirect to login if not authenticated and trying to access protected routes
+  const token = await getToken({ req: request });
+  
   if (!token) {
-    const url = new URL('/auth/signin', request.url)
-    url.searchParams.set('callbackUrl', encodeURI(pathname))
-    return NextResponse.redirect(url)
+    return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  // Redirect authenticated users based on their role
-  if (token) {
-    if (pathname === '/') {
-      if (token.role === 'admin') {
-        return NextResponse.redirect(new URL('/admin/api-keys', request.url))
-      } else {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+  // For admin routes, redirect to the check-admin API
+  if (pathname.startsWith('/admin')) {
+    try {
+      const adminCheck = await fetch(new URL('/api/auth/check-admin', request.url));
+      if (!adminCheck.ok) {
+        return new NextResponse('Forbidden', { status: 403 });
       }
-    }
-
-    // Protect admin routes
-    if (pathname.startsWith('/admin') && token.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return new NextResponse('Internal Server Error', { status: 500 });
     }
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
-}
+};

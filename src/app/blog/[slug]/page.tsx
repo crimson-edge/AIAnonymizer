@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import Image from 'next/image';
 import { Metadata } from 'next';
 
@@ -381,64 +380,61 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="pt-24">
-        <article className="max-w-4xl mx-auto px-4 py-12">
-          <header className="mb-8">
-            <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-            <div className="flex items-center text-gray-600 mb-8">
-              <time>{post.date}</time>
-              <span className="mx-2">•</span>
-              <span>{post.readTime}</span>
-            </div>
-            <div className="relative aspect-video mb-8 rounded-xl overflow-hidden">
-              <Image
-                src={post.featuredImage.url}
-                alt={post.featuredImage.alt}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
-              <p className="absolute bottom-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
-                {post.featuredImage.credit}
-              </p>
-            </div>
-          </header>
-          
-          <div className="prose prose-lg max-w-none">
-            {post.content.map((section, index) => {
-              switch (section.type) {
-                case 'paragraph':
-                  return <p key={index} className="mb-6">{section.text}</p>;
-                case 'heading':
-                  return <h2 key={index} className="text-3xl font-bold mt-12 mb-6">{section.text}</h2>;
-                case 'subheading':
-                  return <h3 key={index} className="text-2xl font-semibold mt-8 mb-4">{section.text}</h3>;
-                case 'list':
-                  return (
-                    <ul key={index} className="list-disc pl-6 mb-6">
-                      {section.items?.map((item, itemIndex) => (
-                        <li key={itemIndex} className="mb-2">{item}</li>
-                      ))}
-                    </ul>
-                  );
-                case 'quote':
-                  return (
-                    <blockquote key={index} className="border-l-4 border-gray-300 pl-4 my-6 italic">
-                      <p className="mb-2">{section.text}</p>
-                      {section.author && (
-                        <cite className="text-gray-600 not-italic">— {section.author}</cite>
-                      )}
-                    </blockquote>
-                  );
-                default:
-                  return null;
-              }
-            })}
+    <main className="min-h-screen bg-gray-50">
+      <article className="max-w-4xl mx-auto px-4 py-12">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
+          <div className="flex items-center text-gray-600 mb-8">
+            <time>{post.date}</time>
+            <span className="mx-2">•</span>
+            <span>{post.readTime}</span>
           </div>
-        </article>
-      </main>
-    </>
+          <div className="relative aspect-video mb-8 rounded-xl overflow-hidden">
+            <Image
+              src={post.featuredImage.url}
+              alt={post.featuredImage.alt}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+            <p className="absolute bottom-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
+              {post.featuredImage.credit}
+            </p>
+          </div>
+        </header>
+        
+        <div className="prose prose-lg max-w-none">
+          {post.content.map((section, index) => {
+            switch (section.type) {
+              case 'paragraph':
+                return <p key={index} className="mb-6">{section.text}</p>;
+              case 'heading':
+                return <h2 key={index} className="text-3xl font-bold mt-12 mb-6">{section.text}</h2>;
+              case 'subheading':
+                return <h3 key={index} className="text-2xl font-semibold mt-8 mb-4">{section.text}</h3>;
+              case 'list':
+                return (
+                  <ul key={index} className="list-disc pl-6 mb-6">
+                    {section.items?.map((item, itemIndex) => (
+                      <li key={itemIndex} className="mb-2">{item}</li>
+                    ))}
+                  </ul>
+                );
+              case 'quote':
+                return (
+                  <blockquote key={index} className="border-l-4 border-gray-300 pl-4 my-6 italic">
+                    <p className="mb-2">{section.text}</p>
+                    {section.author && (
+                      <cite className="text-gray-600 not-italic">— {section.author}</cite>
+                    )}
+                  </blockquote>
+                );
+              default:
+                return null;
+            }
+          })}
+        </div>
+      </article>
+    </main>
   );
 }

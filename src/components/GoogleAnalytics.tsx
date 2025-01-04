@@ -7,17 +7,20 @@ export default function GoogleAnalytics() {
     <>
       <Script
         src="https://www.googletagmanager.com/gtag/js?id=G-QXNNKKJREL"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-
-          gtag('config', 'G-QXNNKKJREL');
-        `}
-      </Script>
+      <Script 
+        id="google-analytics" 
+        strategy="lazyOnload"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QXNNKKJREL');
+          `
+        }}
+      />
     </>
   );
 }

@@ -1,19 +1,23 @@
-import { getServerSession } from 'next-auth/next';
-import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
+'use client';
+
 import MarketingContent from '@/components/MarketingContent';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+export default function HomePage() {
+  const { data: session } = useSession();
+  const router = useRouter();
 
-  // If user is logged in, redirect to appropriate page
-  if (session?.user) {
-    if (session.user.isAdmin) {
-      redirect('/admin/api-keys');
-    } else {
-      redirect('/dashboard');
+  useEffect(() => {
+    if (session?.user) {
+      if (session.user.isAdmin) {
+        router.push('/admin/api-keys');
+      } else {
+        router.push('/dashboard');
+      }
     }
-  }
+  }, [session, router]);
 
   return <MarketingContent />;
 }

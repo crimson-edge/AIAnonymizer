@@ -17,17 +17,15 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_BASE_URL: 'https://aianonymizer.com',
-  },
-  async redirects() {
-    return [
-      {
-        source: '/login',
-        destination: '/auth/signin',
-        permanent: true,
-      },
-    ];
-  },
+    NEXT_PUBLIC_BASE_URL: process.env.NODE_ENV === 'production' 
+      ? 'https://aianonymizer.com'
+      : 'http://localhost:3010',
+  }
+};
+
+// Update NEXTAUTH_URL if in development
+if (process.env.NODE_ENV !== 'production') {
+  process.env.NEXTAUTH_URL = process.env.NEXT_PUBLIC_BASE_URL;
 }
 
-module.exports = nextConfig
+module.exports = nextConfig;

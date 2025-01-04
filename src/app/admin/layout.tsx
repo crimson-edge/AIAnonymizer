@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export default async function AdminLayout({
   children,
@@ -9,8 +10,18 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.isAdmin) {
-    redirect('/api/auth/signin');
+  if (!session?.user?.email) {
+    redirect('/auth/signin');
+  }
+
+  // Check admin status
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { isAdmin: true }
+  });
+
+  if (!user?.isAdmin) {
+    redirect('/');
   }
 
   return (
@@ -24,8 +35,14 @@ export default async function AdminLayout({
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <a
+                  href="/admin/users"
+                  className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  Users
+                </a>
+                <a
                   href="/admin/api-keys"
-                  className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   API Keys
                 </a>

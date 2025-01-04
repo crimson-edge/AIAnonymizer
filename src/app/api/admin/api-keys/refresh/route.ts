@@ -4,17 +4,24 @@ import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
 
 export async function POST() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    console.log('Session in refresh:', JSON.stringify(session, null, 2));
+
+    if (!session?.user) {
+      console.error('No session found in refresh');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    if (!session.user.isAdmin) {
+      console.error('User is not admin in refresh:', session.user);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await GroqKeyManager.refreshKeyPool();
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error refreshing API key pool:', error);
+    console.error('Error in POST /api/admin/api-keys/refresh:', error);
     return NextResponse.json(
       { error: 'Failed to refresh API key pool' },
       { status: 500 }
