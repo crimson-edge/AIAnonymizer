@@ -38,6 +38,7 @@ model Subscription {
   tokenLimit          Int              @default(1000) // Current token limit including overage purchases
   startDate            DateTime         @default(now())
   endDate              DateTime?
+  currentPeriodEnd     DateTime?
   isActive             Boolean          @default(true)
   stripeCustomerId     String?          @unique
   stripeSubscriptionId String?          @unique
