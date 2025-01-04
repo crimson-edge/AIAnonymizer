@@ -1,22 +1,25 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { PlusIcon, KeyIcon, TrashIcon } from '@heroicons/react/24/outline';
+
+interface APIKey {
+  id: string;
+  key: string;
+  name: string;
+  createdAt: string;
+  lastUsed: string | null;
+  isActive: boolean;
+}
 
 interface APIKeyManagementProps {
   userId: string;
 }
 
-interface UserKey {
-  key: string;
-  isInUse: boolean;
-  lastUsed?: Date | null;
-}
-
 export default function APIKeyManagement({ userId }: APIKeyManagementProps) {
   const [loading, setLoading] = useState(false);
-  const [keys, setKeys] = useState<UserKey[]>([]);
+  const [keys, setKeys] = useState<APIKey[]>([]);
   const [error, setError] = useState('');
+  const [isAddingKey, setIsAddingKey] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
 
   useEffect(() => {
     fetchUserKeys();
@@ -31,6 +34,7 @@ export default function APIKeyManagement({ userId }: APIKeyManagementProps) {
       }
       const data = await response.json();
       setKeys(data);
+      setError('');
     } catch (err) {
       setError('Failed to load API keys');
       console.error('Error fetching user keys:', err);
@@ -39,71 +43,72 @@ export default function APIKeyManagement({ userId }: APIKeyManagementProps) {
     }
   };
 
-  const addKey = async () => {
+  const handleAddKey = async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/admin/users/${userId}/keys`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ name: newKeyName || 'API Key' }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add key');
+        throw new Error('Failed to create API key');
       }
 
-      await fetchUserKeys();
-      toast.success('API key added successfully');
+      const newKey = await response.json();
+      setKeys([newKey, ...keys]);
+      setIsAddingKey(false);
+      setNewKeyName('');
+      setError('');
     } catch (err) {
-      console.error('Error adding key:', err);
-      toast.error('Failed to add API key');
+      setError('Failed to create API key');
+      console.error('Error creating API key:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const removeKey = async (key: string) => {
-    if (!confirm('Are you sure you want to remove this API key?')) {
-      return;
-    }
-
+  const handleDeleteKey = async (keyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/users/${userId}/keys/${encodeURIComponent(key)}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/admin/users/${userId}/keys`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keyId }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to remove key');
+        throw new Error('Failed to delete API key');
       }
 
-      await fetchUserKeys();
-      toast.success('API key removed successfully');
+      setKeys(keys.filter(k => k.id !== keyId));
+      setError('');
     } catch (err) {
-      console.error('Error removing key:', err);
-      toast.error('Failed to remove API key');
+      setError('Failed to delete API key');
+      console.error('Error deleting API key:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  if (error) {
     return (
-      <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-4 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-        </div>
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">{error}</p>
       </div>
     );
   }
 
-  if (error) {
+  if (loading && !keys.length) {
     return (
-      <div className="text-red-600">
-        <p>{error}</p>
+      <div className="animate-pulse">
+        <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
+        <div className="h-10 bg-gray-200 rounded w-3/4"></div>
       </div>
     );
   }
@@ -111,69 +116,83 @@ export default function APIKeyManagement({ userId }: APIKeyManagementProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">API Keys</h3>
+        <h3 className="text-lg font-medium text-gray-900">API Keys</h3>
         <button
-          onClick={addKey}
-          disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+          onClick={() => setIsAddingKey(true)}
+          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
         >
-          Add New Key
+          <PlusIcon className="h-4 w-4 mr-2" />
+          New API Key
         </button>
       </div>
 
-      {keys.length === 0 ? (
-        <p className="text-gray-500">No API keys found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Key
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Used
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {keys.map((key, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-mono">
-                      {key.key.slice(0, 8)}...{key.key.slice(-8)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      key.isInUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {key.isInUse ? 'In Use' : 'Available'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => removeKey(key.key)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {isAddingKey && (
+        <div className="bg-gray-50 p-4 rounded-md space-y-4">
+          <div>
+            <label htmlFor="keyName" className="block text-sm font-medium text-gray-700">
+              Key Name
+            </label>
+            <div className="mt-1 flex rounded-md shadow-sm">
+              <input
+                type="text"
+                name="keyName"
+                id="keyName"
+                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                placeholder="Enter key name"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setIsAddingKey(false)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddKey}
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Create Key
+            </button>
+          </div>
         </div>
       )}
+
+      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul className="divide-y divide-gray-200">
+          {keys.map((key) => (
+            <li key={key.id} className="px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <KeyIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{key.name}</p>
+                    <p className="text-sm text-gray-500">{key.key}</p>
+                    <p className="text-xs text-gray-400">
+                      Created {new Date(key.createdAt).toLocaleDateString()}
+                      {key.lastUsed && ` • Last used ${new Date(key.lastUsed).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteKey(key.id)}
+                  className="inline-flex items-center p-1.5 border border-transparent rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </li>
+          ))}
+          {!keys.length && !loading && (
+            <li className="px-4 py-6 text-center text-sm text-gray-500">
+              No API keys found
+            </li>
+          )}
+        </ul>
+      </div>
     </div>
   );
 }

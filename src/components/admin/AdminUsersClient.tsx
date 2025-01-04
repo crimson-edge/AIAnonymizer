@@ -437,82 +437,76 @@ export default function AdminUsersClient() {
           <div className="col-span-5">
             {selectedUserId && users.find(u => u.id === selectedUserId) ? (
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">User Details</h3>
-                <div className="space-y-4">
-                  {/* Selected user's detailed information */}
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  User Activity & Resources
+                </h3>
+                <div className="space-y-6">
                   {(() => {
                     const user = users.find(u => u.id === selectedUserId)!;
                     return (
                       <>
+                        {/* API Key Usage */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Account Information</h4>
-                          <div className="mt-2 grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">Name</p>
-                              <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Email</p>
-                              <p className="text-sm font-medium text-gray-900">{user.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Status</p>
-                              <p className="text-sm font-medium text-gray-900">{user.status}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Admin</p>
-                              <p className="text-sm font-medium text-gray-900">{user.isAdmin ? 'Yes' : 'No'}</p>
-                            </div>
+                          <h4 className="text-sm font-medium text-gray-500 mb-2">Current API Key</h4>
+                          <div className="bg-gray-50 rounded-md p-3">
+                            {user.currentSession ? (
+                              <div className="text-sm">
+                                <p className="font-medium text-gray-900">Active Session</p>
+                                <p className="text-gray-500 mt-1">Key ID: {user.currentSession}</p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No active API key session</p>
+                            )}
                           </div>
                         </div>
+
+                        {/* Usage Statistics */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Subscription Details</h4>
-                          <div className="mt-2 grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">Plan</p>
-                              <p className="text-sm font-medium text-gray-900">{user.subscription?.tier || 'FREE'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Status</p>
-                              <p className="text-sm font-medium text-gray-900">
-                                {user.subscription?.isActive ? 'Active' : 'Inactive'}
+                          <h4 className="text-sm font-medium text-gray-500 mb-2">Usage Statistics</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gray-50 rounded-md p-3">
+                              <p className="text-xs text-gray-500">Monthly Usage</p>
+                              <p className="text-lg font-medium text-gray-900">
+                                {user.monthlyUsage?.toLocaleString() || 0} / {user.subscription?.monthlyLimit?.toLocaleString() || 0}
                               </p>
+                              <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-blue-600 rounded-full"
+                                  style={{ 
+                                    width: `${Math.min(
+                                      ((user.monthlyUsage || 0) / (user.subscription?.monthlyLimit || 1)) * 100, 
+                                      100
+                                    )}%` 
+                                  }}
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Monthly Limit</p>
-                              <p className="text-sm font-medium text-gray-900">
-                                {user.subscription?.monthlyLimit?.toLocaleString() || 0}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Token Limit</p>
-                              <p className="text-sm font-medium text-gray-900">
-                                {user.subscription?.tokenLimit?.toLocaleString() || 0}
+                            <div className="bg-gray-50 rounded-md p-3">
+                              <p className="text-xs text-gray-500">Total Usage</p>
+                              <p className="text-lg font-medium text-gray-900">
+                                {user.totalUsage?.toLocaleString() || 0}
                               </p>
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-4">
-                          <button
-                            onClick={() => toggleUserStatus(user.id, user.status)}
-                            className={`text-sm px-3 py-2 rounded-md ${
-                              user.status === 'ACTIVE' 
-                                ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                                : 'bg-green-100 text-green-800 hover:bg-green-200'
-                            }`}
-                          >
-                            {user.status === 'ACTIVE' ? 'Suspend User' : 'Activate User'}
-                          </button>
-                          <button
-                            onClick={() => setTokenDialog({
-                              isOpen: true,
-                              userId: user.id,
-                              userName: `${user.firstName} ${user.lastName}`
-                            })}
-                            className="text-sm px-3 py-2 rounded-md bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-                          >
-                            Manage Tokens
-                          </button>
+
+                        {/* Recent Activity */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500 mb-2">Recent Activity</h4>
+                          <div className="space-y-3">
+                            {user.recentActivity?.length > 0 ? (
+                              user.recentActivity.map((activity, index) => (
+                                <div key={index} className="bg-gray-50 rounded-md p-3">
+                                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(activity.timestamp).toLocaleString()}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500">No recent activity</p>
+                            )}
+                          </div>
                         </div>
                       </>
                     );
@@ -521,7 +515,7 @@ export default function AdminUsersClient() {
               </div>
             ) : (
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center text-gray-500">
-                Select a user to view details
+                Select a user to view activity and usage details
               </div>
             )}
           </div>
