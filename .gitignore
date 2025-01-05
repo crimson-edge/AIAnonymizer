@@ -29,6 +29,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production
+.env.development
 
 # vercel
 .vercel
@@ -39,3 +41,6 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Prisma generated
+/prisma/generated/
