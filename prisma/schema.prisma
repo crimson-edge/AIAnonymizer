@@ -32,6 +32,7 @@ model User {
   activities    UserActivity[]
   adminAuditLogs AdminAuditLog[]  @relation("AdminAuditLogs")
   targetAuditLogs AdminAuditLog[] @relation("TargetAuditLogs")
+  tokenUsages   TokenUsage[]
   lastActive    DateTime?
   recentActivity Json[]   @default([])
   stripeCustomerId String?
@@ -147,6 +148,19 @@ model AdminAuditLog {
 
   @@index([adminId])
   @@index([targetUserId])
+  @@index([createdAt])
+}
+
+model TokenUsage {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  tokensUsed  Int
+  requestType String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
   @@index([createdAt])
 }
 
