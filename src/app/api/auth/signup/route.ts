@@ -60,9 +60,9 @@ export async function POST(req: Request) {
           subscription: {
             create: {
               tier: SubscriptionTier.FREE,
-              monthlyLimit: 1000,
-              tokenLimit: 1000,
-              status: 'active'
+              monthlyLimit: 10000,
+              tokenLimit: 100000,
+              status: 'ACTIVE'
             }
           }
         },

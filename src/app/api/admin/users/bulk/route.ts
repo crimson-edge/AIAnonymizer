@@ -38,7 +38,7 @@ export async function POST(req: Request) {
             isAdmin: false // Prevent suspending admins
           },
           data: {
-            status: 'suspended'
+            status: 'SUSPENDED'
           }
         });
         break;
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
             id: { in: userIds }
           },
           data: {
-            status: 'active'
+            status: 'ACTIVE'
           }
         });
         break;

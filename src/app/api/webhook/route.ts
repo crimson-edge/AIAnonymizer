@@ -49,14 +49,14 @@ export async function POST(req: Request) {
               tier,
               monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
               tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-              status: 'active',
+              status: 'ACTIVE',
               currentPeriodEnd: new Date(subscription.current_period_end * 1000)
             },
             update: {
               tier,
               monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
               tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-              status: 'active',
+              status: 'ACTIVE',
               currentPeriodEnd: new Date(subscription.current_period_end * 1000)
             },
           });
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
             tier,
             monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
             tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-            status: subscription.status,
+            status: subscription.status === 'active' ? 'ACTIVE' : subscription.status,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           },
         });

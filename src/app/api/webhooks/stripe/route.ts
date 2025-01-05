@@ -94,7 +94,7 @@ export async function POST(req: Request) {
             userId,
             stripeId: subscriptionId,
             tier,
-            status: 'active',
+            status: 'ACTIVE',
             monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
             tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
           update: {
             stripeId: subscriptionId,
             tier,
-            status: 'active',
+            status: 'ACTIVE',
             monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
             tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
           where: { stripeId: subscriptionId },
           data: {
             tier,
-            status: subscription.status === 'active' ? 'active' : 'inactive',
+            status: subscription.status === 'active' ? 'ACTIVE' : 'inactive',
             monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
             tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)

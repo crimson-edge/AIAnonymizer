@@ -54,10 +54,10 @@ export async function POST(request: Request) {
       where: { userId: user.id },
       data: {
         tier: SubscriptionTier.FREE,
-        status: 'cancelled',
+        status: 'ACTIVE',
         currentPeriodEnd: new Date(),
-        monthlyLimit: 1000, // Set free tier limit
-        tokenLimit: 10000, // Set free tier limit
+        monthlyLimit: 10000, 
+        tokenLimit: 100000, 
       },
     });
 

@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     await prisma.subscription.update({
       where: { userId: user.id },
       data: {
-        status: 'cancelled',
+        status: 'ACTIVE',
         currentPeriodEnd: new Date()
       }
     });
