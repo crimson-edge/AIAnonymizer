@@ -1,5 +1,5 @@
 [build]
-  command = "psql $DATABASE_URL -f scripts/reset-migrations.sql && npm install --legacy-peer-deps && npx prisma generate && npx prisma migrate deploy && next build"
+  command = "npm install --legacy-peer-deps && npx prisma generate && npx prisma migrate reset --force && next build"
   publish = ".next"
 
 [build.environment]
@@ -14,12 +14,8 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = [
-    "node_modules/.prisma/**",
-    "node_modules/@prisma/client/**",
-    "prisma/**"
-  ]
   external_node_modules = ["@prisma/client", "prisma"]
+  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**", "prisma/**"]
 
 [[redirects]]
   from = "/*"
