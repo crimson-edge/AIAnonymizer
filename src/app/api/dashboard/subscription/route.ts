@@ -28,8 +28,8 @@ export async function GET() {
 
     return NextResponse.json({
       tier: user.subscription.tier,
-      isActive: user.subscription.isActive,
-      endDate: user.subscription.endDate
+      isActive: user.subscription.status === 'active',
+      endDate: user.subscription.currentPeriodEnd
     });
   } catch (error) {
     console.error('Error fetching subscription status:', error);

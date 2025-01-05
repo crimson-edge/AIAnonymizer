@@ -92,18 +92,20 @@ export async function POST(req: Request) {
           where: { userId },
           create: {
             userId,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            stripePriceId: priceId,
+            stripeId: subscriptionId,
             tier,
-            isActive: true
+            status: 'active',
+            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
           update: {
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            stripePriceId: priceId,
+            stripeId: subscriptionId,
             tier,
-            isActive: true
+            status: 'active',
+            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });
 
@@ -127,11 +129,13 @@ export async function POST(req: Request) {
         }
 
         await prisma.subscription.updateMany({
-          where: { stripeSubscriptionId: subscriptionId },
+          where: { stripeId: subscriptionId },
           data: {
-            stripePriceId: priceId,
             tier,
-            isActive: subscription.status === 'active',
+            status: subscription.status === 'active' ? 'active' : 'inactive',
+            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });
 
@@ -143,9 +147,9 @@ export async function POST(req: Request) {
         const subscriptionId = subscription.id;
 
         await prisma.subscription.updateMany({
-          where: { stripeSubscriptionId: subscriptionId },
+          where: { stripeId: subscriptionId },
           data: {
-            isActive: false,
+            status: 'inactive',
           },
         });
 

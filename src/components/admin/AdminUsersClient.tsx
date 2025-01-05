@@ -18,10 +18,22 @@ interface User {
   createdAt: string;
   subscription?: {
     tier: string;
-    isActive: boolean;
     monthlyLimit: number;
     tokenLimit: number;
   };
+  apiKeys?: {
+    id: string;
+    isActive: boolean;
+  }[];
+  usage?: {
+    monthly: number;
+    total: number;
+  };
+  activity?: {
+    id: string;
+    action: string;
+    timestamp: string;
+  }[];
 }
 
 interface PaginationData {
@@ -449,13 +461,13 @@ export default function AdminUsersClient() {
                         <div>
                           <h4 className="text-sm font-medium text-gray-500 mb-2">Current API Key</h4>
                           <div className="bg-gray-50 rounded-md p-3">
-                            {user.currentSession ? (
+                            {user.apiKeys?.find(key => key.isActive) ? (
                               <div className="text-sm">
-                                <p className="font-medium text-gray-900">Active Session</p>
-                                <p className="text-gray-500 mt-1">Key ID: {user.currentSession}</p>
+                                <p className="font-medium text-gray-900">Active Key</p>
+                                <p className="text-gray-500 mt-1">Key ID: {user.apiKeys.find(key => key.isActive)?.id}</p>
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-500">No active API key session</p>
+                              <p className="text-sm text-gray-500">No active API key</p>
                             )}
                           </div>
                         </div>
@@ -467,16 +479,16 @@ export default function AdminUsersClient() {
                             <div className="bg-gray-50 rounded-md p-3">
                               <p className="text-xs text-gray-500">Monthly Usage</p>
                               <p className="text-lg font-medium text-gray-900">
-                                {user.monthlyUsage?.toLocaleString() || 0} / {user.subscription?.monthlyLimit?.toLocaleString() || 0}
+                                {user.usage?.monthly?.toLocaleString() || 0} / {user.subscription?.monthlyLimit?.toLocaleString() || 0}
                               </p>
                               <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-blue-600 rounded-full"
-                                  style={{ 
+                                  className="h-full bg-blue-500"
+                                  style={{
                                     width: `${Math.min(
-                                      ((user.monthlyUsage || 0) / (user.subscription?.monthlyLimit || 1)) * 100, 
+                                      ((user.usage?.monthly || 0) / (user.subscription?.monthlyLimit || 1)) * 100,
                                       100
-                                    )}%` 
+                                    )}%`,
                                   }}
                                 />
                               </div>
@@ -484,7 +496,7 @@ export default function AdminUsersClient() {
                             <div className="bg-gray-50 rounded-md p-3">
                               <p className="text-xs text-gray-500">Total Usage</p>
                               <p className="text-lg font-medium text-gray-900">
-                                {user.totalUsage?.toLocaleString() || 0}
+                                {user.usage?.total?.toLocaleString() || 0}
                               </p>
                             </div>
                           </div>
@@ -494,17 +506,19 @@ export default function AdminUsersClient() {
                         <div>
                           <h4 className="text-sm font-medium text-gray-500 mb-2">Recent Activity</h4>
                           <div className="space-y-3">
-                            {user.recentActivity?.length > 0 ? (
-                              user.recentActivity.map((activity, index) => (
+                            {user.activity?.length > 0 ? (
+                              user.activity.map((item, index) => (
                                 <div key={index} className="bg-gray-50 rounded-md p-3">
-                                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {new Date(activity.timestamp).toLocaleString()}
+                                  <p className="text-sm font-medium text-gray-900">{item.action}</p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(item.timestamp).toLocaleDateString()}
                                   </p>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-sm text-gray-500">No recent activity</p>
+                              <div className="bg-gray-50 rounded-md p-3">
+                                <p className="text-sm text-gray-500">No recent activity</p>
+                              </div>
                             )}
                           </div>
                         </div>

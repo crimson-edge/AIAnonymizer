@@ -33,6 +33,7 @@ model User {
   adminAuditLogs AdminAuditLog[]  @relation("AdminAuditLogs")
   targetAuditLogs AdminAuditLog[] @relation("TargetAuditLogs")
   tokenUsages   TokenUsage[]
+  payments      Payment[]
   lastActive    DateTime?
   recentActivity Json[]   @default([])
   stripeCustomerId String?
@@ -41,19 +42,17 @@ model User {
 }
 
 model Subscription {
-  id           String           @id @default(cuid())
-  userId       String           @unique
-  user         User             @relation(fields: [userId], references: [id])
-  tier         SubscriptionTier @default(FREE)
-  monthlyLimit Int              @default(100)
-  tokenLimit   Int              @default(1000)
-  isActive     Boolean          @default(true)
-  startDate    DateTime         @default(now())
-  endDate      DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  @@index([userId])
+  id               String           @id @default(cuid())
+  user             User             @relation(fields: [userId], references: [id])
+  userId           String           @unique
+  stripeId         String?
+  tier             SubscriptionTier @default(FREE)
+  monthlyLimit     Int              @default(10000)
+  tokenLimit       Int              @default(100000)
+  status           String           @default("active")
+  currentPeriodEnd DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 }
 
 model Usage {
@@ -70,15 +69,15 @@ model Usage {
 }
 
 model ApiKey {
-  id        String    @id @default(cuid())
-  key       String    @unique
-  name      String
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isActive  Boolean   @default(true)
-  lastUsed  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  key         String    @unique
+  name        String?
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  isActive    Boolean   @default(true)
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
 }
@@ -164,9 +163,33 @@ model TokenUsage {
   @@index([createdAt])
 }
 
+model Payment {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  amount        Int
+  currency      String
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model GroqKey {
+  id             String    @id @default(cuid())
+  key            String    @unique
+  isInUse        Boolean   @default(false)
+  currentSession String?
+  lastUsed       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 enum SubscriptionTier {
   FREE
   BASIC
+  PREMIUM
   PRO
   ENTERPRISE
 }

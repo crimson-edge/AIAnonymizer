@@ -3,7 +3,6 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { UserStatus } from '@prisma/client';
 import './env'; // This will ensure NEXTAUTH_URL is set correctly
 
 if (!process.env.NEXTAUTH_URL) {
@@ -65,13 +64,13 @@ export const authOptions: NextAuthOptions = {
           console.log('User found, checking status...');
           
           // Check if user is pending verification
-          if (user.status === UserStatus.PENDING_VERIFICATION) {
+          if (user.status === 'PENDING_VERIFICATION') {
             console.error('User pending verification:', credentials.email);
             throw new Error('Please verify your email before signing in');
           }
 
           // Check if user is suspended
-          if (user.status === UserStatus.SUSPENDED) {
+          if (user.status === 'SUSPENDED') {
             console.error('User is suspended:', credentials.email);
             throw new Error('Your account has been suspended. Please contact support.');
           }

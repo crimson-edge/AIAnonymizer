@@ -49,14 +49,15 @@ export async function POST(req: Request) {
               tier,
               monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
               tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-              isActive: true,
-              startDate: new Date(),
+              status: 'active',
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
             },
             update: {
               tier,
               monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
               tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-              isActive: true,
+              status: 'active',
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
             },
           });
         } else if (type === 'token_purchase' && tokenAmount) {
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
             tier,
             monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
             tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+            status: subscription.status,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           },
         });
@@ -121,7 +123,8 @@ export async function POST(req: Request) {
           where: { userId },
           data: {
             tier: SubscriptionTier.FREE,
-            stripeSubscriptionId: null,
+            stripeId: null,
+            status: 'inactive',
             currentPeriodEnd: new Date(),
           },
         });

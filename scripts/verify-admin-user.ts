@@ -46,7 +46,9 @@ async function main() {
         subscription: {
           create: {
             tier: 'PRO',
-            isActive: true,
+            status: 'active',
+            monthlyLimit: 1000000,
+            tokenLimit: 10000000
           }
         }
       },

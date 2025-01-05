@@ -39,12 +39,16 @@ async function main() {
     where: { userId: admin.id },
     update: {
       tier: 'PRO',
-      isActive: true,
+      status: 'active',
+      monthlyLimit: 1000000,
+      tokenLimit: 10000000
     },
     create: {
       userId: admin.id,
       tier: 'PRO',
-      isActive: true,
+      status: 'active',
+      monthlyLimit: 1000000,
+      tokenLimit: 10000000
     },
   });
 

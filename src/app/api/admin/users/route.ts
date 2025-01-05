@@ -91,7 +91,7 @@ export async function GET(req: Request) {
         subscription: {
           select: {
             tier: true,
-            isActive: true,
+            status: true,
             monthlyLimit: true,
             tokenLimit: true,
             createdAt: true,
@@ -116,7 +116,7 @@ export async function GET(req: Request) {
         Status: user.status,
         'Is Admin': user.isAdmin ? 'Yes' : 'No',
         'Subscription Tier': user.subscription?.tier || 'None',
-        'Subscription Active': user.subscription?.isActive ? 'Yes' : 'No',
+        'Subscription Active': user.subscription?.status || 'None',
         'Monthly Limit': user.subscription?.monthlyLimit || 0,
         'Token Limit': user.subscription?.tokenLimit || 0,
         'Created At': user.createdAt.toISOString(),
@@ -251,7 +251,7 @@ export async function PUT(req: Request) {
         subscription: {
           select: {
             tier: true,
-            isActive: true,
+            status: true,
             monthlyLimit: true,
             tokenLimit: true
           }

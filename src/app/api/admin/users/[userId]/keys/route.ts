@@ -24,7 +24,7 @@ export async function GET(
         key: true,
         name: true,
         createdAt: true,
-        lastUsed: true,
+        revokedAt: true,
         isActive: true,
       },
       orderBy: {

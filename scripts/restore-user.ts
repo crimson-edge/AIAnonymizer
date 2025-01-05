@@ -25,10 +25,10 @@ async function main() {
         lastName: 'Rines',
         subscription: {
           create: {
-            tier: 'PRO',
+            tier: 'FREE',
             monthlyLimit: 1000,
             tokenLimit: 1000,
-            isActive: true
+            status: 'active'
           }
         }
       }

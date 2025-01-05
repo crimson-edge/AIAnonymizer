@@ -84,7 +84,8 @@ export async function POST(req: Request) {
             userId: { in: userIds }
           },
           data: {
-            status: 'revoked'
+            isActive: false,
+            revokedAt: new Date()
           }
         });
         result = { count: userIds.length };
