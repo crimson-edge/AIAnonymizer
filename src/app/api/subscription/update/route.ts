@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -10,14 +10,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.email) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { subscriptionId, tier } = body;
 
     const user = await prisma.user.findUnique({
@@ -30,13 +31,21 @@ export async function POST(req: Request) {
     }
 
     // Verify subscription belongs to user
-    if (user.subscription?.stripeSubscriptionId !== subscriptionId) {
+    if (!user.stripeCustomerId) {
+      return new NextResponse('No active subscription', { status: 403 });
+    }
+
+    // Get current subscription
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    if (subscription.customer !== user.stripeCustomerId) {
       return new NextResponse('Invalid subscription', { status: 403 });
     }
 
     // Get new price ID based on tier
     const newPriceId = tier === 'BASIC' 
       ? process.env.STRIPE_BASIC_PRICE_ID
+      : tier === 'PREMIUM'
+      ? process.env.STRIPE_PREMIUM_PRICE_ID
       : null; // FREE tier means cancellation
 
     if (tier !== 'FREE' && !newPriceId) {
@@ -52,7 +61,7 @@ export async function POST(req: Request) {
       // Update subscription to new price
       await stripe.subscriptions.update(subscriptionId, {
         items: [{
-          id: (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0].id,
+          id: subscription.items.data[0].id,
           price: newPriceId!
         }],
         proration_behavior: 'always_invoice'
@@ -60,10 +69,10 @@ export async function POST(req: Request) {
 
       // Update subscription in database
       await prisma.subscription.update({
-        where: { stripeSubscriptionId: subscriptionId },
+        where: { userId: user.id },
         data: {
           tier: tier,
-          monthlyLimit: tier === 'BASIC' ? 10000 : 1000
+          monthlyLimit: tier === 'BASIC' ? 10000 : tier === 'PREMIUM' ? 100000 : 1000
         }
       });
     }

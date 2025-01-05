@@ -38,12 +38,12 @@ async function main() {
   const subscription = await prisma.subscription.upsert({
     where: { userId: admin.id },
     update: {
-      tier: 'PREMIUM',
+      tier: 'PRO',
       isActive: true,
     },
     create: {
       userId: admin.id,
-      tier: 'PREMIUM',
+      tier: 'PRO',
       isActive: true,
     },
   });

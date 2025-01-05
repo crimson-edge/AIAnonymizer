@@ -29,9 +29,9 @@ export async function POST(req: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Only allow token purchase for PREMIUM users
-    if (user.subscription?.tier !== 'PREMIUM') {
-      return new NextResponse('Only premium users can purchase additional tokens', { status: 403 });
+    // Only allow token purchase for PRO users
+    if (user.subscription?.tier !== 'PRO') {
+      return new NextResponse('Only pro users can purchase additional tokens', { status: 403 });
     }
 
     // Create or retrieve Stripe customer

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import Stripe from 'stripe';
+import { SubscriptionTier } from '@prisma/client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-08-16'
@@ -10,57 +11,57 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+
+    if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const body = await req.json();
-    const { targetTier } = body;
-
-    if (!['FREE', 'BASIC'].includes(targetTier)) {
-      return new NextResponse('Invalid target tier', { status: 400 });
-    }
-
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { subscription: true }
+      where: { email: session.user.email! },
+      include: {
+        subscription: true,
+      },
     });
 
     if (!user) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    if (!user.subscription?.stripeSubscriptionId) {
+    if (!user.stripeCustomerId) {
       return new NextResponse('No active subscription', { status: 400 });
     }
 
-    if (targetTier === 'FREE') {
-      // Cancel subscription at period end
-      await stripe.subscriptions.update(user.subscription.stripeSubscriptionId, {
-        cancel_at_period_end: true
-      });
+    // Get all active subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: 'active',
+    });
 
-      return NextResponse.json({
-        message: 'Subscription will be cancelled at the end of the billing period'
-      });
-    } else {
-      // Downgrade to BASIC
-      const subscription = await stripe.subscriptions.retrieve(user.subscription.stripeSubscriptionId);
-      await stripe.subscriptions.update(user.subscription.stripeSubscriptionId, {
-        items: [{
-          id: subscription.items.data[0].id,
-          price: process.env.STRIPE_BASIC_PRICE_ID
-        }],
-        proration_behavior: 'always_invoice'
-      });
-
-      return NextResponse.json({
-        message: 'Subscription downgraded to Basic'
-      });
+    if (subscriptions.data.length === 0) {
+      return new NextResponse('No active subscription found', { status: 400 });
     }
+
+    // Cancel all active subscriptions
+    for (const subscription of subscriptions.data) {
+      await stripe.subscriptions.cancel(subscription.id);
+    }
+
+    // Update subscription in database
+    await prisma.subscription.update({
+      where: { userId: user.id },
+      data: {
+        tier: SubscriptionTier.FREE,
+        isActive: false,
+        endDate: new Date(),
+        monthlyLimit: 1000, // Set free tier limit
+        tokenLimit: 10000, // Set free tier limit
+      },
+    });
+
+    return new NextResponse('Subscription downgraded successfully');
   } catch (error) {
     console.error('Error downgrading subscription:', error);
     return new NextResponse('Error downgrading subscription', { status: 500 });

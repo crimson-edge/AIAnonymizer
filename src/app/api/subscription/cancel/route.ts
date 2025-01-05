@@ -13,15 +13,12 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const body = await req.json();
-    const { subscriptionId } = body;
-
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: session.user.email! },
       include: { subscription: true }
     });
 
@@ -29,29 +26,37 @@ export async function POST(req: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Verify subscription belongs to user
-    if (user.subscription?.stripeSubscriptionId !== subscriptionId) {
-      return new NextResponse('Invalid subscription', { status: 403 });
+    if (!user.stripeCustomerId) {
+      return new NextResponse('No active subscription', { status: 400 });
     }
 
-    // Cancel subscription at period end
-    await stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: true
+    // Get all subscriptions for the customer
+    const subscriptions = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: 'active'
     });
 
-    // Update subscription status in database
+    if (subscriptions.data.length === 0) {
+      return new NextResponse('No active subscription found', { status: 400 });
+    }
+
+    // Cancel all active subscriptions
+    for (const subscription of subscriptions.data) {
+      await stripe.subscriptions.cancel(subscription.id);
+    }
+
+    // Update subscription in database
     await prisma.subscription.update({
-      where: { stripeSubscriptionId: subscriptionId },
+      where: { userId: user.id },
       data: {
         isActive: false,
-        tier: 'FREE',
-        monthlyLimit: 1000
+        endDate: new Date()
       }
     });
 
-    return NextResponse.json({ success: true });
+    return new NextResponse('Subscription cancelled successfully');
   } catch (error) {
-    console.error('Error canceling subscription:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Error cancelling subscription:', error);
+    return new NextResponse('Error cancelling subscription', { status: 500 });
   }
 }

@@ -35,15 +35,14 @@ export async function POST(req: Request) {
       );
 
       // Also update any associated Groq keys
-      await prisma.groqKey.updateMany({
+      await prisma.groqKeyPool.updateMany({
         where: {
-          currentSession: {
-            in: activeKeys.map(key => key.id)
+          key: {
+            in: activeKeys.map(key => key.key)
           }
         },
         data: {
           isInUse: false,
-          currentSession: null,
           lastUsed: new Date()
         }
       });

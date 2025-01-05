@@ -22,7 +22,7 @@ async function main() {
       isAdmin: true,
       subscription: {
         create: {
-          tier: 'PREMIUM',
+          tier: 'PRO',
           isActive: true,
         }
       }

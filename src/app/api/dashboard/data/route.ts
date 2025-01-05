@@ -18,7 +18,7 @@ export async function GET() {
       where: { email: session.user.email },
       include: {
         subscription: true,
-        Usage: true,
+        usageRecords: true,
       },
     });
 
@@ -30,7 +30,7 @@ export async function GET() {
     }
 
     // Calculate total tokens used by summing up all usage records
-    const totalTokensUsed = user.Usage.reduce((sum, record) => sum + record.tokens, 0);
+    const totalTokensUsed = user.usageRecords.reduce((sum, record) => sum + record.tokens, 0);
 
     const response = {
       usage: {
@@ -39,9 +39,10 @@ export async function GET() {
       },
       subscription: {
         tier: user.subscription?.tier || 'FREE',
+        monthlyLimit: user.subscription?.monthlyLimit || 0,
+        tokenLimit: user.subscription?.tokenLimit || 0,
         isActive: user.subscription?.isActive || false,
         stripeCustomerId: user.stripeCustomerId,
-        stripeSubscriptionId: user.subscription?.stripeSubscriptionId,
       },
     };
 

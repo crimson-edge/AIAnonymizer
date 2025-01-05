@@ -1,47 +1,45 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { UserStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const token = searchParams.get('token');
+  const userId = searchParams.get('userId');
 
-  if (!token) {
-    return new NextResponse('Missing verification token', { status: 400 });
+  if (!userId) {
+    return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
 
   try {
-    // Find user with matching verification token
+    // Find user by ID
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token }
+      where: { id: userId }
     });
 
     if (!user) {
-      return new NextResponse('Invalid verification token', { status: 400 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Update user as verified
+    if (user.status !== 'PENDING_VERIFICATION') {
+      return NextResponse.json({ error: 'User already verified' }, { status: 400 });
+    }
+
+    // Update user status
     await prisma.user.update({
-      where: { id: user.id },
+      where: { id: userId },
       data: {
+        status: 'ACTIVE',
         emailVerified: new Date(),
-        verificationToken: null,
-        status: UserStatus.ACTIVE // Change status to ACTIVE
-      }
+      },
     });
 
-    // Return success response
-    return NextResponse.json({
-      success: true,
-      message: 'Email verified successfully'
-    });
+    return NextResponse.json({ message: 'Email verified successfully' });
   } catch (error) {
-    console.error('Error verifying email:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'Error verifying email'
-    }, { status: 500 });
+    console.error('Email verification error:', error);
+    return NextResponse.json(
+      { error: 'Failed to verify email' },
+      { status: 500 }
+    );
   }
 }

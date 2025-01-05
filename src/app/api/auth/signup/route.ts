@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
-import { SubscriptionTier, UserStatus } from '@prisma/client';
+import { SubscriptionTier } from '@prisma/client';
 import { sendVerificationEmail } from '@/lib/sendgrid';
 import crypto from 'crypto';
 
@@ -47,7 +47,6 @@ export async function POST(req: Request) {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
 
     try {
       // Create new user
@@ -57,8 +56,7 @@ export async function POST(req: Request) {
           lastName: lastName.trim(),
           email: email.toLowerCase().trim(),
           password: hashedPassword,
-          verificationToken,
-          status: UserStatus.PENDING_VERIFICATION,
+          status: 'PENDING_VERIFICATION',
           subscription: {
             create: {
               tier: SubscriptionTier.FREE,
@@ -77,22 +75,11 @@ export async function POST(req: Request) {
 
       // Send verification email
       try {
-        await sendVerificationEmail(email.toLowerCase().trim(), verificationToken);
+        await sendVerificationEmail(user.email!, user.id);
         console.log('Verification email sent successfully');
       } catch (emailError) {
         console.error('Error sending verification email:', emailError);
-        return NextResponse.json({
-          message: 'Account created but verification email failed to send',
-          requiresVerification: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            status: user.status,
-            verificationToken: verificationToken
-          }
-        }, { status: 201 });
+        // Don't fail if email sending fails
       }
 
       return NextResponse.json({

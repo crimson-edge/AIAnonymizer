@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       where: { id: userId },
       include: {
         subscription: true,
-        Usage: {
+        usageRecords: {
           orderBy: { createdAt: 'desc' },
           take: 100, // Last 100 usage records
         },
@@ -66,7 +66,7 @@ export async function GET(req: Request) {
         email: user.email,
         subscription: user.subscription,
         monthlyUsage: monthlyUsage._sum.tokens || 0,
-        usageHistory: user.Usage,
+        usageHistory: user.usageRecords,
       },
     });
   } catch (error) {
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
 
       case 'reset':
         // Reset to default limit based on subscription tier
-        const defaultLimit = user.subscription.tier === 'PREMIUM' 
+        const defaultLimit = user.subscription.tier === 'PRO' 
           ? 100000 
           : user.subscription.tier === 'BASIC' 
             ? 10000 

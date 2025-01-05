@@ -25,7 +25,7 @@ async function main() {
         lastName: 'Rines',
         subscription: {
           create: {
-            tier: 'PREMIUM',
+            tier: 'PRO',
             monthlyLimit: 1000,
             tokenLimit: 1000,
             isActive: true

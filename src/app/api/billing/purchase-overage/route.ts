@@ -22,8 +22,8 @@ export async function POST(request: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    if (!user.subscription || user.subscription.tier !== 'PREMIUM') {
-      return new NextResponse('Only Premium subscribers can purchase overage tokens', { status: 403 });
+    if (!user.subscription || user.subscription.tier !== 'PRO') {
+      return new NextResponse('Only Pro subscribers can purchase overage tokens', { status: 403 });
     }
 
     // Create a Stripe Checkout session for the overage package
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       mode: 'payment',
       success_url: `${process.env.NEXTAUTH_URL}/dashboard?overage=success`,
       cancel_url: `${process.env.NEXTAUTH_URL}/dashboard?overage=cancelled`,
-      customer: user.subscription.stripeCustomerId || undefined,
+      customer: user.stripeCustomerId || undefined,
       metadata: {
         userId: user.id,
         type: 'overage',

@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { SubscriptionTier } from '@prisma/client';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -39,20 +40,23 @@ export async function POST(req: Request) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           const priceId = subscription.items.data[0].price.id;
 
-          const tier = priceId === process.env.STRIPE_PREMIUM_PRICE_ID ? 'PREMIUM' : 'BASIC';
+          const tier = priceId === process.env.STRIPE_PREMIUM_PRICE_ID ? SubscriptionTier.PREMIUM : SubscriptionTier.BASIC;
 
           await prisma.subscription.upsert({
             where: { userId },
             create: {
               userId,
               tier,
-              stripeSubscriptionId: subscription.id,
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+              tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+              isActive: true,
+              startDate: new Date(),
             },
             update: {
               tier,
-              stripeSubscriptionId: subscription.id,
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+              tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+              isActive: true,
             },
           });
         } else if (type === 'token_purchase' && tokenAmount) {
@@ -90,12 +94,14 @@ export async function POST(req: Request) {
           return new NextResponse('Missing userId', { status: 400 });
         }
 
-        const tier = priceId === process.env.STRIPE_PREMIUM_PRICE_ID ? 'PREMIUM' : 'BASIC';
+        const tier = priceId === process.env.STRIPE_PREMIUM_PRICE_ID ? SubscriptionTier.PREMIUM : SubscriptionTier.BASIC;
 
         await prisma.subscription.update({
           where: { userId },
           data: {
             tier,
+            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
+            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           },
         });
@@ -114,7 +120,7 @@ export async function POST(req: Request) {
         await prisma.subscription.update({
           where: { userId },
           data: {
-            tier: 'FREE',
+            tier: SubscriptionTier.FREE,
             stripeSubscriptionId: null,
             currentPeriodEnd: new Date(),
           },

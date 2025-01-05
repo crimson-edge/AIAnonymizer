@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
@@ -11,96 +14,113 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  firstName     String
-  lastName      String
-  email         String    @unique
-  password      String
+  firstName     String?
+  lastName      String?
+  email         String?   @unique
   emailVerified DateTime?
-  verificationToken String? @unique
-  resetToken    String?   @unique
-  resetTokenExpiry DateTime?
+  image         String?
+  password      String?
   isAdmin       Boolean   @default(false)
-  status        UserStatus @default(ACTIVE)
-  apiKeys       ApiKey[]
+  status        String    @default("PENDING_VERIFICATION")
   subscription  Subscription?
-  Usage         Usage[]
+  accounts      Account[]
+  sessions      Session[]
+  apiKeys       ApiKey[]
+  usageRecords  Usage[]
+  monthlyUsage  Int       @default(0)
+  totalUsage    Int       @default(0)
+  currentSession String?
+  recentActivity Json[]   @default([])
+  stripeCustomerId String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  stripeCustomerId String?
-  stripePriceId  String?
 }
 
 model Subscription {
-  id                   String           @id @default(cuid())
-  userId               String           @unique
-  tier                 SubscriptionTier @default(FREE)
-  monthlyLimit         Int              @default(1000)
-  tokenLimit          Int              @default(1000) // Current token limit including overage purchases
-  startDate            DateTime         @default(now())
-  endDate              DateTime?
-  currentPeriodEnd     DateTime?
-  isActive             Boolean          @default(true)
-  stripeCustomerId     String?          @unique
-  stripeSubscriptionId String?          @unique
-  stripePriceId        String?
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  user                 User             @relation(fields: [userId], references: [id])
+  id           String           @id @default(cuid())
+  userId       String           @unique
+  user         User             @relation(fields: [userId], references: [id])
+  tier         SubscriptionTier @default(FREE)
+  monthlyLimit Int              @default(100)
+  tokenLimit   Int              @default(1000)
+  isActive     Boolean          @default(true)
+  startDate    DateTime         @default(now())
+  endDate      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([userId])
 }
 
-model GroqKey {
-  id             String    @id @default(cuid())
-  key            String    @unique
-  isInUse        Boolean   @default(false)
-  currentSession String?
-  lastUsed       DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+model Usage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  amount    Int      @default(0)
+  tokens    Int      @default(0)
+  cost      Float
+  createdAt DateTime @default(now())
 
-  @@index([currentSession])
-  @@index([isInUse])
+  @@index([userId])
 }
 
 model ApiKey {
   id        String    @id @default(cuid())
-  userId    String
   key       String    @unique
-  name      String?
+  name      String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive  Boolean   @default(true)
   lastUsed  DateTime?
   createdAt DateTime  @default(now())
-  updatedAt DateTime
-  isActive  Boolean   @default(true)
-  user      User      @relation(fields: [userId], references: [id])
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model GroqKeyPool {
-  id         String   @id
-  apiKey     String   @unique
-  isActive   Boolean  @default(true)
-  usageCount Int      @default(0)
-  lastUsed   DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
-}
-
-model Usage {
-  id        String   @id
-  userId    String
-  tokens    Int
-  createdAt DateTime @default(now())
-  type      String
-  cost      Float
-  User      User     @relation(fields: [userId], references: [id])
+  id        String    @id @default(cuid())
+  key       String    @unique
+  isInUse   Boolean   @default(false)
+  lastUsed  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 enum SubscriptionTier {
   FREE
   BASIC
-  PREMIUM
-}
-
-enum UserStatus {
-  ACTIVE
-  SUSPENDED
-  PENDING_VERIFICATION
+  PRO
+  ENTERPRISE
 }
