@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       data: {
         tier: SubscriptionTier.FREE,
         monthlyLimit: 2000,
-        tokenLimit: 20000,
+        tokenLimit: 2000,
         status: 'ACTIVE',
         currentPeriodEnd: new Date(),
       },
