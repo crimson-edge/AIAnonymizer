@@ -29,7 +29,10 @@ model User {
   usageRecords  Usage[]
   monthlyUsage  Int       @default(0)
   totalUsage    Int       @default(0)
-  currentSession String?
+  activities    UserActivity[]
+  adminAuditLogs AdminAuditLog[]  @relation("AdminAuditLogs")
+  targetAuditLogs AdminAuditLog[] @relation("TargetAuditLogs")
+  lastActive    DateTime?
   recentActivity Json[]   @default([])
   stripeCustomerId String?
   createdAt     DateTime  @default(now())
@@ -116,6 +119,35 @@ model GroqKeyPool {
   lastUsed  DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model UserActivity {
+  id           String    @id @default(cuid())
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  activityType String
+  details      Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AdminAuditLog {
+  id             String    @id @default(cuid())
+  admin          User      @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  adminId        String
+  actionType     String
+  details        Json?
+  targetUser     User?     @relation("TargetAuditLogs", fields: [targetUserId], references: [id])
+  targetUserId   String?
+  targetResource String?
+  createdAt      DateTime  @default(now())
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([createdAt])
 }
 
 enum SubscriptionTier {
