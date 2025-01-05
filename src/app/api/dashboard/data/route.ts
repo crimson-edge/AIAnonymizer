@@ -41,7 +41,7 @@ export async function GET() {
         tier: user.subscription?.tier || 'FREE',
         monthlyLimit: user.subscription?.monthlyLimit || 0,
         tokenLimit: user.subscription?.tokenLimit || 0,
-        isActive: user.subscription?.status === 'active',
+        isActive: user.subscription?.status === 'ACTIVE',
         stripeCustomerId: user.stripeCustomerId,
       },
     };
