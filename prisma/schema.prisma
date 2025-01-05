@@ -21,7 +21,7 @@ model User {
   image         String?
   password      String?
   isAdmin       Boolean   @default(false)
-  status        String    @default("PENDING_VERIFICATION")
+  status        UserStatus    @default(ACTIVE)
   subscription  Subscription?
   accounts      Account[]
   sessions      Session[]
@@ -113,12 +113,13 @@ model Session {
 }
 
 model GroqKeyPool {
-  id        String    @id @default(cuid())
-  key       String    @unique
-  isInUse   Boolean   @default(false)
-  lastUsed  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  key            String    @unique
+  isInUse        Boolean   @default(false)
+  currentSession String?
+  lastUsed       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model UserActivity {
@@ -168,22 +169,22 @@ model Payment {
   user          User     @relation(fields: [userId], references: [id])
   userId        String
   amount        Int
-  currency      String
+  currency      String   @default("usd")
   status        String
+  stripePaymentId String?
+  type          String   // subscription, overage, etc.
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
+  @@index([createdAt])
+  @@index([status])
 }
 
-model GroqKey {
-  id             String    @id @default(cuid())
-  key            String    @unique
-  isInUse        Boolean   @default(false)
-  currentSession String?
-  lastUsed       DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
 }
 
 enum SubscriptionTier {
