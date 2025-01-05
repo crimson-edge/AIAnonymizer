@@ -1,22 +1,27 @@
 -- CreateEnum
-CREATE TYPE "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM');
+CREATE TYPE IF NOT EXISTS "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION');
+
+-- CreateEnum
+CREATE TYPE IF NOT EXISTS "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'PRO', 'ENTERPRISE');
 
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
-    "name" TEXT,
-    "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "email" TEXT,
     "emailVerified" TIMESTAMP(3),
-    "verificationToken" TEXT,
-    "resetToken" TEXT,
-    "resetTokenExpiry" TIMESTAMP(3),
+    "image" TEXT,
+    "password" TEXT,
+    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "monthlyUsage" INTEGER NOT NULL DEFAULT 0,
+    "totalUsage" INTEGER NOT NULL DEFAULT 0,
+    "lastActive" TIMESTAMP(3),
+    "recentActivity" JSONB[] DEFAULT ARRAY[]::JSONB[],
+    "stripeCustomerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "stripeCustomerId" TEXT,
-    "stripePriceId" TEXT,
-    "stripeSubscriptionStatus" TEXT DEFAULT 'FREE',
-    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -25,17 +30,136 @@ CREATE TABLE IF NOT EXISTS "User" (
 CREATE TABLE IF NOT EXISTS "Subscription" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "stripeId" TEXT,
     "tier" "SubscriptionTier" NOT NULL DEFAULT 'FREE',
-    "monthlyLimit" INTEGER NOT NULL DEFAULT 1000,
-    "startDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "endDate" TIMESTAMP(3),
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "stripeCustomerId" TEXT,
-    "stripeSubscriptionId" TEXT,
+    "monthlyLimit" INTEGER NOT NULL DEFAULT 10000,
+    "tokenLimit" INTEGER NOT NULL DEFAULT 100000,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "currentPeriodEnd" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Usage" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL DEFAULT 0,
+    "tokens" INTEGER NOT NULL DEFAULT 0,
+    "cost" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Usage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ApiKey" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "name" TEXT,
+    "userId" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "revokedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ApiKey_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Account" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "refresh_token" TEXT,
+    "access_token" TEXT,
+    "expires_at" INTEGER,
+    "token_type" TEXT,
+    "scope" TEXT,
+    "id_token" TEXT,
+    "session_state" TEXT,
+
+    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Session" (
+    "id" TEXT NOT NULL,
+    "sessionToken" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "GroqKeyPool" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "isInUse" BOOLEAN NOT NULL DEFAULT false,
+    "currentSession" TEXT,
+    "lastUsed" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GroqKeyPool_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "UserActivity" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "activityType" TEXT NOT NULL,
+    "details" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "UserActivity_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdminAuditLog" (
+    "id" TEXT NOT NULL,
+    "adminId" TEXT NOT NULL,
+    "actionType" TEXT NOT NULL,
+    "details" JSONB,
+    "targetUserId" TEXT,
+    "targetResource" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdminAuditLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "TokenUsage" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokensUsed" INTEGER NOT NULL,
+    "requestType" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TokenUsage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Payment" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'usd',
+    "status" TEXT NOT NULL,
+    "stripePaymentId" TEXT,
+    "type" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -45,72 +169,102 @@ CREATE TABLE IF NOT EXISTS "GroqKey" (
     "isInUse" BOOLEAN NOT NULL DEFAULT false,
     "currentSession" TEXT,
     "lastUsed" TIMESTAMP(3),
+    "totalUsage" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "GroqKey_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE IF NOT EXISTS "ApiKey" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "name" TEXT,
-    "lastUsed" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-
-    CONSTRAINT "ApiKey_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE IF NOT EXISTS "GroqKeyPool" (
-    "id" TEXT NOT NULL,
-    "apiKey" TEXT NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "usageCount" INTEGER NOT NULL DEFAULT 0,
-    "lastUsed" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "GroqKeyPool_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE IF NOT EXISTS "Usage" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "tokens" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "type" TEXT NOT NULL,
-    "cost" DOUBLE PRECISION NOT NULL,
-
-    CONSTRAINT "Usage_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
-CREATE UNIQUE INDEX IF NOT EXISTS "User_verificationToken_key" ON "User"("verificationToken");
-CREATE UNIQUE INDEX IF NOT EXISTS "User_resetToken_key" ON "User"("resetToken");
+
+-- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_userId_key" ON "Subscription"("userId");
-CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_stripeCustomerId_key" ON "Subscription"("stripeCustomerId");
-CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_stripeSubscriptionId_key" ON "Subscription"("stripeSubscriptionId");
-CREATE UNIQUE INDEX IF NOT EXISTS "GroqKey_key_key" ON "GroqKey"("key");
-CREATE INDEX IF NOT EXISTS "GroqKey_currentSession_idx" ON "GroqKey"("currentSession");
-CREATE INDEX IF NOT EXISTS "GroqKey_isInUse_idx" ON "GroqKey"("isInUse");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Usage_userId_idx" ON "Usage"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "ApiKey_key_key" ON "ApiKey"("key");
-CREATE UNIQUE INDEX IF NOT EXISTS "GroqKeyPool_apiKey_key" ON "GroqKeyPool"("apiKey");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ApiKey_userId_idx" ON "ApiKey"("userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Account_userId_idx" ON "Account"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Session_sessionToken_key" ON "Session"("sessionToken");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Session_userId_idx" ON "Session"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "GroqKeyPool_key_key" ON "GroqKeyPool"("key");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "UserActivity_userId_idx" ON "UserActivity"("userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "UserActivity_createdAt_idx" ON "UserActivity"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdminAuditLog_adminId_idx" ON "AdminAuditLog"("adminId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("targetUserId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdminAuditLog_createdAt_idx" ON "AdminAuditLog"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "TokenUsage_userId_idx" ON "TokenUsage"("userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "TokenUsage_createdAt_idx" ON "TokenUsage"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Payment_userId_idx" ON "Payment"("userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Payment_createdAt_idx" ON "Payment"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Payment_status_idx" ON "Payment"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "GroqKey_key_key" ON "GroqKey"("key");
 
 -- AddForeignKey
-ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_userId_fkey" 
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Subscription" ADD CONSTRAINT IF NOT EXISTS "Subscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ApiKey" ADD CONSTRAINT "ApiKey_userId_fkey" 
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Usage" ADD CONSTRAINT IF NOT EXISTS "Usage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Usage" ADD CONSTRAINT "Usage_userId_fkey" 
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ApiKey" ADD CONSTRAINT IF NOT EXISTS "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Account" ADD CONSTRAINT IF NOT EXISTS "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Session" ADD CONSTRAINT IF NOT EXISTS "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserActivity" ADD CONSTRAINT IF NOT EXISTS "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AdminAuditLog" ADD CONSTRAINT IF NOT EXISTS "AdminAuditLog_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AdminAuditLog" ADD CONSTRAINT IF NOT EXISTS "AdminAuditLog_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TokenUsage" ADD CONSTRAINT IF NOT EXISTS "TokenUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Payment" ADD CONSTRAINT IF NOT EXISTS "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
