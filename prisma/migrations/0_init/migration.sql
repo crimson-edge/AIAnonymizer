@@ -1,31 +1,11 @@
--- Drop and recreate _prisma_migrations table to reset migration history
-DROP TABLE IF EXISTS "_prisma_migrations";
-
-CREATE TABLE "_prisma_migrations" (
-    "id" character varying(36) NOT NULL,
-    "checksum" character varying(64) NOT NULL,
-    "finished_at" timestamp with time zone,
-    "migration_name" character varying(255) NOT NULL,
-    "logs" text,
-    "rolled_back_at" timestamp with time zone,
-    "started_at" timestamp with time zone NOT NULL DEFAULT now(),
-    "applied_steps_count" integer NOT NULL DEFAULT 0,
-    CONSTRAINT "_prisma_migrations_pkey" PRIMARY KEY ("id")
-);
-
--- Delete any failed migration records
-DELETE FROM "_prisma_migrations" WHERE migration_name = '20250105_fix_migration_history';
-DELETE FROM "_prisma_migrations" WHERE migration_name = '20250105_add_groq_key_model';
-DELETE FROM "_prisma_migrations" WHERE migration_name = '20250105_fix_missing_columns';
+-- CreateEnum
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION');
 
 -- CreateEnum
-CREATE TYPE IF NOT EXISTS "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION');
-
--- CreateEnum
-CREATE TYPE IF NOT EXISTS "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'PRO', 'ENTERPRISE');
+CREATE TYPE "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'PRO', 'ENTERPRISE');
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "User" (
+CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "firstName" TEXT,
     "lastName" TEXT,
@@ -47,7 +27,7 @@ CREATE TABLE IF NOT EXISTS "User" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Subscription" (
+CREATE TABLE "Subscription" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "stripeId" TEXT,
@@ -63,7 +43,7 @@ CREATE TABLE IF NOT EXISTS "Subscription" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Usage" (
+CREATE TABLE "Usage" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -76,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "Usage" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "ApiKey" (
+CREATE TABLE "ApiKey" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "name" TEXT,
@@ -90,7 +70,7 @@ CREATE TABLE IF NOT EXISTS "ApiKey" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Account" (
+CREATE TABLE "Account" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -108,7 +88,7 @@ CREATE TABLE IF NOT EXISTS "Account" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Session" (
+CREATE TABLE "Session" (
     "id" TEXT NOT NULL,
     "sessionToken" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -118,7 +98,7 @@ CREATE TABLE IF NOT EXISTS "Session" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "GroqKeyPool" (
+CREATE TABLE "GroqKeyPool" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "isInUse" BOOLEAN NOT NULL DEFAULT false,
@@ -131,7 +111,7 @@ CREATE TABLE IF NOT EXISTS "GroqKeyPool" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "UserActivity" (
+CREATE TABLE "UserActivity" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "activityType" TEXT NOT NULL,
@@ -143,7 +123,7 @@ CREATE TABLE IF NOT EXISTS "UserActivity" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "AdminAuditLog" (
+CREATE TABLE "AdminAuditLog" (
     "id" TEXT NOT NULL,
     "adminId" TEXT NOT NULL,
     "actionType" TEXT NOT NULL,
@@ -156,7 +136,7 @@ CREATE TABLE IF NOT EXISTS "AdminAuditLog" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "TokenUsage" (
+CREATE TABLE "TokenUsage" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "tokensUsed" INTEGER NOT NULL,
@@ -168,7 +148,7 @@ CREATE TABLE IF NOT EXISTS "TokenUsage" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Payment" (
+CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
@@ -183,7 +163,7 @@ CREATE TABLE IF NOT EXISTS "Payment" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "GroqKey" (
+CREATE TABLE "GroqKey" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "isInUse" BOOLEAN NOT NULL DEFAULT false,
@@ -197,94 +177,94 @@ CREATE TABLE IF NOT EXISTS "GroqKey" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_userId_key" ON "Subscription"("userId");
+CREATE UNIQUE INDEX "Subscription_userId_key" ON "Subscription"("userId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Usage_userId_idx" ON "Usage"("userId");
+CREATE INDEX "Usage_userId_idx" ON "Usage"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "ApiKey_key_key" ON "ApiKey"("key");
+CREATE UNIQUE INDEX "ApiKey_key_key" ON "ApiKey"("key");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "ApiKey_userId_idx" ON "ApiKey"("userId");
+CREATE INDEX "ApiKey_userId_idx" ON "ApiKey"("userId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Account_userId_idx" ON "Account"("userId");
+CREATE INDEX "Account_userId_idx" ON "Account"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
+CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "Session_sessionToken_key" ON "Session"("sessionToken");
+CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Session_userId_idx" ON "Session"("userId");
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "GroqKeyPool_key_key" ON "GroqKeyPool"("key");
+CREATE UNIQUE INDEX "GroqKeyPool_key_key" ON "GroqKeyPool"("key");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "UserActivity_userId_idx" ON "UserActivity"("userId");
+CREATE INDEX "UserActivity_userId_idx" ON "UserActivity"("userId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "UserActivity_createdAt_idx" ON "UserActivity"("createdAt");
+CREATE INDEX "UserActivity_createdAt_idx" ON "UserActivity"("createdAt");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "AdminAuditLog_adminId_idx" ON "AdminAuditLog"("adminId");
+CREATE INDEX "AdminAuditLog_adminId_idx" ON "AdminAuditLog"("adminId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("targetUserId");
+CREATE INDEX "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("targetUserId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "AdminAuditLog_createdAt_idx" ON "AdminAuditLog"("createdAt");
+CREATE INDEX "AdminAuditLog_createdAt_idx" ON "AdminAuditLog"("createdAt");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "TokenUsage_userId_idx" ON "TokenUsage"("userId");
+CREATE INDEX "TokenUsage_userId_idx" ON "TokenUsage"("userId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "TokenUsage_createdAt_idx" ON "TokenUsage"("createdAt");
+CREATE INDEX "TokenUsage_createdAt_idx" ON "TokenUsage"("createdAt");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Payment_userId_idx" ON "Payment"("userId");
+CREATE INDEX "Payment_userId_idx" ON "Payment"("userId");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Payment_createdAt_idx" ON "Payment"("createdAt");
+CREATE INDEX "Payment_createdAt_idx" ON "Payment"("createdAt");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "Payment_status_idx" ON "Payment"("status");
+CREATE INDEX "Payment_status_idx" ON "Payment"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "GroqKey_key_key" ON "GroqKey"("key");
+CREATE UNIQUE INDEX "GroqKey_key_key" ON "GroqKey"("key");
 
 -- AddForeignKey
-ALTER TABLE "Subscription" ADD CONSTRAINT IF NOT EXISTS "Subscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Usage" ADD CONSTRAINT IF NOT EXISTS "Usage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Usage" ADD CONSTRAINT "Usage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ApiKey" ADD CONSTRAINT IF NOT EXISTS "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ApiKey" ADD CONSTRAINT "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Account" ADD CONSTRAINT IF NOT EXISTS "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT IF NOT EXISTS "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserActivity" ADD CONSTRAINT IF NOT EXISTS "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserActivity" ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AdminAuditLog" ADD CONSTRAINT IF NOT EXISTS "AdminAuditLog_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AdminAuditLog" ADD CONSTRAINT "AdminAuditLog_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AdminAuditLog" ADD CONSTRAINT IF NOT EXISTS "AdminAuditLog_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "AdminAuditLog" ADD CONSTRAINT "AdminAuditLog_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TokenUsage" ADD CONSTRAINT IF NOT EXISTS "TokenUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TokenUsage" ADD CONSTRAINT "TokenUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT IF NOT EXISTS "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
