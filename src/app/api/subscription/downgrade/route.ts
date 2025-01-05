@@ -54,10 +54,10 @@ export async function POST(request: Request) {
       where: { userId: user.id },
       data: {
         tier: SubscriptionTier.FREE,
+        monthlyLimit: 2000,
+        tokenLimit: 20000,
         status: 'ACTIVE',
         currentPeriodEnd: new Date(),
-        monthlyLimit: 10000, 
-        tokenLimit: 100000, 
       },
     });
 
