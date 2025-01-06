@@ -1,7 +1,20 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-const prisma = new PrismaClient();
+// Use production database URL if available
+const databaseUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('No database URL provided');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: databaseUrl
+    }
+  }
+});
 
 async function main() {
   // Read from environment variables or use defaults
@@ -9,6 +22,7 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD || 'AdminPass123!';
 
   try {
+    console.log('Using database URL:', databaseUrl.replace(/:[^:]+@/, ':****@'));
     console.log('Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log('Password hashed successfully');
