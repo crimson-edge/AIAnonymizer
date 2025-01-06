@@ -6,7 +6,7 @@ import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     console.log('GET /api/admin/api-keys session:', session);
@@ -25,8 +25,53 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const keys = await GroqKeyManager.getKeyUsage();
-    return NextResponse.json(keys);
+    // Get URL parameters for pagination
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const search = url.searchParams.get('search') || '';
+    const sortBy = url.searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = url.searchParams.get('sortOrder') || 'desc';
+
+    // Get all keys with usage data
+    const allKeys = await GroqKeyManager.getKeyUsage();
+    
+    // Filter keys if search is provided
+    const filteredKeys = search
+      ? allKeys.filter(key => 
+          key.id.toLowerCase().includes(search.toLowerCase()) ||
+          key.name.toLowerCase().includes(search.toLowerCase())
+        )
+      : allKeys;
+
+    // Sort keys
+    const sortedKeys = [...filteredKeys].sort((a, b) => {
+      if (sortBy === 'usage') {
+        return sortOrder === 'desc' 
+          ? b.usage - a.usage 
+          : a.usage - b.usage;
+      }
+      // Default sort by creation date
+      return sortOrder === 'desc' 
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    // Calculate pagination
+    const total = sortedKeys.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedKeys = sortedKeys.slice(startIndex, endIndex);
+
+    return NextResponse.json({
+      keys: paginatedKeys,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page,
+        perPage: limit
+      }
+    });
   } catch (error) {
     console.error('Error in GET /api/admin/api-keys:', error);
     return NextResponse.json(
