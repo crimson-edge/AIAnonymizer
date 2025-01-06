@@ -15,6 +15,7 @@ async function main() {
       update: {
         isAdmin: true,
         password: hashedPassword,
+        status: 'ACTIVE',
         subscription: {
           upsert: {
             create: {
@@ -36,6 +37,7 @@ async function main() {
         email,
         password: hashedPassword,
         isAdmin: true,
+        status: 'ACTIVE',
         firstName: 'Admin',
         lastName: 'User',
         subscription: {
@@ -53,6 +55,7 @@ async function main() {
       id: user.id,
       email: user.email,
       isAdmin: user.isAdmin,
+      status: user.status,
       subscription: user.subscription
     });
     
