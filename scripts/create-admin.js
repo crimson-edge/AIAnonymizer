@@ -5,35 +5,29 @@ const prisma = new PrismaClient();
 
 async function main() {
   const email = 'admin@example.com';
-  const password = 'AdminPass123!'; // More secure password
+  const password = 'AdminPass123!';
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        isAdmin: true,
-        password: hashedPassword,
-        status: 'ACTIVE',
-        subscription: {
-          upsert: {
-            create: {
-              tier: 'PREMIUM',
-              monthlyLimit: 100000,
-              tokenLimit: 1000000,
-              status: 'active'
-            },
-            update: {
-              tier: 'PREMIUM',
-              monthlyLimit: 100000,
-              tokenLimit: 1000000,
-              status: 'active'
-            }
-          }
+    // First, delete any existing user and subscription
+    await prisma.subscription.deleteMany({
+      where: {
+        user: {
+          email
         }
-      },
-      create: {
+      }
+    });
+    
+    await prisma.user.deleteMany({
+      where: {
+        email
+      }
+    });
+    
+    // Now create a fresh user with subscription
+    const user = await prisma.user.create({
+      data: {
         email,
         password: hashedPassword,
         isAdmin: true,
@@ -48,6 +42,9 @@ async function main() {
             status: 'active'
           }
         }
+      },
+      include: {
+        subscription: true
       }
     });
 
@@ -56,7 +53,11 @@ async function main() {
       email: user.email,
       isAdmin: user.isAdmin,
       status: user.status,
-      subscription: user.subscription
+      subscription: {
+        tier: user.subscription.tier,
+        monthlyLimit: user.subscription.monthlyLimit,
+        tokenLimit: user.subscription.tokenLimit
+      }
     });
     
     console.log('\nYou can now log in with:');
