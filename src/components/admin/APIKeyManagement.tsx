@@ -65,16 +65,15 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
         throw new Error(data.error || 'Failed to fetch API keys');
       }
 
-      if (!data || !Array.isArray(data.keys)) {
-        console.error('Invalid API response:', data);
-        throw new Error('Invalid response format');
-      }
+      // Ensure we have valid data
+      const keys = Array.isArray(data.keys) ? data.keys : [];
+      const total = typeof data.total === 'number' ? data.total : 0;
 
-      setKeys(data.keys);
+      setKeys(keys);
       setPagination(prev => ({
         ...prev,
-        total: data.total || 0,
-        pages: Math.ceil((data.total || 0) / pagination.perPage),
+        total: total,
+        pages: Math.ceil(total / pagination.perPage),
         currentPage: page
       }));
     } catch (err) {

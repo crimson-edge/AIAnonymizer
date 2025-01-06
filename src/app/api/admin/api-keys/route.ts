@@ -37,7 +37,8 @@ export async function GET(req: Request) {
     // Get all keys with usage data
     let allKeys: KeyUsageInfo[] = [];
     try {
-      allKeys = await GroqKeyManager.getKeyUsage();
+      const keyUsage = await GroqKeyManager.getKeyUsage();
+      allKeys = Array.isArray(keyUsage) ? keyUsage : [];
       console.log('All keys:', allKeys); // Debug log
     } catch (error) {
       console.error('Error getting key usage:', error);
@@ -45,16 +46,6 @@ export async function GET(req: Request) {
         keys: [],
         total: 0,
         error: 'Failed to fetch API keys'
-      });
-    }
-    
-    // Ensure we have a valid array
-    if (!Array.isArray(allKeys)) {
-      console.error('Invalid keys response:', allKeys);
-      return NextResponse.json({
-        keys: [],
-        total: 0,
-        error: 'Invalid response format'
       });
     }
     
