@@ -35,8 +35,15 @@ export async function GET(req: Request) {
 
     // Get all keys with usage data
     const allKeys = await GroqKeyManager.getKeyUsage();
-    if (!Array.isArray(allKeys)) {
-      throw new Error('Failed to get API keys');
+    console.log('All keys:', allKeys); // Debug log
+    
+    // Ensure we have a valid array
+    if (!allKeys || !Array.isArray(allKeys)) {
+      console.error('Invalid keys response:', allKeys);
+      return NextResponse.json({
+        keys: [],
+        total: 0
+      });
     }
     
     // Filter keys if search is provided
@@ -68,9 +75,15 @@ export async function GET(req: Request) {
     const end = start + limit;
     const paginatedKeys = sortedKeys.slice(start, end);
 
+    console.log('Returning paginated keys:', { 
+      total,
+      pageSize: paginatedKeys.length,
+      page
+    }); // Debug log
+
     return NextResponse.json({
       keys: paginatedKeys,
-      total,
+      total
     });
   } catch (error) {
     console.error('Error in GET /api/admin/api-keys:', error);
