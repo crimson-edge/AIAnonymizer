@@ -61,7 +61,12 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          console.log('User found, checking status...');
+          console.log('User found:', {
+            id: user.id,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            status: user.status
+          });
           
           // Check if user is pending verification
           if (user.status === 'PENDING_VERIFICATION') {
@@ -87,7 +92,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: user.id,
             email: user.email,
-            name: `${user.firstName} ${user.lastName}`,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             isAdmin: user.isAdmin,
@@ -102,21 +107,27 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      console.log('JWT Callback:', { token, user, account });
       if (user) {
-        // @ts-ignore - these fields exist on our User type
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.isAdmin = user.isAdmin;
+        token.status = user.status;
+        token.subscription = user.subscription;
       }
       return token;
     },
     async session({ session, token }) {
+      console.log('Session Callback:', { session, token });
       if (session?.user) {
-        // @ts-ignore - we added these fields to the token
         session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
         session.user.isAdmin = token.isAdmin;
+        session.user.status = token.status;
+        session.user.subscription = token.subscription;
       }
       return session;
     },

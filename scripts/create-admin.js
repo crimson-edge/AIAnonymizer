@@ -13,7 +13,8 @@ const prisma = new PrismaClient({
     db: {
       url: databaseUrl
     }
-  }
+  },
+  log: ['query', 'info', 'warn', 'error']
 });
 
 async function main() {
