@@ -33,7 +33,6 @@ export default function DashboardClient() {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showOverageDialog, setShowOverageDialog] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
 
   useEffect(() => {
@@ -75,29 +74,6 @@ export default function DashboardClient() {
   const isOverLimit = usage.used > usage.total;
   const currentTier = subscriptionData?.tier || 'FREE';
 
-  const handleOveragePurchase = async () => {
-    try {
-      const response = await fetch('/api/billing/purchase-overage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate overage purchase');
-      }
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Error purchasing overage:', error);
-      setError('Failed to initiate overage purchase');
-    }
-  };
-
   const handleTokenPurchase = async () => {
     try {
       const response = await fetch('/api/billing/purchase-tokens', {
@@ -124,87 +100,55 @@ export default function DashboardClient() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-      
-      <div className="grid gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Usage</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600">Used: {usage.used.toLocaleString()}</p>
-              <p className="text-gray-600">Total: {usage.total.toLocaleString()}</p>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className={`h-2.5 rounded-full ${
-                  isOverLimit ? 'bg-red-500' : usagePercentage > 90 ? 'bg-yellow-500' : 'bg-blue-500'
-                }`}
-                style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-              ></div>
-            </div>
+
+      {/* Usage Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Usage</h2>
+        <div className="mb-4">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>{usage.used.toLocaleString()} tokens used</span>
+            <span>{usage.total.toLocaleString()} tokens total</span>
           </div>
-          {isOverLimit && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              You have exceeded your API usage limit. {currentTier === 'FREE' ? 'Please upgrade your plan.' : 'Please purchase additional capacity.'}
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className={`h-2.5 rounded-full ${
+                isOverLimit ? 'bg-red-600' : 'bg-blue-600'
+              }`}
+              style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subscription Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Subscription</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-lg font-medium">{currentTier} Plan</p>
+              <p className="text-sm text-gray-500">
+                {subscriptionData?.isActive ? 'Active' : 'Inactive'}
+              </p>
             </div>
-          )}
-          {usagePercentage > 90 && !isOverLimit && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-              You are approaching your API usage limit. {currentTier === 'FREE' ? 'Consider upgrading your plan.' : 'Consider purchasing additional capacity.'}
-            </div>
-          )}
-          {currentTier === 'PREMIUM' && (
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowOverageDialog(true)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Purchase Additional Capacity
-              </button>
+            {currentTier === 'PREMIUM' && (
               <button
                 onClick={() => setShowTokenDialog(true)}
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Purchase Tokens
               </button>
-            </div>
-          )}
-          {currentTier === 'BASIC' && (
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowOverageDialog(true)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Purchase Additional Capacity
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-
-        <SubscriptionManager
-          currentTier={currentTier}
-          isActive={subscriptionData?.isActive || false}
-          stripeCustomerId={subscriptionData?.stripeCustomerId}
-          stripeSubscriptionId={subscriptionData?.stripeSubscriptionId}
-          onPurchaseOverage={() => setShowOverageDialog(true)}
-          onPurchaseTokens={() => setShowTokenDialog(true)}
-        />
       </div>
 
-      {showOverageDialog && (
-        <OveragePurchaseDialog
-          isOpen={showOverageDialog}
-          onClose={() => setShowOverageDialog(false)}
-          onPurchase={handleOveragePurchase}
-        />
-      )}
-
-      {showTokenDialog && (
-        <TokenPurchaseDialog
-          isOpen={showTokenDialog}
-          onClose={() => setShowTokenDialog(false)}
-          onPurchase={handleTokenPurchase}
-        />
-      )}
+      {/* Token Purchase Dialog */}
+      <TokenPurchaseDialog
+        isOpen={showTokenDialog}
+        onClose={() => setShowTokenDialog(false)}
+        onPurchase={handleTokenPurchase}
+      />
     </div>
   );
 }

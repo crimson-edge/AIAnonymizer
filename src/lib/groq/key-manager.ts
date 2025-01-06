@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 interface KeyUsageInfo {
   id: string;
@@ -88,22 +88,15 @@ export class GroqKeyManager {
     
     try {
       // Get all keys with their basic information
-      const keys = await prisma.groqKey.findMany();
-
-      // Get usage count for each key
-      const usageCounts = await Promise.all(
-        keys.map(async (key) => {
-          const count = await prisma.groqKeyUsage.count({
-            where: { groqKeyId: key.id }
-          });
-          return { keyId: key.id, count };
-        })
-      );
-
-      // Create a map of key ID to usage count
-      const usageMap = new Map(
-        usageCounts.map(({ keyId, count }) => [keyId, count])
-      );
+      const keys = await prisma.groqKey.findMany({
+        include: {
+          _count: {
+            select: {
+              usageHistory: true
+            }
+          }
+        }
+      });
 
       // Map to KeyUsageInfo format with proper null handling
       return keys.map(key => ({
@@ -114,7 +107,7 @@ export class GroqKeyManager {
         currentSession: key.currentSession,
         lastUsed: key.lastUsed,
         updatedAt: key.updatedAt,
-        totalUsage: usageMap.get(key.id) || 0
+        totalUsage: key._count?.usageHistory || 0
       }));
     } catch (error) {
       console.error('Error getting key usage:', error);
