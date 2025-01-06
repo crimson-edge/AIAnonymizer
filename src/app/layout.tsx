@@ -1,9 +1,9 @@
-import { Inter } from 'next/font/google';
-import type { Metadata } from 'next';
-import './globals.css';
-import RootLayoutClient from '@/components/RootLayoutClient';
+import { Inter } from 'next/font/google'
+import type { Metadata } from 'next'
+import './globals.css'
+import RootLayoutClient from '@/components/RootLayoutClient'
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aianonymizer.com'),
@@ -49,12 +49,12 @@ export const metadata: Metadata = {
   verification: {
     google: 'your-google-verification-code',
   },
-};
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
@@ -62,5 +62,5 @@ export default function RootLayout({
         {children}
       </RootLayoutClient>
     </html>
-  );
+  )
 }
