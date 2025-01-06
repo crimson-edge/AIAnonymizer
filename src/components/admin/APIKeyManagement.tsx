@@ -196,12 +196,13 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
         {keyInput !== '' && (
           <div className="bg-gray-50 p-4 rounded-md space-y-4">
             <div>
-              <label htmlFor="keyInput" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="api-key-input" className="block text-sm font-medium text-gray-700">
                 API Key
               </label>
               <input
                 type="text"
-                id="keyInput"
+                id="api-key-input"
+                name="api-key-input"
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
                 placeholder="Enter your API key"
@@ -210,12 +211,18 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
             </div>
             <div className="flex justify-end space-x-3">
               <button
+                type="button"
+                id="cancel-button"
+                name="cancel-button"
                 onClick={() => setKeyInput('')}
                 className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                id="add-key-button"
+                name="add-key-button"
                 onClick={handleAddKey}
                 disabled={!keyInput.trim()}
                 className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
@@ -251,7 +258,7 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {Array.isArray(keys) && keys.length > 0 ? keys.map((key) => (
+                    {(keys || []).map((key) => (
                       <tr key={key.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <div className="flex items-center">
@@ -274,6 +281,9 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
+                            type="button"
+                            id={`delete-key-${key.id}`}
+                            name={`delete-key-${key.id}`}
                             onClick={() => handleDeleteKey(key.id)}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -281,13 +291,7 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
                           </button>
                         </td>
                       </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                          No API keys found
-                        </td>
-                      </tr>
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>

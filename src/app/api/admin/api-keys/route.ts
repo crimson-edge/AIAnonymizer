@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     if (!session?.user?.email) {
       console.error('No session or email found');
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated', keys: [], total: 0 }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     if (!user?.isAdmin) {
       console.error('User is not admin:', user);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', keys: [], total: 0 }, { status: 401 });
     }
 
     // Get URL parameters for pagination
@@ -35,16 +35,18 @@ export async function GET(req: Request) {
     const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
     // Get all keys with usage data
-    let allKeys: KeyUsageInfo[];
+    let allKeys: KeyUsageInfo[] = [];
     try {
       allKeys = await GroqKeyManager.getKeyUsage();
-      if (!Array.isArray(allKeys)) {
-        console.error('Invalid keys response:', allKeys);
-        allKeys = [];
-      }
       console.log('All keys:', allKeys); // Debug log
     } catch (error) {
       console.error('Error getting key usage:', error);
+      return NextResponse.json({ error: 'Failed to fetch API keys', keys: [], total: 0 }, { status: 500 });
+    }
+
+    // Ensure allKeys is an array
+    if (!Array.isArray(allKeys)) {
+      console.error('Invalid keys response:', allKeys);
       allKeys = [];
     }
     
@@ -83,10 +85,11 @@ export async function GET(req: Request) {
       page
     }); // Debug log
 
-    // Always return an array for keys, even if empty
+    // Always return an array for keys
     return NextResponse.json({
       keys: paginatedKeys || [],
-      total: total || 0
+      total: total || 0,
+      error: null
     });
   } catch (error) {
     console.error('Error in GET /api/admin/api-keys:', error);
@@ -95,7 +98,7 @@ export async function GET(req: Request) {
       keys: [],
       total: 0,
       error: 'Failed to fetch API keys'
-    });
+    }, { status: 500 });
   }
 }
 
@@ -106,7 +109,7 @@ export async function POST(req: Request) {
 
     if (!session?.user?.email) {
       console.error('No session or email found in POST');
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated', success: false }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -115,24 +118,24 @@ export async function POST(req: Request) {
 
     if (!user?.isAdmin) {
       console.error('User is not admin in POST:', user);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', success: false }, { status: 401 });
     }
 
     const { key } = await req.json();
     
     if (!key || typeof key !== 'string') {
       return NextResponse.json(
-        { error: 'API key is required and must be a string' },
+        { error: 'API key is required and must be a string', success: false },
         { status: 400 }
       );
     }
 
     await GroqKeyManager.addKeyToPool(key);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, error: null });
   } catch (error) {
     console.error('Error in POST /api/admin/api-keys:', error);
     return NextResponse.json(
-      { error: 'Failed to add API key' },
+      { error: 'Failed to add API key', success: false },
       { status: 500 }
     );
   }
@@ -145,7 +148,7 @@ export async function DELETE(req: Request) {
 
     if (!session?.user?.email) {
       console.error('No session or email found in DELETE');
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated', success: false }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -154,7 +157,7 @@ export async function DELETE(req: Request) {
 
     if (!user?.isAdmin) {
       console.error('User is not admin in DELETE:', user);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', success: false }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -162,17 +165,17 @@ export async function DELETE(req: Request) {
     
     if (!key || typeof key !== 'string') {
       return NextResponse.json(
-        { error: 'API key is required and must be a string' },
+        { error: 'API key is required and must be a string', success: false },
         { status: 400 }
       );
     }
 
     await GroqKeyManager.removeKeyFromPool(key);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, error: null });
   } catch (error) {
     console.error('Error in DELETE /api/admin/api-keys:', error);
     return NextResponse.json(
-      { error: 'Failed to remove API key' },
+      { error: 'Failed to remove API key', success: false },
       { status: 500 }
     );
   }
