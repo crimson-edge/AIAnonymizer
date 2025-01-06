@@ -4,41 +4,63 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  const email = 'admin@example.com';
+  const password = 'AdminPass123!'; // More secure password
+
   try {
-    const adminEmail = 'info@aianonymizer.com';
-    const adminPassword = 'Traitor122478#';
+    const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create admin user
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    
-    const admin = await prisma.user.upsert({
-      where: { email: adminEmail },
+    const user = await prisma.user.upsert({
+      where: { email },
       update: {
         isAdmin: true,
         password: hashedPassword,
-        status: 'ACTIVE',
-      },
-      create: {
-        email: adminEmail,
-        firstName: 'Admin',
-        lastName: 'User',
-        password: hashedPassword,
-        isAdmin: true,
-        status: 'ACTIVE',
         subscription: {
-          create: {
-            tier: 'PREMIUM',
-            monthlyLimit: 1000000,
-            tokenLimit: 10000000,
-            status: 'active'
+          upsert: {
+            create: {
+              tier: 'PREMIUM',
+              monthlyLimit: 100000,
+              tokenLimit: 1000000,
+              status: 'active'
+            },
+            update: {
+              tier: 'PREMIUM',
+              monthlyLimit: 100000,
+              tokenLimit: 1000000,
+              status: 'active'
+            }
           }
         }
       },
+      create: {
+        email,
+        password: hashedPassword,
+        isAdmin: true,
+        firstName: 'Admin',
+        lastName: 'User',
+        subscription: {
+          create: {
+            tier: 'PREMIUM',
+            monthlyLimit: 100000,
+            tokenLimit: 1000000,
+            status: 'active'
+          }
+        }
+      }
     });
 
-    console.log('Admin user created/updated:', admin);
+    console.log('Admin user created:', {
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      subscription: user.subscription
+    });
+    
+    console.log('\nYou can now log in with:');
+    console.log('Email:', email);
+    console.log('Password:', password);
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error creating admin user:', error);
   } finally {
     await prisma.$disconnect();
   }

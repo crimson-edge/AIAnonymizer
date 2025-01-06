@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const email = 'admin@example.com';
-  const password = 'admin123'; // Change this to a secure password
+  const password = 'AdminPass123!'; // More secure password
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -14,14 +14,38 @@ async function main() {
       where: { email },
       update: {
         isAdmin: true,
-        password: hashedPassword
+        password: hashedPassword,
+        subscription: {
+          upsert: {
+            create: {
+              tier: 'ENTERPRISE',
+              monthlyLimit: 1000000,
+              tokenLimit: 10000000,
+              status: 'active'
+            },
+            update: {
+              tier: 'ENTERPRISE',
+              monthlyLimit: 1000000,
+              tokenLimit: 10000000,
+              status: 'active'
+            }
+          }
+        }
       },
       create: {
         email,
         password: hashedPassword,
         isAdmin: true,
         firstName: 'Admin',
-        lastName: 'User'
+        lastName: 'User',
+        subscription: {
+          create: {
+            tier: 'ENTERPRISE',
+            monthlyLimit: 1000000,
+            tokenLimit: 10000000,
+            status: 'active'
+          }
+        }
       }
     });
 
@@ -30,6 +54,10 @@ async function main() {
       email: user.email,
       isAdmin: user.isAdmin
     });
+    
+    console.log('\nYou can now log in with:');
+    console.log('Email:', email);
+    console.log('Password:', password);
   } catch (error) {
     console.error('Error creating admin user:', error);
   } finally {
