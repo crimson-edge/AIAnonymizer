@@ -312,158 +312,154 @@ export default function AdminUsersClient() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List Table - Full width on mobile, 7 columns on desktop */}
-          <div className="lg:col-span-7 overflow-hidden">
-            <div className="overflow-x-auto">
-              <div className="inline-block min-w-full align-middle">
-                <div className="overflow-hidden border border-gray-200 sm:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th 
-                          scope="col" 
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                          onClick={() => handleSort('email')}
-                        >
-                          User
-                          {filters.sortBy === 'email' && (
-                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
-                          onClick={() => handleSort('status')}
-                        >
-                          Status
-                          {filters.sortBy === 'status' && (
-                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
-                          onClick={() => handleSort('subscription.tier')}
-                        >
-                          Plan
-                          {filters.sortBy === 'subscription.tier' && (
-                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
-                          onClick={() => handleSort('createdAt')}
-                        >
-                          Joined
-                          {filters.sortBy === 'createdAt' && (
-                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                          Admin
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((user) => (
-                        <tr 
-                          key={user.id} 
-                          onClick={() => setSelectedUserId(user.id)}
-                          className={`cursor-pointer transition-colors ${
-                            selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {user.firstName} {user.lastName}
-                                </div>
-                                <div className="text-sm text-gray-500">{user.email}</div>
-                              </div>
+          <div className="lg:col-span-7 overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="min-w-max">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('email')}
+                    >
+                      User
+                      {filters.sortBy === 'email' && (
+                        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                      )}
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      {filters.sortBy === 'status' && (
+                        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                      )}
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                      onClick={() => handleSort('subscription.tier')}
+                    >
+                      Plan
+                      {filters.sortBy === 'subscription.tier' && (
+                        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                      )}
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      Joined
+                      {filters.sortBy === 'createdAt' && (
+                        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                      )}
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Admin
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr 
+                      key={user.id} 
+                      onClick={() => setSelectedUserId(user.id)}
+                      className={`cursor-pointer transition-colors ${
+                        selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.firstName} {user.lastName}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                              user.status === 'PENDING_VERIFICATION' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {user.status === 'PENDING_VERIFICATION' ? 'Pending' : user.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div>
-                              <div>{user.subscription?.tier || 'FREE'}</div>
-                              <div className="text-xs text-gray-400">
-                                Tokens: {user.subscription?.tokenLimit?.toLocaleString() || 0}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(user.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleAdminStatus(user.id, user.isAdmin);
-                              }}
-                              className={`px-2 py-1 rounded ${
-                                user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                              } hover:opacity-75`}
-                            >
-                              {user.isAdmin ? 'Yes' : 'No'}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleUserStatus(user.id, user.status);
-                                }}
-                                className={`text-sm px-2 py-1 rounded ${
-                                  user.status === 'ACTIVE' 
-                                    ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                                    : 'bg-green-100 text-green-800 hover:bg-green-200'
-                                }`}
-                              >
-                                {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTokenDialog({
-                                    isOpen: true,
-                                    userId: user.id,
-                                    userName: `${user.firstName} ${user.lastName}`
-                                  });
-                                }}
-                                className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-                              >
-                                Add Tokens
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteUser(user.id);
-                                }}
-                                className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                          user.status === 'PENDING_VERIFICATION' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {user.status === 'PENDING_VERIFICATION' ? 'Pending' : user.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div>
+                          <div>{user.subscription?.tier || 'FREE'}</div>
+                          <div className="text-xs text-gray-400">
+                            Tokens: {user.subscription?.tokenLimit?.toLocaleString() || 0}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleAdminStatus(user.id, user.isAdmin);
+                          }}
+                          className={`px-2 py-1 rounded ${
+                            user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                          } hover:opacity-75`}
+                        >
+                          {user.isAdmin ? 'Yes' : 'No'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleUserStatus(user.id, user.status);
+                            }}
+                            className={`text-sm px-2 py-1 rounded ${
+                              user.status === 'ACTIVE' 
+                                ? 'bg-red-100 text-red-800 hover:bg-red-200' 
+                                : 'bg-green-100 text-green-800 hover:bg-green-200'
+                            }`}
+                          >
+                            {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTokenDialog({
+                                isOpen: true,
+                                userId: user.id,
+                                userName: `${user.firstName} ${user.lastName}`
+                              });
+                            }}
+                            className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                          >
+                            Add Tokens
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteUser(user.id);
+                            }}
+                            className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -560,7 +556,7 @@ export default function AdminUsersClient() {
         </div>
 
         {/* Pagination Controls */}
-        <div className="mt-6">
+        <div className="mt-6 px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="w-full sm:w-auto order-2 sm:order-1">
               <p className="text-sm text-gray-700 text-center sm:text-left">
@@ -575,30 +571,49 @@ export default function AdminUsersClient() {
               <button
                 onClick={() => fetchUsers(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
-                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                className={`relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                  pagination.currentPage === 1
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
                 Previous
               </button>
-              {/* Page numbers - Hide on mobile */}
-              <div className="hidden sm:flex">
-                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                let pageNum;
+                if (pagination.pages <= 5) {
+                  pageNum = i + 1;
+                } else {
+                  if (pagination.currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.currentPage >= pagination.pages - 2) {
+                    pageNum = pagination.pages - 4 + i;
+                  } else {
+                    pageNum = pagination.currentPage - 2 + i;
+                  }
+                }
+                return (
                   <button
-                    key={page}
-                    onClick={() => fetchUsers(page)}
+                    key={pageNum}
+                    onClick={() => fetchUsers(pageNum)}
                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      page === pagination.currentPage
+                      pageNum === pagination.currentPage
                         ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {page}
+                    {pageNum}
                   </button>
-                ))}
-              </div>
+                );
+              })}
               <button
                 onClick={() => fetchUsers(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.pages}
-                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                className={`relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                  pagination.currentPage === pagination.pages
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
                 Next
               </button>
