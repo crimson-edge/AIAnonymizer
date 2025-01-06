@@ -31,18 +31,14 @@ const nextConfig = {
     if (isServer) {
       config.externals = [...config.externals, '@prisma/client'];
     }
-    // Properly resolve path aliases
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': '/opt/build/repo/src',
-    };
     return config;
   }
 };
 
-// Update NEXTAUTH_URL if in development
 if (process.env.NODE_ENV !== 'production') {
   process.env.NEXTAUTH_URL = process.env.NEXT_PUBLIC_BASE_URL;
+} else {
+  process.env.NEXTAUTH_URL = 'https://aianonymizer.com';
 }
 
 module.exports = nextConfig;
