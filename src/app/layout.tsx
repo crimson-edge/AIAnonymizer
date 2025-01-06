@@ -1,15 +1,9 @@
-'use client';
+'use server';
 
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import type { Metadata } from 'next';
 import './globals.css';
-import Footer from '@/components/Footer';
-import Navigation from '@/components/Navigation';
-import KommunicateChat from '@/components/KommunicateChat';
-import GoogleAnalytics from '@/components/GoogleAnalytics';
-import { AuthProvider } from '@/components/auth/AuthProvider';
-import { Toaster } from 'react-hot-toast';
-import { usePathname } from 'next/navigation';
+import RootLayoutClient from '@/components/RootLayoutClient';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,38 +13,29 @@ export const metadata: Metadata = {
     default: 'AI Anonymizer - Secure & Private AI Interactions',
     template: '%s | AI Anonymizer'
   },
-  description: 'Protect your privacy with AI Anonymizer. Secure, anonymous access to AI language models. Keep your AI queries private and data protected with military-grade encryption.',
-  keywords: [
-    'AI privacy',
-    'AI security',
-    'AI anonymity',
-    'anonymous AI',
-    'private AI',
-    'secure AI',
-    'AI data protection',
-    'AI query privacy',
-    'confidential AI',
-    'encrypted AI',
-    'AI security service',
-    'private AI chat',
-    'secure language models',
-    'AI privacy tool',
-    'anonymous ChatGPT',
-    'private GPT',
-    'AI privacy protection',
-    'secure AI access'
-  ],
+  description: 'Interact with AI models securely and privately. AI Anonymizer protects your data while enabling powerful AI capabilities.',
+  keywords: ['AI', 'privacy', 'security', 'anonymizer', 'machine learning', 'data protection'],
+  authors: [{ name: 'AI Anonymizer Team' }],
+  creator: 'AI Anonymizer',
+  publisher: 'AI Anonymizer',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
     title: 'AI Anonymizer - Secure & Private AI Interactions',
-    description: 'Protect your privacy with AI Anonymizer. Secure, anonymous access to AI language models with military-grade encryption.',
-    type: 'website',
-    locale: 'en_US',
+    description: 'Interact with AI models securely and privately. AI Anonymizer protects your data while enabling powerful AI capabilities.',
     url: 'https://aianonymizer.com',
+    siteName: 'AI Anonymizer',
+    locale: 'en_US',
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AI Anonymizer - Secure & Private AI Interactions',
-    description: 'Protect your privacy with AI Anonymizer. Secure, anonymous access to AI language models with military-grade encryption.',
+    description: 'Interact with AI models securely and privately. AI Anonymizer protects your data while enabling powerful AI capabilities.',
+    creator: '@AIAnonymizer',
   },
   robots: {
     index: true,
@@ -64,7 +49,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'verification_token',
+    google: 'your-google-verification-code',
   },
 };
 
@@ -73,25 +58,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          <div className="flex flex-col min-h-screen">
-            <Navigation />
-            <div className="flex-grow">
-              {children}
-            </div>
-            <Footer />
-          </div>
-          {/* Only show Kommunicate chat on non-admin pages */}
-          {!pathname?.startsWith('/admin') && <KommunicateChat />}
-          <GoogleAnalytics />
-          <Toaster position="top-right" />
-        </AuthProvider>
-      </body>
+      <RootLayoutClient className={inter.className}>
+        {children}
+      </RootLayoutClient>
     </html>
   );
 }
