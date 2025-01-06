@@ -1,3 +1,5 @@
+'use client';
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -7,6 +9,7 @@ import KommunicateChat from '@/components/KommunicateChat';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { Toaster } from 'react-hot-toast';
+import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -70,6 +73,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -81,7 +86,8 @@ export default function RootLayout({
             </div>
             <Footer />
           </div>
-          <KommunicateChat />
+          {/* Only show Kommunicate chat on non-admin pages */}
+          {!pathname?.startsWith('/admin') && <KommunicateChat />}
           <GoogleAnalytics />
           <Toaster position="top-right" />
         </AuthProvider>
