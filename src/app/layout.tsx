@@ -75,6 +75,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
+            <Navigation />
             <div className="flex-grow">
               {children}
             </div>
