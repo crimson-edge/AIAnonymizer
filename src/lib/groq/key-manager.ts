@@ -86,20 +86,40 @@ export class GroqKeyManager {
   static async getKeyUsage(): Promise<KeyUsageInfo[]> {
     await this.initialize();
     
-    // Get all keys with their basic information
-    const keys = await prisma.groqKey.findMany();
+    try {
+      // Get all keys with their basic information
+      const keys = await prisma.groqKey.findMany();
 
-    // Map to KeyUsageInfo format
-    return keys.map(key => ({
-      id: key.id,
-      key: key.key,
-      createdAt: key.createdAt,
-      isInUse: key.isInUse,
-      currentSession: key.currentSession,
-      lastUsed: key.lastUsed,
-      updatedAt: key.updatedAt,
-      totalUsage: 0 // Since we don't track usage in the GroqKey model
-    }));
+      // Get usage count for each key
+      const usageCounts = await Promise.all(
+        keys.map(async (key) => {
+          const count = await prisma.groqKeyUsage.count({
+            where: { groqKeyId: key.id }
+          });
+          return { keyId: key.id, count };
+        })
+      );
+
+      // Create a map of key ID to usage count
+      const usageMap = new Map(
+        usageCounts.map(({ keyId, count }) => [keyId, count])
+      );
+
+      // Map to KeyUsageInfo format with proper null handling
+      return keys.map(key => ({
+        id: key.id,
+        key: key.key,
+        createdAt: key.createdAt,
+        isInUse: key.isInUse,
+        currentSession: key.currentSession,
+        lastUsed: key.lastUsed,
+        updatedAt: key.updatedAt,
+        totalUsage: usageMap.get(key.id) || 0
+      }));
+    } catch (error) {
+      console.error('Error getting key usage:', error);
+      return [];
+    }
   }
 
   static async addKeyToPool(key: string) {

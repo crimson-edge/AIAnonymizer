@@ -35,6 +35,9 @@ export async function GET(req: Request) {
 
     // Get all keys with usage data
     const allKeys = await GroqKeyManager.getKeyUsage();
+    if (!Array.isArray(allKeys)) {
+      throw new Error('Failed to get API keys');
+    }
     
     // Filter keys if search is provided
     const filteredKeys = search
@@ -46,9 +49,9 @@ export async function GET(req: Request) {
     // Sort keys
     const sortedKeys = [...filteredKeys].sort((a, b) => {
       if (sortBy === 'usage') {
-        return sortOrder === 'desc' 
-          ? (b.totalUsage || 0) - (a.totalUsage || 0)
-          : (a.totalUsage || 0) - (b.totalUsage || 0);
+        const aUsage = typeof a.totalUsage === 'number' ? a.totalUsage : 0;
+        const bUsage = typeof b.totalUsage === 'number' ? b.totalUsage : 0;
+        return sortOrder === 'desc' ? bUsage - aUsage : aUsage - bUsage;
       }
       // Default sort by creation date
       return sortOrder === 'desc' 
@@ -101,9 +104,9 @@ export async function POST(req: Request) {
 
     const { key } = await req.json();
     
-    if (!key) {
+    if (!key || typeof key !== 'string') {
       return NextResponse.json(
-        { error: 'API key is required' },
+        { error: 'API key is required and must be a string' },
         { status: 400 }
       );
     }
@@ -141,9 +144,9 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get('key');
     
-    if (!key) {
+    if (!key || typeof key !== 'string') {
       return NextResponse.json(
-        { error: 'API key is required' },
+        { error: 'API key is required and must be a string' },
         { status: 400 }
       );
     }

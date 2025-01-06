@@ -190,6 +190,19 @@ model GroqKey {
   totalUsage     Int       @default(0)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  usageHistory   GroqKeyUsage[]
+}
+
+model GroqKeyUsage {
+  id          String   @id @default(cuid())
+  groqKey     GroqKey  @relation(fields: [groqKeyId], references: [id])
+  groqKeyId   String
+  requestType String
+  tokensUsed  Int
+  createdAt   DateTime @default(now())
+
+  @@index([groqKeyId])
+  @@index([createdAt])
 }
 
 enum UserStatus {
