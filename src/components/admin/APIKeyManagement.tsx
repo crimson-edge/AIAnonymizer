@@ -69,17 +69,25 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
       const keys = Array.isArray(data.keys) ? data.keys : [];
       const total = typeof data.total === 'number' ? data.total : 0;
 
+      // Set empty array if no keys
       setKeys(keys);
       setPagination(prev => ({
         ...prev,
         total: total,
-        pages: Math.ceil(total / pagination.perPage),
+        pages: Math.max(1, Math.ceil(total / pagination.perPage)),
         currentPage: page
       }));
     } catch (err) {
       console.error('Error fetching keys:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch API keys');
-      setKeys([]); // Reset keys on error
+      // Set empty array on error
+      setKeys([]);
+      setPagination(prev => ({
+        ...prev,
+        total: 0,
+        pages: 1,
+        currentPage: 1
+      }));
     } finally {
       setLoading(false);
     }

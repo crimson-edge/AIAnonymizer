@@ -35,18 +35,17 @@ export async function GET(req: Request) {
     const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
     // Get all keys with usage data
-    let allKeys: KeyUsageInfo[] = [];
+    let allKeys: KeyUsageInfo[];
     try {
-      const keyUsage = await GroqKeyManager.getKeyUsage();
-      allKeys = Array.isArray(keyUsage) ? keyUsage : [];
+      allKeys = await GroqKeyManager.getKeyUsage();
+      if (!Array.isArray(allKeys)) {
+        console.error('Invalid keys response:', allKeys);
+        allKeys = [];
+      }
       console.log('All keys:', allKeys); // Debug log
     } catch (error) {
       console.error('Error getting key usage:', error);
-      return NextResponse.json({
-        keys: [],
-        total: 0,
-        error: 'Failed to fetch API keys'
-      });
+      allKeys = [];
     }
     
     // Filter keys if search is provided
@@ -84,16 +83,19 @@ export async function GET(req: Request) {
       page
     }); // Debug log
 
+    // Always return an array for keys, even if empty
     return NextResponse.json({
-      keys: paginatedKeys,
-      total
+      keys: paginatedKeys || [],
+      total: total || 0
     });
   } catch (error) {
     console.error('Error in GET /api/admin/api-keys:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch API keys' },
-      { status: 500 }
-    );
+    // Return empty array on error
+    return NextResponse.json({
+      keys: [],
+      total: 0,
+      error: 'Failed to fetch API keys'
+    });
   }
 }
 
