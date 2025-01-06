@@ -14,7 +14,20 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's API keys
+    // Get pagination parameters from URL
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const total = await prisma.apiKey.count({
+      where: {
+        userId: params.userId,
+      },
+    });
+
+    // Get user's API keys with pagination
     const userKeys = await prisma.apiKey.findMany({
       where: {
         userId: params.userId,
@@ -30,6 +43,8 @@ export async function GET(
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: limit,
     });
 
     // For security, only return partial key information
@@ -38,7 +53,15 @@ export async function GET(
       key: `${key.key.substring(0, 8)}...${key.key.substring(key.key.length - 8)}`,
     }));
 
-    return NextResponse.json(safeKeys);
+    return NextResponse.json({
+      keys: safeKeys,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page,
+        perPage: limit,
+      },
+    });
   } catch (error) {
     console.error('Error fetching user API keys:', error);
     return NextResponse.json(
@@ -100,7 +123,7 @@ export async function DELETE(
 
     const { keyId } = await request.json();
 
-    // Delete API key
+    // Delete the API key
     await prisma.apiKey.delete({
       where: {
         id: keyId,

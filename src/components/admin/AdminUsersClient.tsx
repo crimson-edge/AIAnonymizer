@@ -274,21 +274,22 @@ export default function AdminUsersClient() {
 
   return (
     <div className="rounded-lg bg-white shadow-sm">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="p-4 sm:p-6">
+        {/* Header and Filters */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h2 className="text-lg font-semibold">User Management</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search users..."
               value={filters.search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md w-full sm:w-auto"
             />
             <select
               value={filters.status}
               onChange={(e) => handleStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md w-full sm:w-auto"
             >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -298,7 +299,7 @@ export default function AdminUsersClient() {
             <select
               value={filters.tier}
               onChange={(e) => handleTierFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md w-full sm:w-auto"
             >
               <option value="">All Tiers</option>
               <option value="FREE">Free</option>
@@ -308,147 +309,168 @@ export default function AdminUsersClient() {
           </div>
         </div>
         
-        <div className="grid grid-cols-12 gap-6">
-          {/* User List Table - 7 columns */}
-          <div className="col-span-7 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('email')}
-                  >
-                    User
-                    {filters.sortBy === 'email' && (
-                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                    )}
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status
-                    {filters.sortBy === 'status' && (
-                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                    )}
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('subscription.tier')}
-                  >
-                    Plan
-                    {filters.sortBy === 'subscription.tier' && (
-                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                    )}
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('createdAt')}
-                  >
-                    Joined
-                    {filters.sortBy === 'createdAt' && (
-                      <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                    )}
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Admin
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr 
-                    key={user.id} 
-                    onClick={() => setSelectedUserId(user.id)}
-                    className={`cursor-pointer transition-colors ${
-                      selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                        user.status === 'PENDING_VERIFICATION' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {user.status === 'PENDING_VERIFICATION' ? 'Pending Verification' : user.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>
-                        <div>{user.subscription?.tier || 'FREE'}</div>
-                        <div className="text-xs text-gray-400">
-                          Tokens: {user.subscription?.tokenLimit?.toLocaleString() || 0}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => toggleAdminStatus(user.id, user.isAdmin)}
-                        className={`px-2 py-1 rounded ${
-                          user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                        } hover:opacity-75`}
-                      >
-                        {user.isAdmin ? 'Yes' : 'No'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => toggleUserStatus(user.id, user.status)}
-                        className={`text-sm px-2 py-1 rounded ${
-                          user.status === 'ACTIVE' 
-                            ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                      >
-                        {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => setTokenDialog({
-                          isOpen: true,
-                          userId: user.id,
-                          userName: `${user.firstName} ${user.lastName}`
-                        })}
-                        className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-                      >
-                        Add Tokens
-                      </button>
-                      <button
-                        onClick={() => deleteUser(user.id)}
-                        className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* User List Table - Full width on mobile, 7 columns on desktop */}
+          <div className="lg:col-span-7 overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden border border-gray-200 sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('email')}
+                        >
+                          User
+                          {filters.sortBy === 'email' && (
+                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                          onClick={() => handleSort('status')}
+                        >
+                          Status
+                          {filters.sortBy === 'status' && (
+                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                          onClick={() => handleSort('subscription.tier')}
+                        >
+                          Plan
+                          {filters.sortBy === 'subscription.tier' && (
+                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </th>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                          onClick={() => handleSort('createdAt')}
+                        >
+                          Joined
+                          {filters.sortBy === 'createdAt' && (
+                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          Admin
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {users.map((user) => (
+                        <tr 
+                          key={user.id} 
+                          onClick={() => setSelectedUserId(user.id)}
+                          className={`cursor-pointer transition-colors ${
+                            selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                <div className="text-sm text-gray-500">{user.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                              user.status === 'PENDING_VERIFICATION' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {user.status === 'PENDING_VERIFICATION' ? 'Pending' : user.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div>
+                              <div>{user.subscription?.tier || 'FREE'}</div>
+                              <div className="text-xs text-gray-400">
+                                Tokens: {user.subscription?.tokenLimit?.toLocaleString() || 0}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAdminStatus(user.id, user.isAdmin);
+                              }}
+                              className={`px-2 py-1 rounded ${
+                                user.isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                              } hover:opacity-75`}
+                            >
+                              {user.isAdmin ? 'Yes' : 'No'}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleUserStatus(user.id, user.status);
+                                }}
+                                className={`text-sm px-2 py-1 rounded ${
+                                  user.status === 'ACTIVE' 
+                                    ? 'bg-red-100 text-red-800 hover:bg-red-200' 
+                                    : 'bg-green-100 text-green-800 hover:bg-green-200'
+                                }`}
+                              >
+                                {user.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTokenDialog({
+                                    isOpen: true,
+                                    userId: user.id,
+                                    userName: `${user.firstName} ${user.lastName}`
+                                  });
+                                }}
+                                className="text-sm px-2 py-1 rounded bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                              >
+                                Add Tokens
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteUser(user.id);
+                                }}
+                                className="text-sm px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* User Details Panel - 5 columns */}
-          <div className="col-span-5">
+          {/* User Details Panel - Full width on mobile, 5 columns on desktop */}
+          <div className="lg:col-span-5">
             {selectedUserId && users.find(u => u.id === selectedUserId) ? (
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   User Activity & Resources
                 </h3>
@@ -464,7 +486,9 @@ export default function AdminUsersClient() {
                             {user.apiKeys?.find(key => key.isActive) ? (
                               <div className="text-sm">
                                 <p className="font-medium text-gray-900">Active Key</p>
-                                <p className="text-gray-500 mt-1">Key ID: {user.apiKeys.find(key => key.isActive)?.id}</p>
+                                <p className="text-gray-500 mt-1 break-all">
+                                  Key ID: {user.apiKeys.find(key => key.isActive)?.id}
+                                </p>
                               </div>
                             ) : (
                               <p className="text-sm text-gray-500">No active API key</p>
@@ -475,7 +499,7 @@ export default function AdminUsersClient() {
                         {/* Usage Statistics */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500 mb-2">Usage Statistics</h4>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="bg-gray-50 rounded-md p-3">
                               <p className="text-xs text-gray-500">Monthly Usage</p>
                               <p className="text-lg font-medium text-gray-900">
@@ -505,7 +529,7 @@ export default function AdminUsersClient() {
                         {/* Recent Activity */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500 mb-2">Recent Activity</h4>
-                          <div className="space-y-3">
+                          <div className="space-y-3 max-h-48 overflow-y-auto">
                             {user.activity?.length > 0 ? (
                               user.activity.map((item, index) => (
                                 <div key={index} className="bg-gray-50 rounded-md p-3">
@@ -536,26 +560,10 @@ export default function AdminUsersClient() {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => fetchUsers(pagination.currentPage - 1)}
-              disabled={pagination.currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => fetchUsers(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === pagination.pages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
+        <div className="mt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="w-full sm:w-auto order-2 sm:order-1">
+              <p className="text-sm text-gray-700 text-center sm:text-left">
                 Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span> to{' '}
                 <span className="font-medium">
                   {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
@@ -563,16 +571,16 @@ export default function AdminUsersClient() {
                 of <span className="font-medium">{pagination.total}</span> results
               </p>
             </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  onClick={() => fetchUsers(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                {/* Page numbers */}
+            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px order-1 sm:order-2" aria-label="Pagination">
+              <button
+                onClick={() => fetchUsers(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              {/* Page numbers - Hide on mobile */}
+              <div className="hidden sm:flex">
                 {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}
@@ -586,15 +594,15 @@ export default function AdminUsersClient() {
                     {page}
                   </button>
                 ))}
-                <button
-                  onClick={() => fetchUsers(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.pages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
+              </div>
+              <button
+                onClick={() => fetchUsers(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.pages}
+                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </nav>
           </div>
         </div>
       </div>
@@ -604,11 +612,7 @@ export default function AdminUsersClient() {
         <Dialog
           as="div"
           className="fixed inset-0 z-10 overflow-y-auto"
-          onClose={() => {
-            setTokenDialog({ isOpen: false, userId: null, userName: '' });
-            setAddTokensAmount(0);
-            setError('');
-          }}
+          onClose={() => setTokenDialog({ isOpen: false, userId: null, userName: '' })}
         >
           <div className="min-h-screen px-4 text-center">
             <Transition.Child
@@ -620,7 +624,7 @@ export default function AdminUsersClient() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+              <Dialog.Overlay className="fixed inset-0 bg-black bg-opacity-30" />
             </Transition.Child>
 
             <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
@@ -638,36 +642,22 @@ export default function AdminUsersClient() {
                 <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
                   Add Tokens for {tokenDialog.userName}
                 </Dialog.Title>
+
                 <div className="mt-4">
-                  <label htmlFor="tokenAmount" className="block text-sm font-medium text-gray-700">
-                    Number of Tokens
-                  </label>
                   <input
                     type="number"
-                    id="tokenAmount"
-                    min="1"
                     value={addTokensAmount}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      setAddTokensAmount(value >= 0 ? value : 0);
-                      if (error) setError('');
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    onChange={(e) => setAddTokensAmount(parseInt(e.target.value) || 0)}
+                    placeholder="Enter amount of tokens"
+                    className="w-full px-3 py-2 border rounded-md"
                   />
-                  {error && (
-                    <p className="mt-2 text-sm text-red-600">{error}</p>
-                  )}
                 </div>
 
-                <div className="mt-4 flex justify-end space-x-2">
+                <div className="mt-4 flex justify-end space-x-3">
                   <button
                     type="button"
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                    onClick={() => {
-                      setTokenDialog({ isOpen: false, userId: null, userName: '' });
-                      setAddTokensAmount(0);
-                      setError('');
-                    }}
+                    onClick={() => setTokenDialog({ isOpen: false, userId: null, userName: '' })}
                   >
                     Cancel
                   </button>
@@ -684,20 +674,6 @@ export default function AdminUsersClient() {
           </div>
         </Dialog>
       </Transition>
-
-      {selectedUserId && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-          <div className="bg-white shadow sm:rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Token Management</h2>
-            <TokenManagement userId={selectedUserId} onSuccess={() => fetchUsers(pagination.currentPage)} />
-          </div>
-
-          <div className="bg-white shadow sm:rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">API Key Management</h2>
-            <APIKeyManagement userId={selectedUserId} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
