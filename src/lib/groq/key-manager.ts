@@ -87,13 +87,19 @@ export class GroqKeyManager {
     await this.initialize();
     
     try {
-      // Get all keys with their basic information
+      // Get all keys with their basic information and usage count
       const keys = await prisma.groqKey.findMany({
         include: {
           _count: {
             select: {
               usageHistory: true
             }
+          },
+          usageHistory: {
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 1
           }
         }
       });
@@ -105,7 +111,7 @@ export class GroqKeyManager {
         createdAt: key.createdAt,
         isInUse: key.isInUse,
         currentSession: key.currentSession,
-        lastUsed: key.lastUsed,
+        lastUsed: key.usageHistory[0]?.createdAt || key.lastUsed,
         updatedAt: key.updatedAt,
         totalUsage: key._count?.usageHistory || 0
       }));

@@ -49,30 +49,28 @@ export async function GET(req: Request) {
     // Sort keys
     const sortedKeys = [...filteredKeys].sort((a, b) => {
       if (sortBy === 'usage') {
-        const aUsage = typeof a.totalUsage === 'number' ? a.totalUsage : 0;
-        const bUsage = typeof b.totalUsage === 'number' ? b.totalUsage : 0;
-        return sortOrder === 'desc' ? bUsage - aUsage : aUsage - bUsage;
+        return sortOrder === 'desc' ? b.totalUsage - a.totalUsage : a.totalUsage - b.totalUsage;
       }
-      // Default sort by creation date
-      return sortOrder === 'desc' 
-        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sortBy === 'lastUsed') {
+        const aDate = a.lastUsed ? new Date(a.lastUsed).getTime() : 0;
+        const bDate = b.lastUsed ? new Date(b.lastUsed).getTime() : 0;
+        return sortOrder === 'desc' ? bDate - aDate : aDate - bDate;
+      }
+      // Default sort by createdAt
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
+      return sortOrder === 'desc' ? bDate - aDate : aDate - bDate;
     });
 
     // Calculate pagination
     const total = sortedKeys.length;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedKeys = sortedKeys.slice(startIndex, endIndex);
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedKeys = sortedKeys.slice(start, end);
 
     return NextResponse.json({
       keys: paginatedKeys,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        currentPage: page,
-        perPage: limit
-      }
+      total,
     });
   } catch (error) {
     console.error('Error in GET /api/admin/api-keys:', error);

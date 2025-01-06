@@ -54,22 +54,26 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
         ...(search && { search })
       });
 
-      const response = await fetch(`/api/admin/api-keys?${searchParams.toString()}`);
+      const response = await fetch(`/api/admin/api-keys?${searchParams}`);
       if (!response.ok) {
         throw new Error('Failed to fetch API keys');
       }
 
       const data = await response.json();
-      
-      if (!data.keys || !Array.isArray(data.keys)) {
+      if (!data || !Array.isArray(data.keys)) {
         throw new Error('Invalid response format');
       }
 
       setKeys(data.keys);
-      setPagination(data.pagination);
+      setPagination(prev => ({
+        ...prev,
+        total: data.total || 0,
+        pages: Math.ceil((data.total || 0) / pagination.perPage),
+        currentPage: page
+      }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      toast.error('Failed to fetch API keys');
+      console.error('Error fetching keys:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch API keys');
     } finally {
       setLoading(false);
     }
