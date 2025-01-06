@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { KeyUsageInfo } from '@/lib/groq/key-manager';
 
 export async function GET(req: Request) {
   try {
@@ -34,15 +35,26 @@ export async function GET(req: Request) {
     const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
     // Get all keys with usage data
-    const allKeys = await GroqKeyManager.getKeyUsage();
-    console.log('All keys:', allKeys); // Debug log
+    let allKeys: KeyUsageInfo[] = [];
+    try {
+      allKeys = await GroqKeyManager.getKeyUsage();
+      console.log('All keys:', allKeys); // Debug log
+    } catch (error) {
+      console.error('Error getting key usage:', error);
+      return NextResponse.json({
+        keys: [],
+        total: 0,
+        error: 'Failed to fetch API keys'
+      });
+    }
     
     // Ensure we have a valid array
-    if (!allKeys || !Array.isArray(allKeys)) {
+    if (!Array.isArray(allKeys)) {
       console.error('Invalid keys response:', allKeys);
       return NextResponse.json({
         keys: [],
-        total: 0
+        total: 0,
+        error: 'Invalid response format'
       });
     }
     
@@ -56,7 +68,7 @@ export async function GET(req: Request) {
     // Sort keys
     const sortedKeys = [...filteredKeys].sort((a, b) => {
       if (sortBy === 'usage') {
-        return sortOrder === 'desc' ? b.totalUsage - a.totalUsage : a.totalUsage - b.totalUsage;
+        return sortOrder === 'desc' ? (b.totalUsage || 0) - (a.totalUsage || 0) : (a.totalUsage || 0) - (b.totalUsage || 0);
       }
       if (sortBy === 'lastUsed') {
         const aDate = a.lastUsed ? new Date(a.lastUsed).getTime() : 0;

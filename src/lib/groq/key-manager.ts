@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-interface KeyUsageInfo {
+export interface KeyUsageInfo {
   id: string;
   key: string;
   createdAt: Date;
@@ -103,6 +103,12 @@ export class GroqKeyManager {
           }
         }
       });
+
+      // Ensure we always return an array
+      if (!keys || !Array.isArray(keys)) {
+        console.error('Invalid keys response from database:', keys);
+        return [];
+      }
 
       // Map to KeyUsageInfo format with proper null handling
       return keys.map(key => ({
