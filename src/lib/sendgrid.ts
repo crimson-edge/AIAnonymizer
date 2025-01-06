@@ -1,6 +1,6 @@
 import sgMail from '@sendgrid/mail';
 
-export async function sendVerificationEmail(email: string, token: string) {
+export async function sendVerificationEmail(email: string, userId: string) {
   console.log('Starting email verification process for:', email);
   
   if (!process.env.SENDGRID_API_KEY) {
@@ -20,7 +20,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   console.log('Setting SendGrid API key...');
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   
-  const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
+  const verificationUrl = `${process.env.NEXTAUTH_URL}/api/auth/verify?userId=${userId}`;
   console.log('Generated verification URL:', verificationUrl);
   
   const from = process.env.SMTP_FROM || 'support@aianonymizer.com';

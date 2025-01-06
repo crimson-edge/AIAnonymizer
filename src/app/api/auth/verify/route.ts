@@ -8,24 +8,44 @@ export async function GET(request: Request) {
   const userId = searchParams.get('userId');
 
   if (!userId) {
-    return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    console.error('Missing userId in verification request');
+    return new Response('Verification failed: Missing user ID', {
+      status: 302,
+      headers: {
+        'Location': '/auth/error?error=missing_user_id'
+      }
+    });
   }
 
   try {
     // Find user by ID
+    console.log('Looking up user:', userId);
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error('User not found:', userId);
+      return new Response('Verification failed: User not found', {
+        status: 302,
+        headers: {
+          'Location': '/auth/error?error=user_not_found'
+        }
+      });
     }
 
     if (user.status !== 'PENDING_VERIFICATION') {
-      return NextResponse.json({ error: 'User already verified' }, { status: 400 });
+      console.log('User already verified:', userId);
+      return new Response('User already verified', {
+        status: 302,
+        headers: {
+          'Location': '/auth/signin?message=already_verified'
+        }
+      });
     }
 
     // Update user status
+    console.log('Updating user status to ACTIVE:', userId);
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -34,12 +54,20 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ message: 'Email verified successfully' });
+    console.log('User verified successfully:', userId);
+    return new Response('Email verified successfully', {
+      status: 302,
+      headers: {
+        'Location': '/auth/signin?message=verification_success'
+      }
+    });
   } catch (error) {
     console.error('Email verification error:', error);
-    return NextResponse.json(
-      { error: 'Failed to verify email' },
-      { status: 500 }
-    );
+    return new Response('Verification failed: Internal error', {
+      status: 302,
+      headers: {
+        'Location': '/auth/error?error=verification_failed'
+      }
+    });
   }
 }
