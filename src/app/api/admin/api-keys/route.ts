@@ -39,8 +39,7 @@ export async function GET(req: Request) {
     // Filter keys if search is provided
     const filteredKeys = search
       ? allKeys.filter(key => 
-          key.id.toLowerCase().includes(search.toLowerCase()) ||
-          key.name.toLowerCase().includes(search.toLowerCase())
+          key.id.toLowerCase().includes(search.toLowerCase())
         )
       : allKeys;
 
@@ -48,8 +47,8 @@ export async function GET(req: Request) {
     const sortedKeys = [...filteredKeys].sort((a, b) => {
       if (sortBy === 'usage') {
         return sortOrder === 'desc' 
-          ? b.usage - a.usage 
-          : a.usage - b.usage;
+          ? (b.totalUsage || 0) - (a.totalUsage || 0)
+          : (a.totalUsage || 0) - (b.totalUsage || 0);
       }
       // Default sort by creation date
       return sortOrder === 'desc' 
