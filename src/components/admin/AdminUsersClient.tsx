@@ -312,9 +312,17 @@ export default function AdminUsersClient() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List Table - Full width on mobile, 7 columns on desktop */}
-          <div className="lg:col-span-7 overflow-x-auto border border-gray-200 rounded-lg">
-            <div className="min-w-max">
-              <table className="min-w-full divide-y divide-gray-200">
+          <div className="lg:col-span-7 relative">
+            <div className="w-full overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
+                <colgroup>
+                  <col style={{ width: '25%' }} /> {/* User */}
+                  <col style={{ width: '10%' }} /> {/* Status */}
+                  <col style={{ width: '15%' }} /> {/* Plan */}
+                  <col style={{ width: '15%' }} /> {/* Joined */}
+                  <col style={{ width: '10%' }} /> {/* Admin */}
+                  <col style={{ width: '25%' }} /> {/* Actions */}
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
                     <th 
