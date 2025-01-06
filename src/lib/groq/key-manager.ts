@@ -3,11 +3,11 @@ import { prisma } from '@/lib/prisma';
 export interface KeyUsageInfo {
   id: string;
   key: string;
-  createdAt: Date;
+  createdAt: string;
   isInUse: boolean;
   currentSession: string | null;
-  lastUsed: Date | null;
-  updatedAt: Date;
+  lastUsed: string | null;
+  updatedAt: string;
   totalUsage: number;
 }
 
@@ -110,15 +110,15 @@ export class GroqKeyManager {
         return [];
       }
 
-      // Map to KeyUsageInfo format with proper null handling
+      // Map to KeyUsageInfo format with proper date handling
       return keys.map(key => ({
         id: key.id,
         key: key.key,
-        createdAt: key.createdAt,
+        createdAt: key.createdAt.toISOString(),
         isInUse: key.isInUse,
         currentSession: key.currentSession,
-        lastUsed: key.usageHistory[0]?.createdAt || key.lastUsed,
-        updatedAt: key.updatedAt,
+        lastUsed: key.usageHistory[0]?.createdAt?.toISOString() || key.lastUsed?.toISOString() || null,
+        updatedAt: key.updatedAt.toISOString(),
         totalUsage: key._count?.usageHistory || 0
       }));
     } catch (error) {

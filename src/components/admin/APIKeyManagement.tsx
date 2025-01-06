@@ -66,11 +66,11 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
       }
 
       // Ensure we have valid data
-      const keys = Array.isArray(data.keys) ? data.keys : [];
-      const total = typeof data.total === 'number' ? data.total : 0;
+      const fetchedKeys = Array.isArray(data?.keys) ? data.keys : [];
+      const total = typeof data?.total === 'number' ? data.total : 0;
 
       // Set empty array if no keys
-      setKeys(keys);
+      setKeys(fetchedKeys);
       setPagination(prev => ({
         ...prev,
         total: total,
@@ -240,37 +240,45 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {keys.map((key) => (
-                        <tr key={key.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <div className="flex items-center">
-                              <KeyIcon className="h-5 w-5 text-gray-400 mr-2" />
-                              <span>{key.id}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(key.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              key.isInUse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {key.isInUse ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {key.totalUsage} requests
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => handleDeleteKey(key.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
+                      {Array.isArray(keys) && keys.length > 0 ? (
+                        keys.map((key) => (
+                          <tr key={key.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <div className="flex items-center">
+                                <KeyIcon className="h-5 w-5 text-gray-400 mr-2" />
+                                <span>{key.id}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(key.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                key.isInUse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {key.isInUse ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {key.totalUsage} requests
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                onClick={() => handleDeleteKey(key.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            No API keys found
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
