@@ -12,7 +12,8 @@ const prisma = new PrismaClient({
     db: {
       url: databaseUrl
     }
-  }
+  },
+  log: ['query', 'info', 'warn', 'error']
 });
 
 async function main() {
@@ -23,6 +24,32 @@ async function main() {
     console.log('\nChecking database connection...');
     await prisma.$connect();
     console.log('Database connection successful');
+
+    // List schemas
+    console.log('\nListing schemas...');
+    const schemas = await prisma.$queryRaw`
+      SELECT schema_name 
+      FROM information_schema.schemata;
+    `;
+    console.log('Available schemas:', schemas);
+
+    // List all tables
+    console.log('\nListing tables...');
+    const tables = await prisma.$queryRaw`
+      SELECT table_schema, table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public';
+    `;
+    console.log('Available tables:', tables);
+
+    // List all enums
+    console.log('\nListing enums...');
+    const enums = await prisma.$queryRaw`
+      SELECT t.typname, e.enumlabel
+      FROM pg_type t 
+      JOIN pg_enum e ON t.oid = e.enumtypid;
+    `;
+    console.log('Available enums:', enums);
 
     // Check if User table exists
     console.log('\nChecking User table...');
