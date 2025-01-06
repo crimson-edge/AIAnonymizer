@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = 'info@aianonymizer.com';
+  const adminEmail = 'admin@aianonymizer.com';
 
   // First, find the existing admin user
   const existingAdmin = await prisma.user.findUnique({
