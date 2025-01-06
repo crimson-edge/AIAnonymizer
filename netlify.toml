@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --legacy-peer-deps && npx prisma generate && next build"
+  command = "npm install --legacy-peer-deps && npx tsc --noEmit && npx prisma generate && next build"
   publish = ".next"
 
 [build.environment]
