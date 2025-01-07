@@ -50,8 +50,13 @@ export default function Navigation() {
   }
 
   const isAuthenticated = status === 'authenticated';
-  const isAdmin = session?.user?.isAdmin;
+  const isAdmin = status === 'authenticated' && session?.user?.isAdmin === true;
   const navigation = isAuthenticated ? authenticatedNavigation : publicNavigation;
+
+  // Don't render anything while loading session
+  if (status === 'loading') {
+    return null;
+  }
 
   return (
     <header className="fixed w-full bg-white border-b border-gray-200 z-50">

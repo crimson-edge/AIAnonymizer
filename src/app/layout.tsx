@@ -58,6 +58,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link 
+          rel="preload" 
+          href="/next/static/media/a34f9d1faa5f3315.woff2" 
+          as="font" 
+          type="font/woff2" 
+          crossOrigin="anonymous" 
+        />
+      </head>
       <RootLayoutClient className={inter.className}>
         {children}
       </RootLayoutClient>
