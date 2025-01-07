@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { UserStatus } from '@prisma/client';
 import './env'; // This will ensure NEXTAUTH_URL is set correctly
 
 if (!process.env.NEXTAUTH_URL) {
@@ -48,84 +49,66 @@ export const authOptions: NextAuthOptions = {
         try {
           console.log('Looking up user in database...');
           const user = await prisma.user.findUnique({
-            where: { 
-              email: credentials.email.toLowerCase().trim()
+            where: { email: credentials.email.toLowerCase() },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              firstName: true,
+              lastName: true,
+              isAdmin: true,
+              status: true,
             },
-            include: { subscription: true }
           });
 
-          if (!user) {
-            console.error('User not found:', credentials.email);
-            throw new Error('Invalid email or password');
+          if (!user?.password) {
+            console.error('User not found or no password');
+            throw new Error('Invalid credentials');
           }
 
-          console.log('User found:', {
-            id: user.id,
-            email: user.email,
-            isAdmin: user.isAdmin,
-            status: user.status
-          });
-          
-          // Check if user is pending verification
-          if (user.status === 'PENDING_VERIFICATION') {
-            console.error('User pending verification:', credentials.email);
-            throw new Error('Please verify your email before signing in');
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            console.error('Invalid password');
+            throw new Error('Invalid credentials');
           }
 
-          // Check if user is suspended
-          if (user.status === 'SUSPENDED') {
-            console.error('User is suspended:', credentials.email);
-            throw new Error('Your account has been suspended. Please contact support.');
-          }
-
-          console.log('Checking password...');
-          const isValidPassword = await bcrypt.compare(credentials.password, user.password);
-
-          if (!isValidPassword) {
-            console.error('Invalid password for user:', credentials.email);
-            throw new Error('Invalid email or password');
-          }
-
-          console.log('Authorization successful for:', credentials.email);
+          console.log('Authorization successful');
           return {
             id: user.id,
             email: user.email,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             isAdmin: user.isAdmin,
             status: user.status,
-            subscription: user.subscription,
           };
         } catch (error) {
-          console.error('Auth error:', error);
+          console.error('Authorization error:', error);
           throw error;
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      console.log('JWT Callback:', { token, user, account });
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        token.name = user.name;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
         token.isAdmin = user.isAdmin;
         token.status = user.status;
-        token.subscription = user.subscription;
       }
       return token;
     },
     async session({ session, token }) {
-      console.log('Session Callback:', { session, token });
-      if (session?.user) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.name = token.name;
-        session.user.isAdmin = token.isAdmin;
-        session.user.status = token.status;
-        session.user.subscription = token.subscription;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.isAdmin = token.isAdmin as boolean;
+        session.user.status = token.status as UserStatus;
       }
       return session;
     },
