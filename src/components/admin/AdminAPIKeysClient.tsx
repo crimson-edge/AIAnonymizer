@@ -60,7 +60,7 @@ export default function AdminAPIKeysClient() {
       console.log('Fetched keys data:', keysData);
       console.log('Fetched stats data:', statsData);
 
-      setApiKeys(keysData.keys);
+      setApiKeys(Array.isArray(keysData.keys) ? keysData.keys : []);
       setStats(statsData);
     } catch (err) {
       setError('Failed to load API keys data');
