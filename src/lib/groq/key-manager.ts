@@ -13,19 +13,32 @@ export class GroqKeyManager {
   private static keyPool: string[] = [];
 
   private static async initialize() {
-    if (this.initialized) return;
-
+    console.time('initialize');
+    if (this.initialized) {
+      console.timeEnd('initialize');
+      return;
+    }
+    
     try {
       console.log('Initializing GroqKeyManager...');
+      console.time('syncKeysWithEnvironment');
       await this.syncKeysWithEnvironment();
+      console.timeEnd('syncKeysWithEnvironment');
+      
+      console.time('getKeys');
       const keys = await this.getKeys();
+      console.timeEnd('getKeys');
+      
+      console.time('processKeys');
       this.keyPool = Array.isArray(keys) ? keys : [];
       this.initialized = true;
+      console.timeEnd('processKeys');
     } catch (error) {
       console.error('Error initializing GroqKeyManager:', error);
       this.keyPool = [];
       this.initialized = true;
     }
+    console.timeEnd('initialize');
   }
 
   private static async syncKeysWithEnvironment() {
@@ -85,16 +98,22 @@ export class GroqKeyManager {
   }
 
   static async getKeyUsage(): Promise<KeyUsageInfo[]> {
+    console.log('getKeyUsage started');
     try {
+      console.log('Getting keys...');
       const keys = await this.getKeys();
+      console.log('Got keys:', keys);
+
       if (!Array.isArray(keys)) {
         console.error('Invalid keys response:', keys);
         return [];
       }
 
+      console.log('Fetching usage data for keys...');
       const usageData = await Promise.all(
         keys.map(async (key) => {
           try {
+            console.log(`Fetching usage for key ${key}...`);
             const usage = await prisma.groqKey.findUnique({
               where: { key },
               include: {
@@ -104,6 +123,7 @@ export class GroqKeyManager {
                 }
               }
             });
+            console.log(`Usage for key ${key}:`, usage);
 
             const totalUsage = await prisma.groqKey.findUnique({
               where: { key },
@@ -113,14 +133,17 @@ export class GroqKeyManager {
                 }
               }
             });
+            console.log(`Total usage for key ${key}:`, totalUsage);
 
-            return {
+            const result = {
               id: key,
               createdAt: new Date().toISOString(),
               lastUsed: usage?.usageHistory[0]?.createdAt?.toISOString() || null,
               totalUsage: totalUsage?._count?.usageHistory || 0,
               isInUse: true,
             };
+            console.log(`Final result for key ${key}:`, result);
+            return result;
           } catch (error) {
             console.error(`Error getting usage for key ${key}:`, error);
             return {
@@ -134,6 +157,7 @@ export class GroqKeyManager {
         })
       );
 
+      console.log('Final usage data:', usageData);
       return usageData;
     } catch (error) {
       console.error('Error in getKeyUsage:', error);
@@ -216,9 +240,17 @@ export class GroqKeyManager {
   }
 
   private static async getKeys(): Promise<string[]> {
-    const keys = await prisma.groqKey.findMany({
-      select: { key: true }
-    });
-    return keys.map(k => k.key);
+    console.time('prismaQuery');
+    try {
+      const keys = await prisma.groqKey.findMany({
+        select: { key: true }
+      });
+      console.timeEnd('prismaQuery');
+      return keys.map(k => k.key);
+    } catch (error) {
+      console.error('Error in getKeys:', error);
+      console.timeEnd('prismaQuery');
+      return [];
+    }
   }
 }

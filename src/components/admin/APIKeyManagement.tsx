@@ -42,10 +42,9 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
   const [search, setSearch] = useState('');
 
   const fetchKeys = async (page = pagination.currentPage) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
+      console.log('Fetching keys...');
       const searchParams = new URLSearchParams({
         page: page.toString(),
         limit: pagination.perPage.toString(),
@@ -57,37 +56,43 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
       console.log('Fetching keys with params:', Object.fromEntries(searchParams)); // Debug log
 
       const response = await fetch(`/api/admin/api-keys?${searchParams}`);
-      const data = await response.json();
-
-      console.log('API response:', data); // Debug log
-
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch API keys');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received data:', data);
+      
+      if (!data || typeof data !== 'object') {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format');
       }
 
-      // Ensure we have valid data
-      const fetchedKeys = Array.isArray(data?.keys) ? data.keys : [];
-      const total = typeof data?.total === 'number' ? data.total : 0;
+      const { keys = [], total = 0 } = data;
+      console.log('Parsed keys:', keys);
+      console.log('Parsed total:', total);
 
-      // Set empty array if no keys
-      setKeys(fetchedKeys || []);
+      if (!Array.isArray(keys)) {
+        console.error('Keys is not an array:', keys);
+        setKeys([]);
+      } else {
+        setKeys(keys);
+      }
+
       setPagination(prev => ({
         ...prev,
-        total: total || 0,
-        pages: Math.max(1, Math.ceil((total || 0) / pagination.perPage)),
+        total,
+        pages: Math.max(1, Math.ceil(total / pagination.perPage)),
         currentPage: page
       }));
-    } catch (err) {
-      console.error('Error fetching keys:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch API keys');
-      // Set empty array on error
+    } catch (error) {
+      console.error('Error fetching keys:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch API keys');
       setKeys([]);
-      setPagination(prev => ({
-        ...prev,
-        total: 0,
-        pages: 1,
-        currentPage: 1
-      }));
     } finally {
       setLoading(false);
     }

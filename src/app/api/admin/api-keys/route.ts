@@ -7,19 +7,28 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { KeyUsageInfo } from '@/lib/groq/key-manager';
 
+const TIMEOUT = 10000; // 10 seconds
+
 export async function GET(req: Request) {
+  console.time('api-keys-get');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+
   try {
     const session = await getServerSession(authOptions);
-    console.log('GET /api/admin/api-keys session:', session);
+    console.log('Session:', session);
 
     if (!session?.user?.email) {
       console.error('No session or email found');
       return NextResponse.json({ error: 'Not authenticated', keys: [], total: 0 }, { status: 401 });
     }
 
+    console.time('findUser');
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
+    console.timeEnd('findUser');
+    console.log('User:', user);
 
     if (!user?.isAdmin) {
       console.error('User is not admin:', user);
@@ -34,11 +43,15 @@ export async function GET(req: Request) {
     const sortBy = url.searchParams.get('sortBy') || 'createdAt';
     const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
+    console.log('Query parameters:', { page, limit, search, sortBy, sortOrder });
+
     // Get all keys with usage data
     let allKeys: KeyUsageInfo[] = [];
     try {
+      console.time('getKeyUsage');
       allKeys = await GroqKeyManager.getKeyUsage();
-      console.log('All keys:', allKeys); // Debug log
+      console.timeEnd('getKeyUsage');
+      console.log('Fetched keys:', allKeys);
     } catch (error) {
       console.error('Error getting key usage:', error);
       return NextResponse.json({ error: 'Failed to fetch API keys', keys: [], total: 0 }, { status: 500 });
@@ -51,11 +64,14 @@ export async function GET(req: Request) {
     }
     
     // Filter keys if search is provided
+    console.time('filterAndSort');
     const filteredKeys = search
       ? allKeys.filter(key => 
           key.id.toLowerCase().includes(search.toLowerCase())
         )
       : allKeys;
+
+    console.log('Filtered keys:', filteredKeys);
 
     // Sort keys
     const sortedKeys = [...filteredKeys].sort((a, b) => {
@@ -72,18 +88,28 @@ export async function GET(req: Request) {
       const bDate = new Date(b.createdAt).getTime();
       return sortOrder === 'desc' ? bDate - aDate : aDate - bDate;
     });
+    console.timeEnd('filterAndSort');
+
+    console.log('Sorted keys:', sortedKeys);
 
     // Calculate pagination
+    console.time('pagination');
     const total = sortedKeys.length;
     const start = (page - 1) * limit;
     const end = start + limit;
     const paginatedKeys = sortedKeys.slice(start, end);
+    console.timeEnd('pagination');
 
-    console.log('Returning paginated keys:', { 
+    console.log('Pagination:', { 
       total,
       pageSize: paginatedKeys.length,
-      page
-    }); // Debug log
+      page,
+      start,
+      end
+    });
+
+    console.timeEnd('api-keys-get');
+    clearTimeout(timeoutId);
 
     // Always return an array for keys
     return NextResponse.json({
@@ -92,20 +118,30 @@ export async function GET(req: Request) {
       error: null
     });
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('Request timed out after', TIMEOUT, 'ms');
+      return NextResponse.json({
+        keys: [],
+        total: 0,
+        error: 'Request timed out'
+      }, { status: 504 });
+    }
     console.error('Error in GET /api/admin/api-keys:', error);
-    // Return empty array on error
     return NextResponse.json({
       keys: [],
       total: 0,
       error: 'Failed to fetch API keys'
     }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
 export async function POST(req: Request) {
+  console.log('POST /api/admin/api-keys started');
   try {
     const session = await getServerSession(authOptions);
-    console.log('POST /api/admin/api-keys session:', session);
+    console.log('Session:', session);
 
     if (!session?.user?.email) {
       console.error('No session or email found in POST');
@@ -115,6 +151,7 @@ export async function POST(req: Request) {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
+    console.log('User:', user);
 
     if (!user?.isAdmin) {
       console.error('User is not admin in POST:', user);
@@ -124,13 +161,17 @@ export async function POST(req: Request) {
     const { key } = await req.json();
     
     if (!key || typeof key !== 'string') {
+      console.error('Invalid API key:', key);
       return NextResponse.json(
         { error: 'API key is required and must be a string', success: false },
         { status: 400 }
       );
     }
 
+    console.log('Adding key to pool...');
     await GroqKeyManager.addKeyToPool(key);
+    console.log('Key added successfully');
+
     return NextResponse.json({ success: true, error: null });
   } catch (error) {
     console.error('Error in POST /api/admin/api-keys:', error);
@@ -142,9 +183,10 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  console.log('DELETE /api/admin/api-keys started');
   try {
     const session = await getServerSession(authOptions);
-    console.log('DELETE /api/admin/api-keys session:', session);
+    console.log('Session:', session);
 
     if (!session?.user?.email) {
       console.error('No session or email found in DELETE');
@@ -154,6 +196,7 @@ export async function DELETE(req: Request) {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
+    console.log('User:', user);
 
     if (!user?.isAdmin) {
       console.error('User is not admin in DELETE:', user);
@@ -164,13 +207,17 @@ export async function DELETE(req: Request) {
     const key = searchParams.get('key');
     
     if (!key || typeof key !== 'string') {
+      console.error('Invalid API key:', key);
       return NextResponse.json(
         { error: 'API key is required and must be a string', success: false },
         { status: 400 }
       );
     }
 
+    console.log('Removing key from pool...');
     await GroqKeyManager.removeKeyFromPool(key);
+    console.log('Key removed successfully');
+
     return NextResponse.json({ success: true, error: null });
   } catch (error) {
     console.error('Error in DELETE /api/admin/api-keys:', error);
