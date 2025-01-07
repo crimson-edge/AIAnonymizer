@@ -15,15 +15,40 @@ const envPath = path.join(process.cwd(), '.env');
 
 // Initialize key pool from environment variable
 async function initializeKeyPool() {
-  const keys = process.env.GROQ_API_KEYS?.split(',') || [];
-  keyPool.clear(); // Clear existing keys
-  keys.forEach(key => {
-    if (!keyPool.has(key)) {
-      keyPool.set(key.trim(), {
-        isInUse: false
-      });
+  try {
+    let keys: string[] = [];
+    const keysStr = process.env.GROQ_API_KEYS;
+    
+    if (keysStr) {
+      try {
+        // Try parsing as JSON first
+        keys = JSON.parse(keysStr);
+      } catch {
+        // Fallback to comma-separated string
+        keys = keysStr.split(',');
+      }
     }
-  });
+    
+    // Ensure keys is an array
+    if (!Array.isArray(keys)) {
+      console.error('Invalid GROQ_API_KEYS format:', keysStr);
+      keys = [];
+    }
+
+    keyPool.clear(); // Clear existing keys
+    keys.forEach(key => {
+      if (key && typeof key === 'string' && !keyPool.has(key)) {
+        keyPool.set(key.trim(), {
+          isInUse: false
+        });
+      }
+    });
+    
+    console.log(`Initialized ${keyPool.size} API keys`);
+  } catch (error) {
+    console.error('Error initializing key pool:', error);
+    // Don't throw, just log the error and continue with empty pool
+  }
 }
 
 // Initialize on service start
