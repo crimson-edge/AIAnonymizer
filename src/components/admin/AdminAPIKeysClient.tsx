@@ -185,6 +185,7 @@ export default function AdminAPIKeysClient() {
   console.log('Rendering API keys:', apiKeys);
 
   if (!apiKeys || apiKeys.length === 0) {
+    console.error('API keys are undefined or empty:', apiKeys);
     return (
       <div className="space-y-6">
         {/* Stats Overview */}
