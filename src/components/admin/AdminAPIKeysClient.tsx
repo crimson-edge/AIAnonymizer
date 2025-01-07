@@ -60,8 +60,19 @@ export default function AdminAPIKeysClient() {
       console.log('Fetched keys data:', keysData);
       console.log('Fetched stats data:', statsData);
 
-      setApiKeys(Array.isArray(keysData.keys) ? keysData.keys : []);
-      setStats(statsData);
+      if (!keysData || !Array.isArray(keysData.keys)) {
+        console.error('Invalid keys data:', keysData);
+        setApiKeys([]);
+      } else {
+        setApiKeys(keysData.keys);
+      }
+
+      if (!statsData) {
+        console.error('Invalid stats data:', statsData);
+        setStats({ totalKeys: 0, activeKeys: 0, totalUsage: 0 });
+      } else {
+        setStats(statsData);
+      }
     } catch (err) {
       setError('Failed to load API keys data');
       console.error('API keys data fetch error:', err);
