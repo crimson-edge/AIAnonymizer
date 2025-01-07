@@ -57,6 +57,9 @@ export default function AdminAPIKeysClient() {
         statsRes.json()
       ]);
 
+      console.log('Fetched keys data:', keysData);
+      console.log('Fetched stats data:', statsData);
+
       setApiKeys(keysData);
       setStats(statsData);
     } catch (err) {
