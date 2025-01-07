@@ -233,42 +233,50 @@ export default function AdminAPIKeysClient() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {apiKeys.map((key) => (
-                  <tr key={key.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono text-gray-900">
-                        {maskKey(key.key)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        key.inUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {key.inUse ? 'In Use' : 'Available'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {key.totalUsage.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => refreshKey(key.id)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        Refresh
-                      </button>
-                      <button
-                        onClick={() => deleteKey(key.key)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                {apiKeys && apiKeys.length > 0 ? (
+                  apiKeys.map((key) => (
+                    <tr key={key.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-mono text-gray-900">
+                          {maskKey(key.key)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          key.inUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {key.inUse ? 'In Use' : 'Available'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {key.totalUsage.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => refreshKey(key.id)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          Refresh
+                        </button>
+                        <button
+                          onClick={() => deleteKey(key.key)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      No API keys available
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
