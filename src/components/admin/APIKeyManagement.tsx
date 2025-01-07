@@ -26,16 +26,16 @@ interface APIKeyManagementProps {
   initialPage?: number;
 }
 
-export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementProps) {
-  const [keys, setKeys] = useState<APIKey[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function APIKeyManagement() {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keys, setKeys] = useState<APIKey[] | null>(null);
   const [keyInput, setKeyInput] = useState('');
   const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    perPage: 10,
     total: 0,
-    pages: 1,
-    currentPage: initialPage,
-    perPage: 10
+    pages: 1
   });
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -43,55 +43,46 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
 
   const fetchKeys = async (page = pagination.currentPage) => {
     setLoading(true);
+    setError(null);
     try {
-      console.log('Fetching keys...');
       const searchParams = new URLSearchParams({
         page: page.toString(),
         limit: pagination.perPage.toString(),
         sortBy,
         sortOrder,
-        ...(search && { search })
+        search,
       });
 
-      console.log('Fetching keys with params:', Object.fromEntries(searchParams)); // Debug log
-
       const response = await fetch(`/api/admin/api-keys?${searchParams}`);
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Received data:', data);
       
       if (!data || typeof data !== 'object') {
-        console.error('Invalid response format:', data);
         throw new Error('Invalid response format');
       }
 
-      const { keys = [], total = 0 } = data;
-      console.log('Parsed keys:', keys);
-      console.log('Parsed total:', total);
-
-      if (!Array.isArray(keys)) {
-        console.error('Keys is not an array:', keys);
+      const { keys: fetchedKeys, total } = data;
+      
+      if (!Array.isArray(fetchedKeys)) {
+        console.error('Received non-array keys:', fetchedKeys);
         setKeys([]);
       } else {
-        setKeys(keys);
+        setKeys(fetchedKeys);
       }
 
       setPagination(prev => ({
         ...prev,
-        total,
-        pages: Math.max(1, Math.ceil(total / pagination.perPage)),
+        total: total || 0,
+        pages: Math.max(1, Math.ceil((total || 0) / pagination.perPage)),
         currentPage: page
       }));
-    } catch (error) {
-      console.error('Error fetching keys:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch API keys');
+    } catch (err) {
+      console.error('Error fetching keys:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch API keys');
       setKeys([]);
     } finally {
       setLoading(false);
@@ -263,40 +254,56 @@ export default function APIKeyManagement({ initialPage = 1 }: APIKeyManagementPr
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {(keys || []).map((key) => (
-                      <tr key={key.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <div className="flex items-center">
-                            <KeyIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <span>{key.id}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(key.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            key.isInUse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {key.isInUse ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {key.totalUsage} requests
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            type="button"
-                            id={`delete-key-${key.id}`}
-                            name={`delete-key-${key.id}`}
-                            onClick={() => handleDeleteKey(key.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                    {Array.isArray(keys) ? (
+                      keys.length > 0 ? (
+                        keys.map((key) => (
+                          <tr key={key.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <div className="flex items-center">
+                                <KeyIcon className="h-5 w-5 text-gray-400 mr-2" />
+                                <span>{key.id}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(key.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                key.isInUse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {key.isInUse ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {key.totalUsage} requests
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                type="button"
+                                id={`delete-key-${key.id}`}
+                                name={`delete-key-${key.id}`}
+                                onClick={() => handleDeleteKey(key.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            No API keys found
+                          </td>
+                        </tr>
+                      )
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                          Error loading API keys
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
