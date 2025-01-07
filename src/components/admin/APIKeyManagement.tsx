@@ -56,6 +56,11 @@ export default function APIKeyManagement() {
       const response = await fetch(`/api/admin/api-keys?${searchParams}`);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          // Handle authentication error
+          window.location.href = '/auth/signin';
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -65,7 +70,8 @@ export default function APIKeyManagement() {
         throw new Error('Invalid response format');
       }
 
-      const { keys: fetchedKeys, total } = data;
+      // Initialize with empty arrays if keys is undefined
+      const { keys: fetchedKeys = [], total = 0 } = data;
       
       if (!Array.isArray(fetchedKeys)) {
         console.error('Received non-array keys:', fetchedKeys);
