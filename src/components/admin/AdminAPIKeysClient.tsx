@@ -60,19 +60,20 @@ export default function AdminAPIKeysClient() {
       console.log('Fetched keys data:', keysData);
       console.log('Fetched stats data:', statsData);
 
-      if (!keysData || !Array.isArray(keysData.keys)) {
+      if (!keysData || !keysData.keys || !Array.isArray(keysData.keys)) {
         console.error('Invalid keys data structure:', keysData);
         setApiKeys([]);
-      } else {
-        setApiKeys(keysData.keys);
+        return;
       }
 
-      if (!statsData || typeof statsData.totalKeys !== 'number') {
+      if (!statsData || typeof statsData !== 'object' || !statsData.totalKeys || typeof statsData.totalKeys !== 'number') {
         console.error('Invalid stats data structure:', statsData);
         setStats({ totalKeys: 0, activeKeys: 0, totalUsage: 0 });
-      } else {
-        setStats(statsData);
+        return;
       }
+
+      setApiKeys(keysData.keys);
+      setStats(statsData);
     } catch (err) {
       setError('Failed to load API keys data');
       console.error('API keys data fetch error:', err);
