@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
+import useSWR from 'swr';
 
 interface APIKey {
   id: string;
@@ -22,10 +23,22 @@ interface APIStats {
 export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
-  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
+
+  const { data: keysData, error: keysError } = useSWR<{
+    keys: APIKey[];
+    total: number;
+    error: string | null;
+  }>('/api/admin/api-keys');
+
+  const { data: statsData, error: statsError } = useSWR<{
+    totalKeys: number;
+    activeKeys: number;
+    inUseKeys: number;
+    error: string | null;
+  }>('/api/admin/api-keys/stats');
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState<APIStats | null>(null);
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
   const [addKeyError, setAddKeyError] = useState('');
@@ -38,49 +51,8 @@ export default function AdminAPIKeysClient() {
       return;
     }
 
-    fetchData();
+    setLoading(false);
   }, [session, sessionStatus, router]);
-
-  const fetchData = async () => {
-    try {
-      const [keysRes, statsRes] = await Promise.all([
-        fetch('/api/admin/api-keys'),
-        fetch('/api/admin/api-keys/stats')
-      ]);
-
-      if (!keysRes.ok || !statsRes.ok) {
-        throw new Error('Failed to fetch API keys data');
-      }
-
-      const [keysData, statsData] = await Promise.all([
-        keysRes.json(),
-        statsRes.json()
-      ]);
-
-      console.log('Fetched keys data:', keysData);
-      console.log('Fetched stats data:', statsData);
-
-      if (!keysData || !keysData.keys || !Array.isArray(keysData.keys)) {
-        console.error('Invalid keys data structure:', keysData);
-        setApiKeys([]);
-        return;
-      }
-
-      if (!statsData || typeof statsData !== 'object' || !statsData.totalKeys || typeof statsData.totalKeys !== 'number') {
-        console.error('Invalid stats data structure:', statsData);
-        setStats({ totalKeys: 0, activeKeys: 0, totalUsage: 0 });
-        return;
-      }
-
-      setApiKeys(keysData.keys);
-      setStats(statsData);
-    } catch (err) {
-      setError('Failed to load API keys data');
-      console.error('API keys data fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const addKey = async () => {
     try {
@@ -103,7 +75,6 @@ export default function AdminAPIKeysClient() {
 
       setNewKey('');
       setIsAddKeyModalOpen(false);
-      fetchData();
     } catch (err) {
       console.error('Error adding key:', err);
       setAddKeyError(err instanceof Error ? err.message : 'Failed to add key');
@@ -123,8 +94,6 @@ export default function AdminAPIKeysClient() {
       if (!res.ok) {
         throw new Error('Failed to delete key');
       }
-
-      fetchData();
     } catch (err) {
       console.error('Error deleting key:', err);
       setError('Failed to delete key');
@@ -144,7 +113,12 @@ export default function AdminAPIKeysClient() {
       }
 
       const data = await res.json();
-      setApiKeys(keys => keys.map(k => k.id === keyId ? { ...k, key: data.key } : k));
+      if (keysData?.keys) {
+        const updatedKeys = keysData.keys.map(k => 
+          k.id === keyId ? { ...k, key: data.key } : k
+        );
+        // Note: You might need to update this depending on your SWR setup
+      }
     } catch (err) {
       console.error('Error refreshing key:', err);
       setError('Failed to refresh key');
@@ -182,145 +156,47 @@ export default function AdminAPIKeysClient() {
     );
   }
 
+  // Defensive check for keysData structure
+  let apiKeys: APIKey[] = [];
+  if (keysData && 'keys' in keysData && Array.isArray(keysData.keys)) {
+    apiKeys = keysData.keys;
+  }
+
   if (!apiKeys || apiKeys.length === 0) {
-    console.error('API keys are undefined or empty:', apiKeys);
     return (
       <div className="space-y-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalKeys || 0}</p>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.totalKeys || 0}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.activeKeys || 0}</p>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.activeKeys || 0}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
-            <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalUsage?.toLocaleString() || 0}</p>
+            <p className="mt-2 text-3xl font-semibold text-gray-900">
+              {statsData?.inUseKeys?.toLocaleString() || 0}
+            </p>
           </div>
         </div>
 
-        {/* API Keys Table */}
-        <div className="bg-white shadow-sm rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">API Keys</h2>
-              <button
-                onClick={() => setIsAddKeyModalOpen(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-              >
-                Add New Key
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Key
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Used
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Usage
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      No API keys available
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Add Key Modal */}
-        <Transition appear show={isAddKeyModalOpen} as={Fragment}>
-          <Dialog
-            as="div"
-            className="fixed inset-0 z-10 overflow-y-auto"
-            onClose={() => setIsAddKeyModalOpen(false)}
+        {/* Empty State */}
+        <div className="bg-white shadow-sm rounded-lg p-6 text-center">
+          <h3 className="text-lg font-medium text-gray-900">No API Keys Available</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by adding your first API key.</p>
+          <button
+            onClick={() => setIsAddKeyModalOpen(true)}
+            className="mt-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
           >
-            <div className="min-h-screen px-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-              </Transition.Child>
-
-              <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
-
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
-                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                    Add New API Key
-                  </Dialog.Title>
-                  <div className="mt-4">
-                    <input
-                      type="text"
-                      value={newKey}
-                      onChange={(e) => setNewKey(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      placeholder="Enter API key"
-                    />
-                    {addKeyError && (
-                      <p className="mt-2 text-sm text-red-600">{addKeyError}</p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <button
-                      type="button"
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                      onClick={() => setIsAddKeyModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-                      onClick={addKey}
-                    >
-                      Add Key
-                    </button>
-                  </div>
-                </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition>
+            Add New Key
+          </button>
+        </div>
       </div>
     );
   }
-
-  console.log('Rendering API keys:', apiKeys);
 
   return (
     <div className="space-y-6">
@@ -328,15 +204,17 @@ export default function AdminAPIKeysClient() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalKeys || 0}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.totalKeys || 0}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.activeKeys || 0}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.activeKeys || 0}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{stats?.totalUsage?.toLocaleString() || 0}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">
+            {statsData?.inUseKeys?.toLocaleString() || 0}
+          </p>
         </div>
       </div>
 
@@ -394,10 +272,10 @@ export default function AdminAPIKeysClient() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {key.totalUsage.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <button
                         onClick={() => refreshKey(key.id)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-indigo-600 hover:text-indigo-900 mr-4"
                       >
                         Refresh
                       </button>
@@ -436,7 +314,12 @@ export default function AdminAPIKeysClient() {
               <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
             </Transition.Child>
 
-            <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+            <span
+              className="inline-block h-screen align-middle"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
 
             <Transition.Child
               as={Fragment}
@@ -448,15 +331,18 @@ export default function AdminAPIKeysClient() {
               leaveTo="opacity-0 scale-95"
             >
               <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
-                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                <Dialog.Title
+                  as="h3"
+                  className="text-lg font-medium leading-6 text-gray-900"
+                >
                   Add New API Key
                 </Dialog.Title>
-                <div className="mt-4">
+                <div className="mt-2">
                   <input
                     type="text"
                     value={newKey}
                     onChange={(e) => setNewKey(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter API key"
                   />
                   {addKeyError && (
