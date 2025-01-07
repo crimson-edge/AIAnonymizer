@@ -61,14 +61,14 @@ export default function AdminAPIKeysClient() {
       console.log('Fetched stats data:', statsData);
 
       if (!keysData || !Array.isArray(keysData.keys)) {
-        console.error('Invalid keys data:', keysData);
+        console.error('Invalid keys data structure:', keysData);
         setApiKeys([]);
       } else {
         setApiKeys(keysData.keys);
       }
 
-      if (!statsData) {
-        console.error('Invalid stats data:', statsData);
+      if (!statsData || typeof statsData.totalKeys !== 'number') {
+        console.error('Invalid stats data structure:', statsData);
         setStats({ totalKeys: 0, activeKeys: 0, totalUsage: 0 });
       } else {
         setStats(statsData);
