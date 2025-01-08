@@ -34,48 +34,50 @@ export default function AdminAPIKeysClient() {
         setApiResponse(data);
       } catch (error) {
         console.error('Error fetching API keys:', error);
+        // Set empty data on error to prevent undefined
+        setApiResponse({ keys: [], total: 0 });
       }
     };
 
     if (session?.user) {
       fetchData();
+    } else {
+      // Set empty data when no session
+      setApiResponse({ keys: [], total: 0 });
     }
   }, [session]);
 
+  // Default data structure
+  const defaultData = {
+    keys: [],
+    total: 0
+  };
+
+  // Transform API response to match our working data structure
   const keysData = useMemo(() => {
+    // If we have API data, use it
     if (apiResponse?.keys) {
       return {
         keys: apiResponse.keys.map((k: any) => ({
-          id: k.id || k.key,
-          key: k.key,
+          id: k.id || k.key || 'unknown',
+          key: k.key || '',
           inUse: k.isInUse || false,
           lastUsed: k.lastUsed || new Date().toISOString(),
           totalUsage: k.totalUsage || 0,
           createdAt: k.createdAt || new Date().toISOString()
         })),
-        total: apiResponse.total || apiResponse.keys.length
+        total: apiResponse.total || apiResponse.keys.length || 0
       };
     }
-    // Fallback data
-    return {
-      keys: [
-        {
-          id: '1',
-          key: 'sk-mock-1',
-          inUse: false,
-          lastUsed: new Date().toISOString(),
-          totalUsage: 100,
-          createdAt: new Date().toISOString()
-        }
-      ],
-      total: 1
-    };
+    // Otherwise use default empty data
+    return defaultData;
   }, [apiResponse]);
 
+  // Calculate stats from keysData
   const statsData = useMemo(() => ({
-    totalKeys: keysData.total,
-    activeKeys: keysData.keys.length,
-    inUseKeys: keysData.keys.filter(k => k.inUse).length
+    totalKeys: keysData?.total || 0,
+    activeKeys: keysData?.keys?.length || 0,
+    inUseKeys: keysData?.keys?.filter(k => k.inUse)?.length || 0
   }), [keysData]);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
