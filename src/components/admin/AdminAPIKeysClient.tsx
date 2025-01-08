@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
-import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 
 interface APIKey {
@@ -23,20 +22,26 @@ interface APIStats {
 
 export default function AdminAPIKeysClient() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [apiResponse, setApiResponse] = useState<any>(null);
 
-  // Configure SWR with correct fetcher
-  const fetcher = (url: string) => fetch(url).then(res => {
-    if (!res.ok) throw new Error('API request failed');
-    return res.json();
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/admin/api-keys');
+        if (!res.ok) throw new Error('API request failed');
+        const data = await res.json();
+        setApiResponse(data);
+      } catch (error) {
+        console.error('Error fetching API keys:', error);
+      }
+    };
 
-  // Add back SWR for data fetching with correct path and fetcher
-  const { data: apiResponse } = useSWR<any>('/api/admin/api-keys', fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 5000
-  });
+    if (session?.user) {
+      fetchData();
+    }
+  }, [session]);
 
-  // Transform API response to match our working data structure
   const keysData = useMemo(() => {
     if (apiResponse?.keys) {
       return {
@@ -72,8 +77,6 @@ export default function AdminAPIKeysClient() {
     activeKeys: keysData.keys.length,
     inUseKeys: keysData.keys.filter(k => k.inUse).length
   }), [keysData]);
-
-  const { data: session } = useSession();
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
