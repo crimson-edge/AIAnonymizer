@@ -17,6 +17,7 @@ interface ChatResponse extends GroqResponse {
 export class GroqClient {
   private static instance: GroqClient;
   private readonly baseUrl = 'https://api.groq.com/v1/chat/completions';
+  private readonly model = 'mixtral-8x7b-32768';
 
   private constructor() {}
 
@@ -38,52 +39,42 @@ export class GroqClient {
     
     try {
       const response = await this.makeRequest(key.key, prompt);
-      await keyManager.recordSuccess(key.key, userId, 'anonymize', response.usage?.total_tokens || 0);
       
       if (!response.choices?.[0]?.message?.content) {
         throw new Error('Invalid response from AI service');
       }
 
-      return response.choices[0].message.content;
+      // Record usage
+      await keyManager.recordUsage(
+        key.id,
+        userId,
+        'anonymize',
+        response.usage?.total_tokens || 0
+      );
 
+      return response.choices[0].message.content;
     } catch (error) {
-      await keyManager.recordError(key.key, userId, 'anonymize', error as Error);
+      // Release the key on error
+      await keyManager.releaseKey(key.id);
       throw error;
     }
   }
 
   private buildAnonymizationPrompt(text: string): any {
     return {
-      model: "mixtral-8x7b-32768",
       messages: [
         {
-          role: "system",
-          content: `You are an AI trained to anonymize text by replacing personal information with generic placeholders while preserving the meaning and context of the text. Follow these rules:
-          1. Replace names with [NAME]
-          2. Replace emails with [EMAIL]
-          3. Replace phone numbers with [PHONE]
-          4. Replace addresses with [ADDRESS]
-          5. Replace dates with [DATE]
-          6. Replace company names with [COMPANY]
-          7. Replace locations with [LOCATION]
-          8. Replace URLs with [URL]
-          9. Replace social media handles with [SOCIAL_MEDIA]
-          10. Replace any other identifying information with appropriate placeholders
-          
-          Important:
-          - Preserve the original text structure and formatting
-          - Keep non-personal information unchanged
-          - Use consistent placeholders
-          - Don't explain or comment on the changes`
+          role: 'system',
+          content: 'You are an AI that specializes in anonymizing text while preserving context. Replace all personal identifiable information (PII) with generic placeholders.',
         },
         {
-          role: "user",
-          content: text
-        }
+          role: 'user',
+          content: text,
+        },
       ],
-      temperature: 0.1,
-      max_tokens: 32000,
-      stream: false
+      model: this.model,
+      temperature: 0.5,
+      max_tokens: 32768,
     };
   }
 
@@ -91,18 +82,14 @@ export class GroqClient {
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded');
-      }
-      throw new Error(`API request failed: ${error.error || 'Unknown error'}`);
+      throw new Error(`API request failed: ${response.statusText}`);
     }
 
     return response.json();

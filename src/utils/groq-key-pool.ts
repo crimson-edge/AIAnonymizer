@@ -1,11 +1,4 @@
-import { prisma } from '../lib/prisma';
-
-interface GroqKey {
-  key: string;
-  isInUse: boolean;
-  currentSession?: string;
-  lastUsed?: Date;
-}
+import { prisma } from '@/lib/prisma';
 
 // Get keys from environment variable
 function getGroqKeys(): string[] {
@@ -19,100 +12,112 @@ function getGroqKeys(): string[] {
 }
 
 // Initialize the key pool in the database
-export async function initializeGroqKeyPool() {
-  const keys = getGroqKeys();
-  
-  if (keys.length === 0) {
-    throw new Error('No Groq API keys found in environment variables');
+export async function initializeGroqKeyPool(): Promise<void> {
+  // Get all existing keys
+  const existingKeys = await prisma.apiKey.findMany();
+
+  // Get environment variables for Groq API keys
+  const groqKeys = process.env.GROQ_API_KEYS?.split(',') || [];
+
+  // Add any new keys
+  for (const key of groqKeys) {
+    const exists = existingKeys.some(k => k.key === key);
+    if (!exists) {
+      await prisma.apiKey.create({
+        data: {
+          key,
+          isActive: true,
+          totalUsage: 0,
+          userId: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
   }
 
-  // Upsert each key to ensure it exists in the database
-  for (const key of keys) {
-    await prisma.groqKey.upsert({
-      where: { key },
-      create: {
-        key,
-        isInUse: false,
-      },
-      update: {} // Don't update if exists
-    });
+  // Mark any keys not in environment as inactive
+  for (const existingKey of existingKeys) {
+    if (!groqKeys.includes(existingKey.key)) {
+      await prisma.apiKey.update({
+        where: { key: existingKey.key },
+        data: { isActive: false }
+      });
+    }
   }
-
-  // Remove any keys that are no longer in the environment
-  await prisma.groqKey.deleteMany({
-    where: {
-      key: {
-        notIn: keys,
-      },
-    },
-  });
-}
-
-export async function assignGroqKeyToSession(sessionId: string): Promise<string | null> {
-  // Find an available key
-  const availableKey = await prisma.groqKey.findFirst({
-    where: {
-      isInUse: false,
-    },
-  });
-
-  if (!availableKey) {
-    return null;
-  }
-
-  // Assign the key to the session
-  await prisma.groqKey.update({
-    where: { key: availableKey.key },
-    data: {
-      isInUse: true,
-      currentSession: sessionId,
-      lastUsed: new Date(),
-    },
-  });
-
-  return availableKey.key;
-}
-
-export async function releaseGroqKeyFromSession(sessionId: string): Promise<boolean> {
-  const key = await prisma.groqKey.findFirst({
-    where: {
-      currentSession: sessionId,
-    },
-  });
-
-  if (!key) {
-    return false;
-  }
-
-  await prisma.groqKey.update({
-    where: { key: key.key },
-    data: {
-      isInUse: false,
-      currentSession: null,
-    },
-  });
-
-  return true;
-}
-
-export async function getGroqKeyForSession(sessionId: string): Promise<string | null> {
-  const key = await prisma.groqKey.findFirst({
-    where: {
-      currentSession: sessionId,
-    },
-  });
-
-  return key?.key || null;
 }
 
 // Admin functions
 export async function listAllGroqKeys() {
-  return prisma.groqKey.findMany({
-    orderBy: { lastUsed: 'desc' },
+  return prisma.apiKey.findMany({
+    orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+    },
   });
 }
 
 // Function to refresh the pool with current environment keys
 export async function refreshGroqKeyPool(): Promise<void> {
   await initializeGroqKeyPool();
+}
+
+export async function createGroqKey(key: string, userId: string): Promise<void> {
+  await prisma.apiKey.create({
+    data: {
+      key,
+      isActive: true,
+      totalUsage: 0,
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  });
+}
+
+export async function deleteGroqKey(key: string): Promise<void> {
+  await prisma.apiKey.delete({
+    where: { key }
+  });
+}
+
+export async function getGroqKeyForUser(userId: string): Promise<string | null> {
+  const key = await prisma.apiKey.findFirst({
+    where: {
+      userId,
+      isActive: true
+    }
+  });
+
+  return key?.key || null;
+}
+
+export async function assignGroqKeyToUser(key: string, userId: string): Promise<void> {
+  await prisma.apiKey.update({
+    where: { key },
+    data: {
+      userId,
+      updatedAt: new Date()
+    }
+  });
+}
+
+export async function releaseGroqKeyFromUser(userId: string): Promise<void> {
+  await prisma.apiKey.updateMany({
+    where: {
+      userId,
+      isActive: true
+    },
+    data: {
+      userId: null,
+      updatedAt: new Date()
+    }
+  });
 }

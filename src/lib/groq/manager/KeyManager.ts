@@ -1,11 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { GroqKey, KeyMetrics } from '../types/GroqTypes';
+import { ApiKey, KeyMetrics } from '../types/GroqTypes';
 import { Prisma } from '@prisma/client';
 
 export class KeyManager {
   private static instance: KeyManager;
-  private readonly maxErrorThreshold = 5;
-  private readonly keyLockDuration = 60 * 1000; // 1 minute
+  private readonly maxUsageThreshold = 1000000; // 1M tokens
 
   private constructor() {}
 
@@ -16,16 +15,16 @@ export class KeyManager {
     return KeyManager.instance;
   }
 
-  async getKey(userId: string): Promise<GroqKey | null> {
-    const key = await prisma.groqKey.findFirst({
+  async getKey(userId: string): Promise<ApiKey | null> {
+    const key = await prisma.apiKey.findFirst({
       where: {
-        isInUse: false,
-        errorCount: {
-          lt: this.maxErrorThreshold
+        isActive: true,
+        totalUsage: {
+          lt: this.maxUsageThreshold
         }
       },
       orderBy: {
-        lastUsed: 'asc'
+        totalUsage: 'asc'
       }
     });
 
@@ -33,127 +32,104 @@ export class KeyManager {
       return null;
     }
 
-    await prisma.groqKey.update({
+    await prisma.apiKey.update({
       where: { id: key.id },
       data: {
-        isInUse: true,
-        currentSession: userId,
-        lastUsed: new Date()
+        totalUsage: {
+          increment: 1
+        },
+        updatedAt: new Date()
       }
     });
 
     return key;
   }
 
-  async recordSuccess(key: string, userId: string, requestType: string, tokens: number): Promise<void> {
-    const cost = new Prisma.Decimal(tokens * 0.0001);
-    await prisma.groqKey.update({
-      where: { key },
+  async recordUsage(keyId: string, userId: string, requestType: string, tokens: number): Promise<void> {
+    // Update key usage
+    await prisma.apiKey.update({
+      where: { id: keyId },
       data: {
-        isInUse: false,
-        currentSession: null,
-        totalRequests: { increment: 1 },
-        totalTokens: { increment: tokens },
-        totalCost: { increment: cost },
-        usageHistory: {
-          create: {
-            userId,
-            requestType,
-            tokens: tokens,
-            cost,
-            success: true,
-            latency: 0 // Add required latency field
-          }
-        }
+        totalUsage: {
+          increment: tokens
+        },
+        updatedAt: new Date()
+      }
+    });
+
+    // Record usage
+    await prisma.usage.create({
+      data: {
+        userId,
+        type: 'groq',
+        amount: 1,
+        tokens,
+        cost: 0 // Calculate based on your pricing
       }
     });
   }
 
-  async recordError(key: string, userId: string, requestType: string, error: Error): Promise<void> {
-    await prisma.groqKey.update({
-      where: { key },
+  async releaseKey(keyId: string): Promise<void> {
+    await prisma.apiKey.update({
+      where: { id: keyId },
       data: {
-        isInUse: false,
-        currentSession: null,
-        errorCount: { increment: 1 },
-        usageHistory: {
-          create: {
-            userId,
-            requestType,
-            tokens: 0,
-            cost: new Prisma.Decimal(0),
-            success: false,
-            latency: 0,
-            errorType: error.message  // Changed to match schema's errorType field
-          }
-        }
+        totalUsage: 0,
+        updatedAt: new Date()
       }
     });
   }
-  async refreshKeyPool(): Promise<void> {
-    const staleTimeout = new Date(Date.now() - this.keyLockDuration);
-    await prisma.groqKey.updateMany({
+
+  async getKeyMetrics(keyId: string): Promise<KeyMetrics | null> {
+    const key = await prisma.apiKey.findUnique({
+      where: { id: keyId }
+    });
+
+    if (!key) {
+      return null;
+    }
+
+    // Get usage history from the usage table
+    const usageHistory = await prisma.usage.findMany({
       where: {
-        isInUse: true,
-        lastUsed: {
-          lt: staleTimeout
-        }
+        type: 'groq',
+        userId: key.userId
       },
-      data: {
-        isInUse: false,
-        currentSession: null
-      }
-    });
-  }
-
-  async getKeyMetrics(): Promise<KeyMetrics[]> {
-    const keys = await prisma.groqKey.findMany({
-      include: {
-        usageHistory: {
-          orderBy: {
-            timestamp: 'desc'
-          },
-          take: 10
-        }
-      }
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 100
     });
 
-    return keys.map(key => {
-      const successfulRequests = key.usageHistory.filter(h => h.success).length;
-      return {
-        id: key.id,
-        isInUse: key.isInUse,
-        lastUsed: key.lastUsed,
-        totalRequests: key.totalRequests,
-        totalTokens: Number(key.totalTokens),
-        totalCost: Number(key.totalCost),
-        errorCount: key.errorCount,
-        currentSession: key.currentSession,
-        lastRequest: key.usageHistory[0]?.timestamp || null,
-        successRate: key.totalRequests > 0 ? (successfulRequests / key.totalRequests) * 100 : 0,
-        lastNRequests: key.usageHistory.length, // This is already a number
-        createdAt: key.createdAt,
-        updatedAt: key.updatedAt,
-        totalUsage: Number(key.totalTokens)
-      };
-    });
+    // Calculate success rate based on cost - assume non-zero cost means success
+    const successRate = usageHistory.length > 0 
+      ? usageHistory.filter(log => log.cost > 0).length / usageHistory.length
+      : 1;
+
+    return {
+      id: key.id,
+      isActive: key.isActive,
+      totalUsage: key.totalUsage,
+      createdAt: key.createdAt,
+      updatedAt: key.updatedAt,
+      successRate
+    };
   }
-  async addKey(key: string): Promise<void> {
-    await prisma.groqKey.create({
+
+  async addKey(key: string, userId: string): Promise<void> {
+    await prisma.apiKey.create({
       data: {
         key,
-        isInUse: false,
-        currentSession: null,
-        totalRequests: 0,
-        totalTokens: BigInt(0),
-        totalCost: new Prisma.Decimal(0),
-        errorCount: 0
+        isActive: true,
+        totalUsage: 0,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
   }
 
   async removeKey(key: string): Promise<void> {
-    await prisma.groqKey.delete({
+    await prisma.apiKey.delete({
       where: { key }
     });
   }
@@ -161,28 +137,32 @@ export class KeyManager {
   async getStats(): Promise<{
     totalKeys: number;
     activeKeys: number;
-    totalRequests: number;
-    totalTokens: number;
-    totalCost: number;
+    totalUsage: number;
     errorRate: number;
   }> {
-    const keys = await prisma.groqKey.findMany();
-    const activeKeys = keys.filter(k => k.isInUse).length;
-    const totalRequests = keys.reduce((sum, k) => sum + k.totalRequests, 0);
-    const totalTokens = Number(keys.reduce((sum, k) => sum + k.totalTokens, BigInt(0)));
-    const totalCost = Number(keys.reduce((sum, k) => sum.plus(k.totalCost), new Prisma.Decimal(0)));
-    const totalErrors = keys.reduce((sum, k) => sum + k.errorCount, 0);
+    const keys = await prisma.apiKey.findMany();
+    const activeKeys = keys.filter(k => k.isActive).length;
+    const totalUsage = keys.reduce((sum, k) => sum + k.totalUsage, 0);
+
+    // Get error rate from usage history
+    const usageHistory = await prisma.usage.findMany({
+      where: {
+        type: 'groq'
+      }
+    });
+
+    // Calculate error rate based on cost - assume zero cost means error
+    const errorRate = usageHistory.length > 0
+      ? usageHistory.filter(log => log.cost === 0).length / usageHistory.length
+      : 0;
 
     return {
       totalKeys: keys.length,
       activeKeys,
-      totalRequests,
-      totalTokens,
-      totalCost,
-      errorRate: totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0
+      totalUsage,
+      errorRate
     };
   }
-  // ... (keep other methods)
 }
 
 export const keyManager = KeyManager.getInstance();

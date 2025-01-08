@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
@@ -32,14 +31,14 @@ async function main() {
   const groqKeys = process.env.GROQ_API_KEYS ? JSON.parse(process.env.GROQ_API_KEYS) : [];
   
   for (const key of groqKeys) {
-    await prisma.groqKeyPool.upsert({
+    await prisma.apiKey.upsert({
       where: { key },
       update: {},
       create: {
-        id: uuidv4(),
         key,
-        isInUse: false,
-        lastUsed: null,
+        isActive: true,
+        totalUsage: 0,
+        userId: admin.id, // Assign to admin by default
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -52,17 +51,17 @@ async function main() {
   await prisma.subscription.upsert({
     where: { userId: admin.id },
     update: {
-      tier: 'PRO',
-      status: 'active',
+      tier: 'PREMIUM',
       monthlyLimit: 1000000,
-      tokenLimit: 10000000
+      tokenLimit: 10000000,
+      status: 'active',
     },
     create: {
       userId: admin.id,
-      tier: 'PRO',
-      status: 'active',
+      tier: 'PREMIUM',
       monthlyLimit: 1000000,
-      tokenLimit: 10000000
+      tokenLimit: 10000000,
+      status: 'active',
     },
   });
 

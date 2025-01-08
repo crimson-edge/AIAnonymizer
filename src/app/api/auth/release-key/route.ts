@@ -16,41 +16,33 @@ export async function POST(req: Request) {
         user: {
           email: session.user.email
         },
-        isActive: true
+        isActive: true,
+        totalUsage: {
+          gt: 0
+        }
       }
     });
 
-    // Update each key to inactive
+    // Release each key by setting totalUsage to 0
     if (activeKeys.length > 0) {
       await prisma.$transaction(
         activeKeys.map(key => 
           prisma.apiKey.update({
             where: { id: key.id },
             data: { 
-              isActive: false,
+              totalUsage: 0,
               updatedAt: new Date()
             }
           })
         )
       );
-
-      // Also update any associated Groq keys
-      await prisma.groqKeyPool.updateMany({
-        where: {
-          key: {
-            in: activeKeys.map(key => key.key)
-          }
-        },
-        data: {
-          isInUse: false,
-          lastUsed: new Date()
-        }
-      });
     }
 
     return new NextResponse(JSON.stringify({ message: 'Keys released successfully' }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   } catch (error) {
     console.error('Error releasing keys:', error);

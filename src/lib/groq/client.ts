@@ -1,27 +1,25 @@
 import { Groq } from 'groq-sdk';
-import { getGroqKeyForSession, assignGroqKeyToSession, releaseGroqKeyFromSession } from '../../utils/groq-key-pool';
+import { keyManager } from './manager/KeyManager';
 
 export class GroqClient {
   private client: Groq | null = null;
-  private sessionId: string;
+  private userId: string;
+  private currentKeyId: string | null = null;
 
-  constructor(sessionId: string) {
-    this.sessionId = sessionId;
+  constructor(userId: string) {
+    this.userId = userId;
   }
 
   async initialize(): Promise<void> {
-    let apiKey = await getGroqKeyForSession(this.sessionId);
-    
-    if (!apiKey) {
-      apiKey = await assignGroqKeyToSession(this.sessionId);
-      if (!apiKey) {
-        throw new Error('No available Groq API keys');
-      }
+    const key = await keyManager.getKey(this.userId);
+    if (!key) {
+      throw new Error('No available Groq API keys');
     }
 
     this.client = new Groq({
-      apiKey,
+      apiKey: key.key,
     });
+    this.currentKeyId = key.id;
   }
 
   async anonymize(text: string): Promise<string> {
@@ -30,6 +28,7 @@ export class GroqClient {
     }
 
     try {
+      const startTime = Date.now();
       const completion = await this.client!.chat.completions.create({
         messages: [
           {
@@ -46,15 +45,27 @@ export class GroqClient {
         max_tokens: 32768,
       });
 
+      if (this.currentKeyId) {
+        await keyManager.recordUsage(
+          this.currentKeyId,
+          this.userId,
+          'anonymize',
+          completion.usage?.total_tokens || 0
+        );
+      }
+
       return completion.choices[0]?.message?.content || text;
     } catch (error) {
       console.error('Error calling Groq API:', error);
-      throw new Error('Failed to anonymize text');
+      throw error;
     }
   }
 
-  async release(): Promise<void> {
-    await releaseGroqKeyFromSession(this.sessionId);
+  async cleanup(): Promise<void> {
+    if (this.currentKeyId) {
+      await keyManager.releaseKey(this.currentKeyId);
+    }
     this.client = null;
+    this.currentKeyId = null;
   }
 }

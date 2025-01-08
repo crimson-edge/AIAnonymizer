@@ -23,14 +23,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { key } = await req.json();
+    const body = await req.json();
+    const { key, userId } = body;
 
     if (!key) {
       return NextResponse.json({ error: 'Key is required' }, { status: 400 });
     }
 
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
     // Add the key to the database
-    await keyManager.addKey(key);
+    await keyManager.addKey(key, userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { keyManager } from '@/lib/groq/manager/KeyManager';
-import type { KeyMetrics } from '@/lib/groq/types/GroqTypes';
+import type { ApiKey } from '@/lib/groq/types/GroqTypes';
 
 const TIMEOUT = 10000; // 10 seconds
 
@@ -45,25 +45,22 @@ export async function GET(req: Request) {
 
     console.log('Query parameters:', { page, limit, search, sortBy, sortOrder });
 
-    // Get all keys with usage data
-    let allKeys: KeyMetrics[] = [];
-    try {
-      console.time('getKeyUsage');
-      allKeys = await keyManager.getKeyMetrics();
-      console.log('API: Retrieved keys:', allKeys);
-
-      console.timeEnd('getKeyUsage');
-      console.log('Fetched keys:', allKeys);
-    } catch (error) {
-      console.error('Error getting key usage:', error);
-      return NextResponse.json({ error: 'Failed to fetch API keys', keys: [], total: 0 }, { status: 500 });
-    }
-
-    // Ensure allKeys is an array
-    if (!Array.isArray(allKeys)) {
-      console.error('allKeys is not an array:', allKeys);
-      allKeys = [];
-    }
+    // Get all keys
+    console.time('getKeys');
+    const allKeys = await prisma.apiKey.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+    console.timeEnd('getKeys');
+    console.log('Fetched keys:', allKeys);
 
     // Filter keys based on search
     let filteredKeys = allKeys;
@@ -77,11 +74,11 @@ export async function GET(req: Request) {
 
     // Sort keys
     const sortedKeys = [...filteredKeys].sort((a, b) => {
-      let aValue = a[sortBy as keyof KeyMetrics];
-      let bValue = b[sortBy as keyof KeyMetrics];
+      let aValue = a[sortBy as keyof ApiKey];
+      let bValue = b[sortBy as keyof ApiKey];
 
       // Handle special cases for sorting
-      if (sortBy === 'createdAt' || sortBy === 'lastUsed') {
+      if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
         aValue = aValue ? (typeof aValue === 'string' ? new Date(aValue).getTime() : aValue instanceof Date ? aValue.getTime() : 0) : 0;
         bValue = bValue ? (typeof bValue === 'string' ? new Date(bValue).getTime() : bValue instanceof Date ? bValue.getTime() : 0) : 0;
       }
@@ -101,25 +98,15 @@ export async function GET(req: Request) {
     console.timeEnd('api-keys-get');
 
     return NextResponse.json({
-      keys: paginatedKeys || [],
-      total: total || 0,
-      error: null
+      keys: paginatedKeys,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: endIndex < total
     });
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('Request timed out after', TIMEOUT, 'ms');
-      return NextResponse.json({
-        keys: [],
-        total: 0,
-        error: 'Request timed out'
-      }, { status: 504 });
-    }
-    console.error('Error in GET /api/admin/api-keys:', error);
-    return NextResponse.json({
-      keys: [],
-      total: 0,
-      error: 'Failed to fetch API keys'
-    }, { status: 500 });
+    console.error('Error in GET /api/admin/api-keys/list:', error);
+    return NextResponse.json({ error: 'Failed to fetch API keys', keys: [], total: 0 }, { status: 500 });
   } finally {
     clearTimeout(timeoutId);
   }

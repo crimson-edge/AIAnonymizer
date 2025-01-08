@@ -136,6 +136,9 @@ export default function AdminAPIKeysClient() {
     return null;
   }
 
+  const totalUsage = apiResponse.keys.reduce((sum, key) => sum + key.totalUsage, 0);
+  const activeKeys = apiResponse.keys.filter(key => key.isActive).length;
+
   return (
     <div className="p-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -145,11 +148,11 @@ export default function AdminAPIKeysClient() {
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900">Active Keys</h3>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{apiResponse.total || 0}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{activeKeys}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900">Total Usage</h3>
-          <p className="mt-2 text-3xl font-bold text-gray-900">0</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{totalUsage}</p>
         </div>
       </div>
 
@@ -172,7 +175,7 @@ export default function AdminAPIKeysClient() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KEY</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">USER</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LAST USED</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL USAGE</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
               </tr>
@@ -184,7 +187,11 @@ export default function AdminAPIKeysClient() {
                     {maskKey(key.key)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {key.isActive ? 'Available' : 'Revoked'}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      key.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {key.isActive ? 'Active' : 'Inactive'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {key.user.email}
@@ -193,7 +200,7 @@ export default function AdminAPIKeysClient() {
                     {new Date(key.createdAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {key.totalUsage || 0}
+                    {key.totalUsage.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button
