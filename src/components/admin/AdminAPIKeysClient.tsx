@@ -25,22 +25,16 @@ export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
-  const fetcher = (url: string) => fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-    }
-  }).then(res => res.json());
-
   const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-  }>('/api/admin/api-keys', fetcher);
+  }>('/api/admin/api-keys');
 
   const { data: statsData } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
-  }>('/api/admin/api-keys/stats', fetcher);
+  }>('/api/admin/api-keys/stats');
 
   console.log('Raw keysData:', keysData);
 
