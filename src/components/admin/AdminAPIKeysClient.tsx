@@ -28,7 +28,7 @@ export default function AdminAPIKeysClient() {
   const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-  }>('/api/admin/api-keys');
+  }>('/api/admin/api-keys/list');
 
   const { data: statsData } = useSWR<{
     totalKeys: number;

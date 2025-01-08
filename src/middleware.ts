@@ -33,23 +33,34 @@ const dynamicPaths = [
   '/api/user',
   '/api/subscription',
   '/api/billing',
+  '/api/admin/api-keys',
 ];
 
 // List of admin-only paths
 const adminPaths = [
   '/admin',
   '/api/admin',
+  '/api/admin/api-keys',
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths and static files
+  // Allow public paths and static files (excluding API routes)
   if (
-    publicPaths.some(path => pathname.startsWith(path)) ||
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/)
+    (publicPaths.some(path => pathname.startsWith(path)) ||
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|json)$/)) &&
+    !pathname.startsWith('/api/')
   ) {
     return NextResponse.next();
+  }
+
+  // For API routes, ensure proper headers
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-cache', 'no-cache');
+    response.headers.set('Content-Type', 'application/json');
+    return response;
   }
 
   // Get the token and check authentication
