@@ -28,13 +28,13 @@ export default function AdminAPIKeysClient() {
   const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-  }>('/api/admin/api-keys');
+  }>('https://aianonymizer.com/api/admin/api-keys');
 
   const { data: statsData } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
-  }>('/api/admin/api-keys/stats');
+  }>('https://aianonymizer.com/api/admin/api-keys/stats');
 
   console.log('Raw keysData:', keysData);
 
@@ -64,7 +64,7 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
-      const res = await fetch('/api/admin/api-keys', {
+      const res = await fetch('https://aianonymizer.com/api/admin/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: newKey.trim() })
@@ -89,7 +89,7 @@ export default function AdminAPIKeysClient() {
     }
 
     try {
-      const res = await fetch(`/api/admin/api-keys?key=${encodeURIComponent(key)}`, {
+      const res = await fetch(`https://aianonymizer.com/api/admin/api-keys?key=${encodeURIComponent(key)}`, {
         method: 'DELETE'
       });
 
@@ -104,7 +104,7 @@ export default function AdminAPIKeysClient() {
 
   const refreshKey = async (keyId: string) => {
     try {
-      const res = await fetch('/api/admin/api-keys/refresh', {
+      const res = await fetch('https://aianonymizer.com/api/admin/api-keys/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyId })
