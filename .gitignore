@@ -44,3 +44,5 @@ next-env.d.ts
 
 # Prisma generated
 /prisma/generated/
+.env.production
+.env.production

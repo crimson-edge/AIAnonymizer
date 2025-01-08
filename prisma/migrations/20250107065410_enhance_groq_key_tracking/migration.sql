@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "GroqKey" ADD COLUMN     "errorCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "successCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalCost" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "totalTokens" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "GroqKeyUsage" ADD COLUMN     "cost" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "error" TEXT,
+ADD COLUMN     "responseTime" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "success" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "userId" TEXT;
+
+-- CreateIndex
+CREATE INDEX "GroqKeyUsage_userId_idx" ON "GroqKeyUsage"("userId");
+
+-- AddForeignKey
+ALTER TABLE "GroqKeyUsage" ADD CONSTRAINT "GroqKeyUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

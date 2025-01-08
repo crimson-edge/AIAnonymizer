@@ -12,6 +12,7 @@ interface APIKey {
   inUse: boolean;
   lastUsed?: string;
   totalUsage: number;
+  createdAt: string;
 }
 
 interface APIStats {
@@ -24,11 +25,13 @@ export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
-  const { data: keysData, error: keysError } = useSWR<{
+  const { data: keysData, error: keysError, mutate: mutateKeys } = useSWR<{
     keys: APIKey[];
     total: number;
     error: string | null;
-  }>('/api/admin/api-keys');
+  }>('/api/admin/api-keys', {
+    refreshInterval: 5000 // Refresh every 5 seconds
+  });
 
   const { data: statsData, error: statsError } = useSWR<{
     totalKeys: number;
@@ -73,6 +76,7 @@ export default function AdminAPIKeysClient() {
         throw new Error(error.message || 'Failed to add key');
       }
 
+      await mutateKeys();
       setNewKey('');
       setIsAddKeyModalOpen(false);
     } catch (err) {
@@ -94,6 +98,8 @@ export default function AdminAPIKeysClient() {
       if (!res.ok) {
         throw new Error('Failed to delete key');
       }
+      
+      await mutateKeys();
     } catch (err) {
       console.error('Error deleting key:', err);
       setError('Failed to delete key');
