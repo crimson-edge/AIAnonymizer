@@ -25,7 +25,6 @@ model User {
   subscription  Subscription?
   accounts      Account[]
   sessions      Session[]
-  apiKeys       ApiKey[]
   usageRecords  Usage[]
   monthlyUsage  Int       @default(0)
   totalUsage    Int       @default(0)
@@ -37,9 +36,10 @@ model User {
   lastActive    DateTime?
   recentActivity Json[]   @default([])
   stripeCustomerId String?
+  apiKeys       ApiKey[]
+  groqKeyUsages GroqKeyUsage[] 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  groqKeyUsages GroqKeyUsage[] // New relation
 }
 
 model Subscription {
@@ -72,15 +72,14 @@ model Usage {
 model ApiKey {
   id          String    @id @default(cuid())
   key         String    @unique
-  name        String?
   user        User      @relation(fields: [userId], references: [id])
   userId      String
   isActive    Boolean   @default(true)
-  revokedAt   DateTime?
   totalUsage  Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  @@index([createdAt])
   @@index([userId])
 }
 

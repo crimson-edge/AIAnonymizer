@@ -3,32 +3,40 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
+// Only admin users can access this API
+async function isAdmin(session: any) {
+  if (!session?.user?.email) return false;
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { isAdmin: true },
+  });
+  return user?.isAdmin === true;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
+    // Get all Groq API keys with their associated user info
     const keys = await prisma.apiKey.findMany({
-      where: { userId: user.id },
+      orderBy: {
+        createdAt: 'desc',
+      },
       select: {
         id: true,
         key: true,
         isActive: true,
-        createdAt: true,
         totalUsage: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -48,20 +56,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const body = await request.json();
-    const { key } = body;
+    const { key, userId } = body;
 
     if (!key || typeof key !== 'string') {
       return NextResponse.json(
@@ -70,7 +70,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingKey = await prisma.apiKey.findFirst({
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if key already exists
+    const existingKey = await prisma.apiKey.findUnique({
       where: { key },
     });
 
@@ -81,6 +101,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Add new Groq API key
     const newKey = await prisma.apiKey.create({
       data: {
         key,
@@ -88,7 +109,15 @@ export async function POST(request: Request) {
         totalUsage: 0,
         user: {
           connect: {
-            id: user.id,
+            id: userId,
+          },
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
           },
         },
       },
@@ -107,16 +136,8 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -129,8 +150,9 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const existingKey = await prisma.apiKey.findFirst({
-      where: { key, userId: user.id },
+    // Find and delete the key
+    const existingKey = await prisma.apiKey.findUnique({
+      where: { key },
     });
 
     if (!existingKey) {

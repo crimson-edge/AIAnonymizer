@@ -81,11 +81,12 @@ export async function POST(req: Request) {
         // Deactivate all existing API keys
         await prisma.apiKey.updateMany({
           where: {
-            userId: { in: userIds }
+            userId: {
+              in: userIds,
+            },
           },
           data: {
             isActive: false,
-            revokedAt: new Date()
           }
         });
         result = { count: userIds.length };

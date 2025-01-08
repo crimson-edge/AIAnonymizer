@@ -9,6 +9,8 @@ export default function AdminAPIKeysClient() {
   const [apiResponse, setApiResponse] = useState<{ keys: any[]; total: number }>({ keys: [], total: 0 });
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
   const [addKeyError, setAddKeyError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,9 +38,23 @@ export default function AdminAPIKeysClient() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (!res.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await res.json();
+      setUsers(data.users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
     if (session?.user) {
       fetchData();
+      fetchUsers();
     }
   }, [session]);
 
@@ -52,12 +68,20 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
+      if (!selectedUserId) {
+        setAddKeyError('Please select a user');
+        return;
+      }
+
       const res = await fetch('/api/admin/api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ key: newKey.trim() }),
+        body: JSON.stringify({ 
+          key: newKey.trim(),
+          userId: selectedUserId,
+        }),
       });
 
       const data = await res.json();
@@ -69,6 +93,7 @@ export default function AdminAPIKeysClient() {
       await fetchData();
       setIsAddKeyModalOpen(false);
       setNewKey('');
+      setSelectedUserId('');
     } catch (error) {
       console.error('Error adding key:', error);
       setAddKeyError(error instanceof Error ? error.message : 'Failed to add key');
@@ -146,6 +171,7 @@ export default function AdminAPIKeysClient() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KEY</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">USER</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LAST USED</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL USAGE</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
@@ -159,6 +185,9 @@ export default function AdminAPIKeysClient() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {key.isActive ? 'Available' : 'Revoked'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {key.user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(key.createdAt).toLocaleString()}
@@ -225,9 +254,22 @@ export default function AdminAPIKeysClient() {
                     value={newKey}
                     onChange={(e) => setNewKey(e.target.value)}
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4"
                     placeholder="Enter API key"
                   />
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select a user</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.email} ({user.name || 'No name'})
+                      </option>
+                    ))}
+                  </select>
                   {addKeyError && (
                     <p className="mt-2 text-sm text-red-600">{addKeyError}</p>
                   )}
