@@ -28,7 +28,13 @@ export default function AdminAPIKeysClient() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/admin/api-keys');
+        // Use the full URL path to prevent Next.js from treating it as a static asset
+        const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         if (!res.ok) throw new Error('API request failed');
         const data = await res.json();
         setApiResponse(data);
