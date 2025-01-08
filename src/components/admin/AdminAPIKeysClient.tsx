@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
 import useSWR from 'swr';
@@ -23,11 +23,19 @@ interface APIStats {
 export default function AdminAPIKeysClient() {
   const router = useRouter();
 
-  // Add back SWR for data fetching
-  const { data: apiResponse, error } = useSWR<any>('/api/admin/api-keys');
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
+
+  // More defensive SWR setup
+  const { data: apiResponse, error } = useSWR<any>('/api/admin/api-keys', {
+    onSuccess: () => setIsLoading(false),
+    onError: () => setIsLoading(false),
+    revalidateOnFocus: false,  // Prevent unnecessary revalidation
+    dedupingInterval: 5000     // Prevent rapid refetching
+  });
 
   // Transform API response to match our working data structure
-  const keysData = {
+  const keysData = useMemo(() => ({
     keys: apiResponse?.keys?.map((k: any) => ({
       id: k.id || k.key,
       key: k.key,
@@ -47,15 +55,23 @@ export default function AdminAPIKeysClient() {
       }
     ],
     total: apiResponse?.total || 1
-  };
+  }), [apiResponse]);  // Memoize to prevent unnecessary recalculations
 
-  const statsData = {
+  const statsData = useMemo(() => ({
     totalKeys: keysData.total,
     activeKeys: keysData.keys.length,
     inUseKeys: keysData.keys.filter(k => k.inUse).length
-  };
+  }), [keysData]);  // Memoize stats calculations
 
-  console.log('Data state:', { apiResponse, error, keysData });
+  // More detailed logging
+  useEffect(() => {
+    console.log('Data state:', { 
+      loading: isLoading,
+      apiResponse, 
+      error,
+      transformedData: keysData
+    });
+  }, [isLoading, apiResponse, error, keysData]);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
@@ -126,7 +142,11 @@ export default function AdminAPIKeysClient() {
             </button>
           </div>
 
-          {keysData.keys.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900">Loading...</h3>
+            </div>
+          ) : keysData.keys.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-gray-900">No API Keys Available</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding your first API key.</p>
