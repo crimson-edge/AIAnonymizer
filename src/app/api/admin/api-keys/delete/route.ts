@@ -6,8 +6,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { keyManager } from '@/lib/groq/manager/KeyManager';
 
-export async function DELETE(req: Request) {
-  console.log('DELETE /api/admin/api-keys/delete started');
+export async function POST(req: Request) {
+  console.log('POST /api/admin/api-keys/delete started');
 
   try {
     const session = await getServerSession(authOptions);
@@ -23,9 +23,9 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the key from URL parameters
-    const url = new URL(req.url);
-    const key = url.searchParams.get('key');
+    // Get the key from request body
+    const body = await req.json();
+    const { key } = body;
 
     if (!key) {
       return NextResponse.json({ error: 'Key is required' }, { status: 400 });
@@ -36,7 +36,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/admin/api-keys/delete:', error);
+    console.error('Error in POST /api/admin/api-keys/delete:', error);
     return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 });
   }
 }

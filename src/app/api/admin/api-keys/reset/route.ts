@@ -1,31 +1,36 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { initializeGroqKeyPool } from '@/utils/groq-key-pool';
+import { prisma } from '@/lib/prisma';
 
 export async function POST() {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session in refresh:', JSON.stringify(session, null, 2));
+    console.log('Session in reset:', JSON.stringify(session, null, 2));
 
     if (!session?.user) {
-      console.error('No session found in refresh');
+      console.error('No session found in reset');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     if (!session.user.isAdmin) {
-      console.error('User is not admin in refresh:', session.user);
+      console.error('User is not admin in reset:', session.user);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Refresh the API key pool
-    await initializeGroqKeyPool();
+    // Reset all API key usage
+    await prisma.apiKey.updateMany({
+      data: {
+        totalUsage: 0,
+        updatedAt: new Date()
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in POST /api/admin/api-keys/refresh:', error);
+    console.error('Error in POST /api/admin/api-keys/reset:', error);
     return NextResponse.json(
-      { error: 'Failed to refresh API key pool' },
+      { error: 'Failed to reset API key usage' },
       { status: 500 }
     );
   }

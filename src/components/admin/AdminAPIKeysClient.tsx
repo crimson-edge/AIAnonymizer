@@ -17,7 +17,7 @@ export default function AdminAPIKeysClient() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/admin/api-keys', {
+      const res = await fetch('/api/admin/api-keys/list', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
-      const res = await fetch('/api/admin/api-keys', {
+      const res = await fetch('/api/admin/api-keys/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,31 +105,46 @@ export default function AdminAPIKeysClient() {
   const deleteKey = async (key: string) => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/admin/api-keys', {
-        method: 'DELETE',
+      const res = await fetch('/api/admin/api-keys/delete', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ key }),
       });
 
-      const data = await res.json();
-      
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete key');
+        throw new Error('Failed to delete key');
       }
 
       await fetchData();
     } catch (error) {
       console.error('Error deleting key:', error);
-      alert('Failed to delete key');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const refreshData = async () => {
-    await fetchData();
+  const refreshKeys = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/admin/api-keys/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to refresh keys');
+      }
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error refreshing keys:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!session?.user) {
@@ -194,7 +209,7 @@ export default function AdminAPIKeysClient() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {key.user.email}
+                    {key.user?.email || 'Unassigned'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(key.createdAt).toLocaleString()}
@@ -204,7 +219,7 @@ export default function AdminAPIKeysClient() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button
-                      onClick={refreshData}
+                      onClick={refreshKeys}
                       disabled={isLoading}
                       className="text-indigo-600 hover:text-indigo-900 mr-4 disabled:opacity-50"
                     >

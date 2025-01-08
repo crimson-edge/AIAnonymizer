@@ -2,13 +2,8 @@ import { prisma } from '@/lib/prisma';
 
 // Get keys from environment variable
 function getGroqKeys(): string[] {
-  try {
-    const keysJson = process.env.GROQ_API_KEYS || '[]';
-    return JSON.parse(keysJson);
-  } catch (error) {
-    console.error('Error parsing GROQ_API_KEYS:', error);
-    return [];
-  }
+  const keysString = process.env.GROQ_API_KEYS || '';
+  return keysString.split(',').map(key => key.trim()).filter(Boolean);
 }
 
 // Initialize the key pool in the database
@@ -17,7 +12,7 @@ export async function initializeGroqKeyPool(): Promise<void> {
   const existingKeys = await prisma.apiKey.findMany();
 
   // Get environment variables for Groq API keys
-  const groqKeys = process.env.GROQ_API_KEYS?.split(',') || [];
+  const groqKeys = getGroqKeys();
 
   // Add any new keys
   for (const key of groqKeys) {
@@ -64,7 +59,6 @@ export async function listAllGroqKeys() {
   });
 }
 
-// Function to refresh the pool with current environment keys
 export async function refreshGroqKeyPool(): Promise<void> {
   await initializeGroqKeyPool();
 }
