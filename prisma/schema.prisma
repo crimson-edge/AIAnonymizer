@@ -82,6 +82,9 @@ model ApiKey {
   totalUsage  Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  status String @default("available")
+  totalTokensUsed Int @default(0)
+  lastUsed DateTime?
 
   @@index([userId])
   @@index([createdAt])
