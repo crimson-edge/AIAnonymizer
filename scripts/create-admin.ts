@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'admin@aionymizer.com';
+  const email = 'admin@aianonymizer.com';
   const password = 'AdminPass123!'; // More secure password
 
   try {
