@@ -26,12 +26,15 @@ export default function AdminAPIKeysClient() {
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
 
-  // More defensive SWR setup
+  // More defensive SWR setup with correct API path
   const { data: apiResponse, error } = useSWR<any>('/api/admin/api-keys', {
     onSuccess: () => setIsLoading(false),
-    onError: () => setIsLoading(false),
-    revalidateOnFocus: false,  // Prevent unnecessary revalidation
-    dedupingInterval: 5000     // Prevent rapid refetching
+    onError: () => {
+      console.error('API Error:', error);
+      setIsLoading(false);
+    },
+    revalidateOnFocus: false,
+    dedupingInterval: 5000
   });
 
   // Transform API response to match our working data structure
@@ -55,13 +58,13 @@ export default function AdminAPIKeysClient() {
       }
     ],
     total: apiResponse?.total || 1
-  }), [apiResponse]);  // Memoize to prevent unnecessary recalculations
+  }), [apiResponse]);
 
   const statsData = useMemo(() => ({
     totalKeys: keysData.total,
     activeKeys: keysData.keys.length,
     inUseKeys: keysData.keys.filter(k => k.inUse).length
-  }), [keysData]);  // Memoize stats calculations
+  }), [keysData]);
 
   // More detailed logging
   useEffect(() => {
@@ -142,11 +145,7 @@ export default function AdminAPIKeysClient() {
             </button>
           </div>
 
-          {isLoading ? (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-gray-900">Loading...</h3>
-            </div>
-          ) : keysData.keys.length === 0 ? (
+          {keysData.keys.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-gray-900">No API Keys Available</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding your first API key.</p>
