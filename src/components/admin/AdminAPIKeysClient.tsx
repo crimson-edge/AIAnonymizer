@@ -25,54 +25,18 @@ export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
-  const { data: keysData, error: keysError, mutate: mutateKeys } = useSWR<{
+  const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-    error: string | null;
-  }>('/api/admin/api-keys', async (url) => {
-    console.log('Fetching API keys from:', url);
-    const response = await fetch(url);
-    console.log('API Response status:', response.status);
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('API Error:', errorData);
-      throw new Error(`Failed to fetch API keys: ${response.status} ${errorData}`);
-    }
-    const data = await response.json();
-    console.log('API Response data:', data);
-    return {
-      keys: data.keys || [],
-      total: data.total || 0,
-      error: data.error || null
-    };
-  }, {
-    refreshInterval: 5000, // Refresh every 5 seconds
-    fallbackData: { keys: [], total: 0, error: null }
-  });
+  }>('/api/admin/api-keys');
 
-  const { data: statsData, error: statsError } = useSWR<{
+  const { data: statsData } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
-    error: string | null;
-  }>('/api/admin/api-keys/stats', async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error('Failed to fetch API keys stats');
-    }
-    const data = await response.json();
-    return {
-      totalKeys: data.totalKeys || 0,
-      activeKeys: data.activeKeys || 0,
-      inUseKeys: data.inUseKeys || 0,
-      error: data.error || null
-    };
-  }, {
-    fallbackData: { totalKeys: 0, activeKeys: 0, inUseKeys: 0, error: null }
-  });
+  }>('/api/admin/api-keys/stats');
 
   console.log('Raw keysData:', keysData);
-  console.log('Keys Error:', keysError);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -85,13 +49,8 @@ export default function AdminAPIKeysClient() {
       return;
     }
 
-    if (keysError || statsError) {
-      setError(keysError?.message || statsError?.message || 'An error occurred');
-    } else {
-      setError('');
-    }
     setLoading(false);
-  }, [session, sessionStatus, router, keysError, statsError]);
+  }, [session, sessionStatus, router]);
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
@@ -116,7 +75,6 @@ export default function AdminAPIKeysClient() {
         throw new Error(error.message || 'Failed to add key');
       }
 
-      await mutateKeys();
       setNewKey('');
       setIsAddKeyModalOpen(false);
     } catch (err) {
@@ -138,8 +96,6 @@ export default function AdminAPIKeysClient() {
       if (!res.ok) {
         throw new Error('Failed to delete key');
       }
-      
-      await mutateKeys();
     } catch (err) {
       console.error('Error deleting key:', err);
       setError('Failed to delete key');
