@@ -83,7 +83,8 @@ export class KeyManager {
             tokens: 0,
             cost: new Prisma.Decimal(0),
             success: false,
-            latency: 0
+            latency: 0,
+            errorType: error.message  // Changed to match schema's errorType field
           }
         }
       }
