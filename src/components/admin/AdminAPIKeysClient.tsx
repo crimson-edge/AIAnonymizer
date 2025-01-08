@@ -33,6 +33,8 @@ export default function AdminAPIKeysClient() {
     refreshInterval: 5000 // Refresh every 5 seconds
   });
 
+  console.log('Raw keysData:', keysData);
+
   const { data: statsData, error: statsError } = useSWR<{
     totalKeys: number;
     activeKeys: number;
@@ -163,6 +165,8 @@ export default function AdminAPIKeysClient() {
   }
 
   const apiKeys = keysData?.keys || [];
+  console.log('Processed apiKeys:', apiKeys);
+  console.log('apiKeys length:', apiKeys.length);
 
   return (
     <div className="space-y-6">

@@ -50,6 +50,7 @@ export async function GET(req: Request) {
     try {
       console.time('getKeyUsage');
       allKeys = await keyManager.getKeyMetrics();
+      console.log('API: Retrieved keys:', allKeys);
 
       console.timeEnd('getKeyUsage');
       console.log('Fetched keys:', allKeys);
@@ -72,6 +73,7 @@ export async function GET(req: Request) {
         )
       : allKeys;
 
+    console.log('API: Filtered and sorted keys:', filteredKeys);
     console.log('Filtered keys:', filteredKeys);
 
     // Sort keys
