@@ -39,6 +39,7 @@ model User {
   stripeCustomerId String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  groqKeyUsages GroqKeyUsage[] // New relation
 }
 
 model Subscription {
@@ -182,27 +183,79 @@ model Payment {
 }
 
 model GroqKey {
-  id             String    @id @default(cuid())
-  key            String    @unique
-  isInUse        Boolean   @default(false)
+  id             String         @id @default(cuid())
+  key            String         @unique
+  isInUse        Boolean        @default(false)
   currentSession String?
   lastUsed       DateTime?
-  totalUsage     Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  usageHistory   GroqKeyUsage[]
+  totalRequests  Int           @default(0)  
+  totalTokens    BigInt        @default(0)  
+  totalCost      Decimal       @db.Decimal(10,4) @default(0)  
+  errorCount     Int           @default(0)
+  totalUsage     Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  usageHistory   RequestLog[]  
+  keyUsages      GroqKeyUsage[]
+}
+
+model RequestLog {
+  id          String    @id @default(cuid())
+  keyId       String
+  timestamp   DateTime  @default(now())
+  latency     Int
+  tokens      Int
+  cost        Decimal   @db.Decimal(10,4)
+  success     Boolean
+  errorType   String?
+  userId      String?
+  requestType String
+  key         GroqKey   @relation(fields: [keyId], references: [key], onDelete: Cascade)
+
+  @@index([keyId])
+  @@index([timestamp])
 }
 
 model GroqKeyUsage {
-  id          String   @id @default(cuid())
-  groqKey     GroqKey  @relation(fields: [groqKeyId], references: [id])
-  groqKeyId   String
-  requestType String
-  tokensUsed  Int
-  createdAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  groqKey      GroqKey   @relation(fields: [groqKeyId], references: [id])
+  groqKeyId    String
+  requestType  String
+  tokensUsed   Int
+  userId       String?  
+  user         User?     @relation(fields: [userId], references: [id]) 
+  cost         Float     @default(0) 
+  responseTime Int       @default(0) 
+  success      Boolean   @default(true) 
+  error        String?  
+  createdAt    DateTime  @default(now())
 
   @@index([groqKeyId])
   @@index([createdAt])
+  @@index([userId])
+}
+model RateLimit {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   // "minute", "hour", "day", "month"
+  count         Int      @default(0)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model TokenBalance {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  baseTokens    Int      // Monthly allocation based on tier
+  extraTokens   Int      // Additional purchased or admin-granted tokens
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
 }
 
 enum UserStatus {
