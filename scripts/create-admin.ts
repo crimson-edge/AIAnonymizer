@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'admin@example.com';
+  const email = 'admin@aionymizer.com';
   const password = 'AdminPass123!'; // More secure password
 
   try {
@@ -18,13 +18,13 @@ async function main() {
         subscription: {
           upsert: {
             create: {
-              tier: 'ENTERPRISE',
+              tier: 'PREMIUM',
               monthlyLimit: 1000000,
               tokenLimit: 10000000,
               status: 'active'
             },
             update: {
-              tier: 'ENTERPRISE',
+              tier: 'PREMIUM',
               monthlyLimit: 1000000,
               tokenLimit: 10000000,
               status: 'active'
@@ -40,7 +40,7 @@ async function main() {
         lastName: 'User',
         subscription: {
           create: {
-            tier: 'ENTERPRISE',
+            tier: 'PREMIUM',
             monthlyLimit: 1000000,
             tokenLimit: 10000000,
             status: 'active'
@@ -60,6 +60,7 @@ async function main() {
     console.log('Password:', password);
   } catch (error) {
     console.error('Error creating admin user:', error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
