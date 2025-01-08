@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import Link from 'next/link';
 
 export default async function AdminLayout({
   children,
@@ -34,18 +35,18 @@ export default async function AdminLayout({
                 <h1 className="text-xl font-bold">Admin Dashboard</h1>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <a
+                <Link
                   href="/admin/users"
                   className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ease-in-out hover:border-gray-300 hover:text-gray-700"
                 >
                   Users
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/admin/api-keys"
                   className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ease-in-out hover:border-gray-300 hover:text-gray-700"
                 >
                   API Keys
-                </a>
+                </Link>
               </div>
             </div>
           </div>
