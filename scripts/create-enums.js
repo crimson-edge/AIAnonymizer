@@ -28,7 +28,7 @@ async function main() {
     // Create SubscriptionTier enum
     await prisma.$executeRaw`
       DO $$ BEGIN
-        CREATE TYPE "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'PRO', 'ENTERPRISE');
+        CREATE TYPE "SubscriptionTier" AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE');
       EXCEPTION
         WHEN duplicate_object THEN null;
       END $$;

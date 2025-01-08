@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    if (!user.subscription || user.subscription.tier !== 'PRO') {
+    if (!user.subscription || user.subscription.tier !== 'PREMIUM') {
       return new NextResponse('Only Pro subscribers can purchase overage tokens', { status: 403 });
     }
 

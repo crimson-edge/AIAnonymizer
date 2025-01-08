@@ -134,7 +134,7 @@ export async function POST(req: Request) {
 
       case 'reset':
         // Reset to default limit based on subscription tier
-        const defaultLimit = user.subscription.tier === 'PRO' 
+        const defaultLimit = user.subscription.tier === 'PREMIUM' 
           ? 100000 
           : user.subscription.tier === 'BASIC' 
             ? 10000 

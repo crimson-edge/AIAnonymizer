@@ -40,7 +40,7 @@ async function main() {
       isAdmin: true,
       subscription: {
         create: {
-          tier: 'PRO',
+          tier: 'PREMIUM',
           status: 'active',
           monthlyLimit: 1000000,
           tokenLimit: 10000000

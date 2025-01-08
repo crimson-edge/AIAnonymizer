@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     // Only allow token purchase for PRO users
-    if (user.subscription?.tier !== 'PRO') {
+    if (user.subscription?.tier !== 'PREMIUM') {
       return new NextResponse('Only pro users can purchase additional tokens', { status: 403 });
     }
 
