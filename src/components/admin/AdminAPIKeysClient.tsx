@@ -29,18 +29,41 @@ export default function AdminAPIKeysClient() {
     keys: APIKey[];
     total: number;
     error: string | null;
-  }>('/api/admin/api-keys', {
+  }>('/api/admin/api-keys', async (url) => {
+    console.log('Fetching API keys from:', url);
+    const response = await fetch(url);
+    console.log('API Response status:', response.status);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('API Error:', errorData);
+      throw new Error(`Failed to fetch API keys: ${response.status} ${errorData}`);
+    }
+    const data = await response.json();
+    console.log('API Response data:', data);
+    return data;
+  }, {
     refreshInterval: 5000 // Refresh every 5 seconds
   });
 
   console.log('Raw keysData:', keysData);
+  console.log('Keys Error:', keysError);
+
+  if (keysError) {
+    console.error('Error fetching keys:', keysError);
+  }
 
   const { data: statsData, error: statsError } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
     error: string | null;
-  }>('/api/admin/api-keys/stats');
+  }>('/api/admin/api-keys/stats', async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch API keys stats');
+    }
+    return response.json();
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
