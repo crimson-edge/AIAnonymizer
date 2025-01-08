@@ -25,16 +25,24 @@ export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
+  const fetcher = (url: string) => fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    next: { revalidate: 0 },
+  }).then(res => res.json());
+
   const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-  }>('/api/admin/api-keys/list');
+  }>('/api/admin/api-keys/list', fetcher);
 
   const { data: statsData } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
-  }>('/api/admin/api-keys/stats');
+  }>('/api/admin/api-keys/stats', fetcher);
 
   console.log('Raw keysData:', keysData);
 
@@ -64,7 +72,7 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
-      const res = await fetch('/api/admin/api-keys', {
+      const res = await fetch('/api/admin/api-keys/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: newKey.trim() })
@@ -89,7 +97,7 @@ export default function AdminAPIKeysClient() {
     }
 
     try {
-      const res = await fetch(`/api/admin/api-keys?key=${encodeURIComponent(key)}`, {
+      const res = await fetch(`/api/admin/api-keys/delete?key=${encodeURIComponent(key)}`, {
         method: 'DELETE'
       });
 
