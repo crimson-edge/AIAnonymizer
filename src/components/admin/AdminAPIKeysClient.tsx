@@ -1,21 +1,48 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+
+interface Pagination {
+  currentPage: number;
+  perPage: number;
+  total: number;
+  pages: number;
+}
+
+interface APIKey {
+  id: string;
+  key: string;
+  status: string;
+  totalTokensUsed: number;
+  lastUsed: string | null;
+  createdAt: string;
+}
 
 export default function AdminAPIKeysClient() {
   const { data: session } = useSession();
-  const [apiResponse, setApiResponse] = useState<{ keys: any[]; total: number }>({ keys: [], total: 0 });
-  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [keys, setKeys] = useState<APIKey[]>([]);
   const [newKey, setNewKey] = useState('');
-  const [addKeyError, setAddKeyError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    pages: 1
+  });
 
-  const fetchData = async () => {
+  const fetchKeys = async (page = pagination.currentPage) => {
+    setLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      const res = await fetch('/api/admin/api-keys', {
+      const searchParams = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.perPage.toString()
+      });
+
+      const res = await fetch(`/api/admin/api-keys?${searchParams}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -28,27 +55,26 @@ export default function AdminAPIKeysClient() {
       }
 
       const data = await res.json();
-      setApiResponse(data);
+      setKeys(data.keys);
+      setPagination(prev => ({
+        ...prev,
+        total: data.total,
+        pages: Math.ceil(data.total / prev.perPage)
+      }));
     } catch (error) {
-      console.error('Error fetching data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch keys');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchData();
-    }
-  }, [session]);
-
   const addKey = async () => {
     try {
-      setIsLoading(true);
-      setAddKeyError('');
+      setLoading(true);
+      setError(null);
       
       if (!newKey.trim()) {
-        setAddKeyError('API key is required');
+        setError('API key is required');
         return;
       }
 
@@ -66,16 +92,21 @@ export default function AdminAPIKeysClient() {
         throw new Error(data.error || 'Failed to add key');
       }
 
-      await fetchData();
+      await fetchKeys();
       setIsAddKeyModalOpen(false);
       setNewKey('');
     } catch (error) {
-      console.error('Error adding key:', error);
-      setAddKeyError(error instanceof Error ? error.message : 'Failed to add key');
+      setError(error instanceof Error ? error.message : 'Failed to add key');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchKeys();
+    }
+  }, [session, pagination.currentPage]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -88,6 +119,12 @@ export default function AdminAPIKeysClient() {
           Add New Key
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -108,7 +145,7 @@ export default function AdminAPIKeysClient() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {apiResponse.keys.map((key: any) => (
+            {keys.map((key) => (
               <tr key={key.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {key.key}
@@ -117,7 +154,7 @@ export default function AdminAPIKeysClient() {
                   {key.status}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {key.totalTokensUsed}
+                  {key.totalTokensUsed.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
@@ -128,84 +165,81 @@ export default function AdminAPIKeysClient() {
         </table>
       </div>
 
-      <Transition appear show={isAddKeyModalOpen} as={Fragment}>
-        <Dialog
-          as="div"
-          className="fixed inset-0 z-10 overflow-y-auto"
-          onClose={() => setIsAddKeyModalOpen(false)}
-        >
-          <div className="min-h-screen px-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="fixed inset-0 bg-black opacity-30" />
-            </Transition.Child>
-
-            <span
-              className="inline-block h-screen align-middle"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
-                <Dialog.Title
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  Add New API Key
-                </Dialog.Title>
-
-                <div className="mt-4">
-                  <input
-                    type="text"
-                    value={newKey}
-                    onChange={(e) => setNewKey(e.target.value)}
-                    placeholder="Enter API Key"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {addKeyError && (
-                    <p className="mt-2 text-sm text-red-600">{addKeyError}</p>
-                  )}
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddKeyModalOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={addKey}
-                    disabled={isLoading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:opacity-50"
-                  >
-                    {isLoading ? 'Adding...' : 'Add Key'}
-                  </button>
-                </div>
-              </div>
-            </Transition.Child>
+      {/* Pagination */}
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex-1 flex justify-between sm:hidden">
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+            disabled={pagination.currentPage === 1}
+            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.pages, prev.currentPage + 1) }))}
+            disabled={pagination.currentPage === pagination.pages}
+            className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing page <span className="font-medium">{pagination.currentPage}</span> of{' '}
+              <span className="font-medium">{pagination.pages}</span>
+            </p>
           </div>
-        </Dialog>
-      </Transition>
+          <div>
+            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              {[...Array(pagination.pages)].map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setPagination(prev => ({ ...prev, currentPage: idx + 1 }))}
+                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                    pagination.currentPage === idx + 1
+                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Key Modal */}
+      {isAddKeyModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Add New API Key</h2>
+            <input
+              type="text"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              placeholder="Enter API key"
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsAddKeyModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addKey}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Key'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
