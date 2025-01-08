@@ -286,6 +286,5 @@ enum SubscriptionTier {
   FREE
   BASIC
   PREMIUM
-  PRO
   ENTERPRISE
 }
