@@ -40,17 +40,15 @@ export default function AdminAPIKeysClient() {
     }
     const data = await response.json();
     console.log('API Response data:', data);
-    return data;
+    return {
+      keys: data.keys || [],
+      total: data.total || 0,
+      error: data.error || null
+    };
   }, {
-    refreshInterval: 5000 // Refresh every 5 seconds
+    refreshInterval: 5000, // Refresh every 5 seconds
+    fallbackData: { keys: [], total: 0, error: null }
   });
-
-  console.log('Raw keysData:', keysData);
-  console.log('Keys Error:', keysError);
-
-  if (keysError) {
-    console.error('Error fetching keys:', keysError);
-  }
 
   const { data: statsData, error: statsError } = useSWR<{
     totalKeys: number;
@@ -62,14 +60,22 @@ export default function AdminAPIKeysClient() {
     if (!response.ok) {
       throw new Error('Failed to fetch API keys stats');
     }
-    return response.json();
+    const data = await response.json();
+    return {
+      totalKeys: data.totalKeys || 0,
+      activeKeys: data.activeKeys || 0,
+      inUseKeys: data.inUseKeys || 0,
+      error: data.error || null
+    };
+  }, {
+    fallbackData: { totalKeys: 0, activeKeys: 0, inUseKeys: 0, error: null }
   });
+
+  console.log('Raw keysData:', keysData);
+  console.log('Keys Error:', keysError);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
-  const [newKey, setNewKey] = useState('');
-  const [addKeyError, setAddKeyError] = useState('');
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -79,8 +85,17 @@ export default function AdminAPIKeysClient() {
       return;
     }
 
+    if (keysError || statsError) {
+      setError(keysError?.message || statsError?.message || 'An error occurred');
+    } else {
+      setError('');
+    }
     setLoading(false);
-  }, [session, sessionStatus, router]);
+  }, [session, sessionStatus, router, keysError, statsError]);
+
+  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [addKeyError, setAddKeyError] = useState('');
 
   const addKey = async () => {
     try {
@@ -163,33 +178,13 @@ export default function AdminAPIKeysClient() {
 
   if (loading) {
     return (
-      <div className="rounded-lg bg-white p-8 shadow-sm">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="space-y-3">
-            <div className="h-5 bg-gray-200 rounded"></div>
-            <div className="h-5 bg-gray-200 rounded"></div>
-            <div className="h-5 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg bg-white p-8 shadow-sm">
-        <div className="text-red-600">
-          <h3 className="text-lg font-semibold mb-2">Error Loading API Keys</h3>
-          <p>{error}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   const apiKeys = keysData?.keys || [];
-  console.log('Processed apiKeys:', apiKeys);
-  console.log('apiKeys length:', apiKeys.length);
 
   return (
     <div className="space-y-6">
@@ -211,11 +206,11 @@ export default function AdminAPIKeysClient() {
         </div>
       </div>
 
-      {/* API Keys Table */}
+      {/* API Keys Section */}
       <div className="bg-white shadow-sm rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">API Keys</h2>
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-medium text-gray-900">API Keys</h2>
             <button
               onClick={() => setIsAddKeyModalOpen(true)}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
@@ -223,7 +218,17 @@ export default function AdminAPIKeysClient() {
               Add New Key
             </button>
           </div>
-          {apiKeys.length === 0 ? (
+
+          {error ? (
+            <div className="rounded-md bg-red-50 p-4 mb-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error</h3>
+                  <div className="mt-2 text-sm text-red-700">{error}</div>
+                </div>
+              </div>
+            </div>
+          ) : apiKeys.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-gray-900">No API Keys Available</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding your first API key.</p>
@@ -269,7 +274,7 @@ export default function AdminAPIKeysClient() {
                         {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {key.totalUsage.toLocaleString()}
+                        {key.totalUsage?.toLocaleString() || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button
