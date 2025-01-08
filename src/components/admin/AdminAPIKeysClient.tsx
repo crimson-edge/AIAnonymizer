@@ -28,13 +28,27 @@ export default function AdminAPIKeysClient() {
   const { data: keysData } = useSWR<{
     keys: APIKey[];
     total: number;
-  }>('/api/admin/api-keys');
+  }>('/api/admin/api-keys', async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error('Failed to fetch keys:', await res.text());
+      throw new Error('Failed to fetch keys');
+    }
+    return res.json();
+  });
 
   const { data: statsData } = useSWR<{
     totalKeys: number;
     activeKeys: number;
     inUseKeys: number;
-  }>('/api/admin/api-keys/stats');
+  }>('/api/admin/api-keys/stats', async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error('Failed to fetch stats:', await res.text());
+      throw new Error('Failed to fetch stats');
+    }
+    return res.json();
+  });
 
   console.log('Raw keysData:', keysData);
 
