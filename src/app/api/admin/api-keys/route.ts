@@ -222,14 +222,14 @@ export async function DELETE(req: Request) {
     }
 
     const body = await req.json();
-    const { id } = body;
+    const { key } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Key ID is required' }, { status: 400 });
+    if (!key) {
+      return NextResponse.json({ error: 'Key is required' }, { status: 400 });
     }
 
     await prisma.apiKey.delete({
-      where: { id }
+      where: { key }
     });
 
     return NextResponse.json({ success: true });

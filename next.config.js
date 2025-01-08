@@ -27,6 +27,11 @@ const nextConfig = {
       ? 'https://aianonymizer.com'
       : 'http://localhost:3010',
   },
+  // Disable static optimization for admin routes
+  unstable_runtimeJS: true,
+  unstable_JsPreload: false,
+  // Prevent static asset generation
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   async headers() {
     return [
       {

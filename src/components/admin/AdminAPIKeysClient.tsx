@@ -28,29 +28,26 @@ export default function AdminAPIKeysClient() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Use the full URL path to prevent Next.js from treating it as a static asset
         const res = await fetch(`/api/admin/api-keys`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
+          cache: 'no-store'
         });
-        if (!res.ok) throw new Error('API request failed');
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch');
+        }
+
         const data = await res.json();
         setApiResponse(data);
       } catch (error) {
-        console.error('Error fetching API keys:', error);
-        // Set empty data on error to prevent undefined
-        setApiResponse({ keys: [], total: 0 });
+        console.error('Error fetching data:', error);
       }
     };
 
-    if (session?.user) {
-      fetchData();
-    } else {
-      // Set empty data when no session
-      setApiResponse({ keys: [], total: 0 });
-    }
+    fetchData();
   }, [session]);
 
   // Default data structure
@@ -104,6 +101,7 @@ export default function AdminAPIKeysClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ key: newKey }),
+        cache: 'no-store'
       });
 
       if (!res.ok) {
@@ -112,7 +110,9 @@ export default function AdminAPIKeysClient() {
       }
 
       // Refresh the data
-      const updatedRes = await fetch(`/api/admin/api-keys`);
+      const updatedRes = await fetch(`/api/admin/api-keys`, {
+        cache: 'no-store'
+      });
       const updatedData = await updatedRes.json();
       setApiResponse(updatedData);
 
@@ -125,14 +125,15 @@ export default function AdminAPIKeysClient() {
     }
   };
 
-  const deleteKey = async (id: string) => {
+  const deleteKey = async (key: string) => {
     try {
       const res = await fetch(`/api/admin/api-keys`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ key }),
+        cache: 'no-store'
       });
 
       if (!res.ok) {
@@ -141,7 +142,9 @@ export default function AdminAPIKeysClient() {
       }
 
       // Refresh the data
-      const updatedRes = await fetch(`/api/admin/api-keys`);
+      const updatedRes = await fetch(`/api/admin/api-keys`, {
+        cache: 'no-store'
+      });
       const updatedData = await updatedRes.json();
       setApiResponse(updatedData);
     } catch (error) {
@@ -152,7 +155,9 @@ export default function AdminAPIKeysClient() {
 
   const refreshKey = async () => {
     try {
-      const res = await fetch(`/api/admin/api-keys`);
+      const res = await fetch(`/api/admin/api-keys`, {
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error('Failed to refresh');
       const data = await res.json();
       setApiResponse(data);
@@ -259,7 +264,7 @@ export default function AdminAPIKeysClient() {
                         Refresh
                       </button>
                       <button
-                        onClick={() => deleteKey(key.id)}
+                        onClick={() => deleteKey(key.key)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
