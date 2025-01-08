@@ -24,8 +24,17 @@ interface APIStats {
 export default function AdminAPIKeysClient() {
   const router = useRouter();
 
-  // Add back SWR for data fetching
-  const { data: apiResponse } = useSWR<any>('/api/admin/api-keys');
+  // Configure SWR with correct fetcher
+  const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('API request failed');
+    return res.json();
+  });
+
+  // Add back SWR for data fetching with correct path and fetcher
+  const { data: apiResponse } = useSWR<any>('/api/admin/api-keys', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000
+  });
 
   // Transform API response to match our working data structure
   const keysData = useMemo(() => {

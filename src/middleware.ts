@@ -5,6 +5,8 @@ import { getToken } from 'next-auth/jwt';
 // List of public paths that don't require authentication
 const publicPaths = [
   '/api/auth',
+  '/api/admin/api-keys',
+  '/api/webhooks',
   '/auth/signin',
   '/auth/signup',
   '/auth/verify',
@@ -22,7 +24,6 @@ const publicPaths = [
   '/',
   '/_next',
   '/favicon.ico',
-  '/api/webhooks',
 ];
 
 // List of paths that should always be dynamic
