@@ -14,13 +14,28 @@ export async function GET(req: Request) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return new NextResponse(null, { headers });
+  }
+
   try {
     const session = await getServerSession(authOptions);
     console.log('Session:', session);
 
     if (!session?.user?.email) {
       console.error('No session or email found');
-      return NextResponse.json({ error: 'Not authenticated', keys: [], total: 0 }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Not authenticated', keys: [], total: 0 },
+        { status: 401, headers }
+      );
     }
 
     console.time('findUser');
@@ -32,7 +47,10 @@ export async function GET(req: Request) {
 
     if (!user?.isAdmin) {
       console.error('User is not admin:', user);
-      return NextResponse.json({ error: 'Unauthorized', keys: [], total: 0 }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized', keys: [], total: 0 },
+        { status: 401, headers }
+      );
     }
 
     // Get URL parameters for pagination
@@ -56,7 +74,10 @@ export async function GET(req: Request) {
       console.log('Fetched keys:', allKeys);
     } catch (error) {
       console.error('Error getting key usage:', error);
-      return NextResponse.json({ error: 'Failed to fetch API keys', keys: [], total: 0 }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch API keys', keys: [], total: 0 },
+        { status: 500, headers }
+      );
     }
 
     // Ensure allKeys is an array
@@ -119,7 +140,7 @@ export async function GET(req: Request) {
       keys: paginatedKeys || [],
       total: total || 0,
       error: null
-    });
+    }, { headers });
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('Request timed out after', TIMEOUT, 'ms');
@@ -127,14 +148,14 @@ export async function GET(req: Request) {
         keys: [],
         total: 0,
         error: 'Request timed out'
-      }, { status: 504 });
+      }, { status: 504, headers });
     }
     console.error('Error in GET /api/admin/api-keys:', error);
     return NextResponse.json({
       keys: [],
       total: 0,
       error: 'Failed to fetch API keys'
-    }, { status: 500 });
+    }, { status: 500, headers });
   } finally {
     clearTimeout(timeoutId);
   }
