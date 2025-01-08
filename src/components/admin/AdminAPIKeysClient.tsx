@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 
 interface APIKey {
   id: string;
@@ -22,42 +23,22 @@ interface APIStats {
 
 export default function AdminAPIKeysClient() {
   const router = useRouter();
-
-  // Add loading state
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session } = useSession();
 
   // More defensive SWR setup with correct API path
-  const { data: apiResponse, error } = useSWR<any>('/api/admin/api-keys', {
-    onSuccess: () => setIsLoading(false),
-    onError: () => {
-      console.error('API Error:', error);
-      setIsLoading(false);
-    },
-    revalidateOnFocus: false,
-    dedupingInterval: 5000
-  });
+  const { data: apiResponse, error, isLoading } = useSWR<any>(
+    session?.user ? '/api/admin/api-keys' : null, // Only fetch if we have a session
+    {
+      onError: (err) => {
+        console.error('API Error:', err);
+      }
+    }
+  );
 
   // Transform API response to match our working data structure
   const keysData = useMemo(() => ({
-    keys: apiResponse?.keys?.map((k: any) => ({
-      id: k.id || k.key,
-      key: k.key,
-      inUse: k.isInUse || false,
-      lastUsed: k.lastUsed || new Date().toISOString(),
-      totalUsage: k.totalUsage || 0,
-      createdAt: k.createdAt || new Date().toISOString()
-    })) || [
-      // Fallback to static data if API fails
-      {
-        id: '1',
-        key: 'sk-mock-1',
-        inUse: false,
-        lastUsed: new Date().toISOString(),
-        totalUsage: 100,
-        createdAt: new Date().toISOString()
-      }
-    ],
-    total: apiResponse?.total || 1
+    keys: apiResponse?.keys || [],
+    total: apiResponse?.total || 0
   }), [apiResponse]);
 
   const statsData = useMemo(() => ({
@@ -69,12 +50,22 @@ export default function AdminAPIKeysClient() {
   // More detailed logging
   useEffect(() => {
     console.log('Data state:', { 
+      session,
       loading: isLoading,
       apiResponse, 
       error,
       transformedData: keysData
     });
-  }, [isLoading, apiResponse, error, keysData]);
+  }, [session, isLoading, apiResponse, error, keysData]);
+
+  if (!session?.user) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-red-800">Not authenticated</h3>
+        <p className="mt-1 text-sm text-gray-500">Please sign in to view API keys.</p>
+      </div>
+    );
+  }
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
@@ -145,7 +136,17 @@ export default function AdminAPIKeysClient() {
             </button>
           </div>
 
-          {keysData.keys.length === 0 ? (
+          {error ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-red-800">Error loading API keys</h3>
+              <p className="mt-1 text-sm text-red-600">{error.message || 'Please try again later.'}</p>
+            </div>
+          ) : isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-500">Loading API keys...</p>
+            </div>
+          ) : keysData.keys.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-gray-900">No API Keys Available</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding your first API key.</p>
