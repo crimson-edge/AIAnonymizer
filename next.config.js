@@ -27,6 +27,19 @@ const nextConfig = {
       ? 'https://aianonymizer.com'
       : 'http://localhost:3010',
   },
+  async headers() {
+    return [
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'Link',
+            value: ''
+          }
+        ]
+      }
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [...config.externals, '@prisma/client'];

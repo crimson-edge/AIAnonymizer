@@ -98,23 +98,69 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
-      // Add API call to create new key
-    } catch (err) {
-      console.error('Error adding key:', err);
-      setAddKeyError(err instanceof Error ? err.message : 'Failed to add key');
+      const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key: newKey }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to add key');
+      }
+
+      // Refresh the data
+      const updatedRes = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      const updatedData = await updatedRes.json();
+      setApiResponse(updatedData);
+
+      // Close modal and reset form
+      setIsAddKeyModalOpen(false);
+      setNewKey('');
+    } catch (error) {
+      console.error('Error adding key:', error);
+      setAddKeyError(error instanceof Error ? error.message : 'Failed to add key');
     }
   };
 
-  const deleteKey = async (key: string) => {
-    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-      return;
-    }
+  const deleteKey = async (id: string) => {
+    try {
+      const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
 
-    // Add API call to delete key
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to delete key');
+      }
+
+      // Refresh the data
+      const updatedRes = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      const updatedData = await updatedRes.json();
+      setApiResponse(updatedData);
+    } catch (error) {
+      console.error('Error deleting key:', error);
+      alert('Failed to delete key');
+    }
   };
 
-  const refreshKey = async (keyId: string) => {
-    // Add API call to refresh key
+  const refreshKey = async (id: string) => {
+    try {
+      // Refresh just refetches the current data
+      const res = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      if (!res.ok) throw new Error('Failed to refresh');
+      const data = await res.json();
+      setApiResponse(data);
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      alert('Failed to refresh');
+    }
   };
 
   const maskKey = (key: string) => {
