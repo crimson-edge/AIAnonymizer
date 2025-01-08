@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
+import { keyManager } from '@/lib/groq/manager/KeyManager';
 
 export async function POST() {
   try {
@@ -18,7 +18,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await GroqKeyManager.refreshKeyPool();
+    await keyManager.refreshKeyPool();
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error in POST /api/admin/api-keys/refresh:', error);

@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { GroqKeyManager } from '@/lib/groq/key-manager';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import type { KeyUsageInfo } from '@/lib/groq/key-manager';
+import { keyManager } from '@/lib/groq/manager/KeyManager';
+import type { KeyMetrics } from '@/lib/groq/types/GroqTypes';
 
 const TIMEOUT = 10000; // 10 seconds
 
@@ -46,10 +46,11 @@ export async function GET(req: Request) {
     console.log('Query parameters:', { page, limit, search, sortBy, sortOrder });
 
     // Get all keys with usage data
-    let allKeys: KeyUsageInfo[] = [];
+    let allKeys: KeyMetrics[] = [];
     try {
       console.time('getKeyUsage');
-      allKeys = await GroqKeyManager.getKeyUsage();
+      allKeys = await keyManager.getKeyMetrics();
+
       console.timeEnd('getKeyUsage');
       console.log('Fetched keys:', allKeys);
     } catch (error) {
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
     }
 
     console.log('Adding key to pool...');
-    await GroqKeyManager.addKeyToPool(key);
+    await keyManager.addKey(key);
     console.log('Key added successfully');
 
     return NextResponse.json({ success: true, error: null });
@@ -215,7 +216,7 @@ export async function DELETE(req: Request) {
     }
 
     console.log('Removing key from pool...');
-    await GroqKeyManager.removeKeyFromPool(key);
+    await keyManager.removeKey(key);
     console.log('Key removed successfully');
 
     return NextResponse.json({ success: true, error: null });
