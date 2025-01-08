@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, Transition } from '@headlessui/react';
+import useSWR from 'swr';
 
 interface APIKey {
   id: string;
@@ -22,9 +23,20 @@ interface APIStats {
 export default function AdminAPIKeysClient() {
   const router = useRouter();
 
-  // Use static data for now until we fix the API connection
+  // Add back SWR for data fetching
+  const { data: apiResponse, error } = useSWR<any>('/api/admin/api-keys');
+
+  // Transform API response to match our working data structure
   const keysData = {
-    keys: [
+    keys: apiResponse?.keys?.map((k: any) => ({
+      id: k.id || k.key,
+      key: k.key,
+      inUse: k.isInUse || false,
+      lastUsed: k.lastUsed || new Date().toISOString(),
+      totalUsage: k.totalUsage || 0,
+      createdAt: k.createdAt || new Date().toISOString()
+    })) || [
+      // Fallback to static data if API fails
       {
         id: '1',
         key: 'sk-mock-1',
@@ -34,17 +46,16 @@ export default function AdminAPIKeysClient() {
         createdAt: new Date().toISOString()
       }
     ],
-    total: 1
+    total: apiResponse?.total || 1
   };
 
   const statsData = {
-    totalKeys: 1,
-    activeKeys: 1,
-    inUseKeys: 0
+    totalKeys: keysData.total,
+    activeKeys: keysData.keys.length,
+    inUseKeys: keysData.keys.filter(k => k.inUse).length
   };
 
-  // We'll add back API integration once the page renders properly
-  console.log('Using static data for now');
+  console.log('Data state:', { apiResponse, error, keysData });
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
