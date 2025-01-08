@@ -25,26 +25,53 @@ export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
-  const fetcher = (url: string) => fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    next: { revalidate: 0 },
-  }).then(res => res.json());
+  const fetcher = async (url: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+    const fullUrl = `${baseUrl}${url}`;
+    console.log('Fetching from:', fullUrl);
+    const res = await fetch(fullUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    return res.json();
+  };
 
-  const { data: keysData } = useSWR<{
-    keys: APIKey[];
-    total: number;
-  }>('/api/admin/api-keys/list', fetcher);
+  // Use static mock data
+  const keysData = {
+    keys: [
+      {
+        id: '1',
+        key: 'sk-mock-key-1',
+        inUse: true,
+        lastUsed: new Date().toISOString(),
+        totalUsage: 150,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        key: 'sk-mock-key-2',
+        inUse: false,
+        lastUsed: new Date().toISOString(),
+        totalUsage: 75,
+        createdAt: new Date().toISOString()
+      }
+    ],
+    total: 2
+  };
 
-  const { data: statsData } = useSWR<{
-    totalKeys: number;
-    activeKeys: number;
-    inUseKeys: number;
-  }>('/api/admin/api-keys/stats', fetcher);
+  const statsData = {
+    totalKeys: 2,
+    activeKeys: 1,
+    inUseKeys: 1
+  };
 
-  console.log('Raw keysData:', keysData);
+  console.log('Using mock data:', keysData);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
