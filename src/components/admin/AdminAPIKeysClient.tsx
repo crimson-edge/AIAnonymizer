@@ -29,7 +29,7 @@ export default function AdminAPIKeysClient() {
     const fetchData = async () => {
       try {
         // Use the full URL path to prevent Next.js from treating it as a static asset
-        const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+        const res = await fetch(`/api/admin/api-keys`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export default function AdminAPIKeysClient() {
         return;
       }
 
-      const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+      const res = await fetch(`/api/admin/api-keys`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export default function AdminAPIKeysClient() {
       }
 
       // Refresh the data
-      const updatedRes = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      const updatedRes = await fetch(`/api/admin/api-keys`);
       const updatedData = await updatedRes.json();
       setApiResponse(updatedData);
 
@@ -127,7 +127,7 @@ export default function AdminAPIKeysClient() {
 
   const deleteKey = async (id: string) => {
     try {
-      const res = await fetch(`${window.location.origin}/api/admin/api-keys`, {
+      const res = await fetch(`/api/admin/api-keys`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ export default function AdminAPIKeysClient() {
       }
 
       // Refresh the data
-      const updatedRes = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      const updatedRes = await fetch(`/api/admin/api-keys`);
       const updatedData = await updatedRes.json();
       setApiResponse(updatedData);
     } catch (error) {
@@ -150,10 +150,9 @@ export default function AdminAPIKeysClient() {
     }
   };
 
-  const refreshKey = async (id: string) => {
+  const refreshKey = async () => {
     try {
-      // Refresh just refetches the current data
-      const res = await fetch(`${window.location.origin}/api/admin/api-keys`);
+      const res = await fetch(`/api/admin/api-keys`);
       if (!res.ok) throw new Error('Failed to refresh');
       const data = await res.json();
       setApiResponse(data);
@@ -254,7 +253,7 @@ export default function AdminAPIKeysClient() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <button
-                        onClick={() => refreshKey(key.id)}
+                        onClick={() => refreshKey()}
                         className="text-indigo-600 hover:text-indigo-900 mr-4"
                       >
                         Refresh

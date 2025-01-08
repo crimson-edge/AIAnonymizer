@@ -162,92 +162,81 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  console.log('POST /api/admin/api-keys started');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session:', session);
-
     if (!session?.user?.email) {
-      console.error('No session or email found in POST');
-      return NextResponse.json({ error: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
-    console.log('User:', user);
 
     if (!user?.isAdmin) {
-      console.error('User is not admin in POST:', user);
-      return NextResponse.json({ error: 'Unauthorized', success: false }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { key } = await req.json();
-    
-    if (!key || typeof key !== 'string') {
-      console.error('Invalid API key:', key);
-      return NextResponse.json(
-        { error: 'API key is required and must be a string', success: false },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const { key } = body;
+
+    if (!key) {
+      return NextResponse.json({ error: 'Key is required' }, { status: 400 });
     }
 
-    console.log('Adding key to pool...');
-    await keyManager.addKey(key);
-    console.log('Key added successfully');
+    const newKey = await prisma.apiKey.create({
+      data: {
+        key,
+        userId: user.id,
+        isActive: true
+      }
+    });
 
-    return NextResponse.json({ success: true, error: null });
+    return NextResponse.json({ success: true, key: newKey });
   } catch (error) {
     console.error('Error in POST /api/admin/api-keys:', error);
-    return NextResponse.json(
-      { error: 'Failed to add API key', success: false },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
 export async function DELETE(req: Request) {
-  console.log('DELETE /api/admin/api-keys started');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session:', session);
-
     if (!session?.user?.email) {
-      console.error('No session or email found in DELETE');
-      return NextResponse.json({ error: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     });
-    console.log('User:', user);
 
     if (!user?.isAdmin) {
-      console.error('User is not admin in DELETE:', user);
-      return NextResponse.json({ error: 'Unauthorized', success: false }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const key = searchParams.get('key');
-    
-    if (!key || typeof key !== 'string') {
-      console.error('Invalid API key:', key);
-      return NextResponse.json(
-        { error: 'API key is required and must be a string', success: false },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Key ID is required' }, { status: 400 });
     }
 
-    console.log('Removing key from pool...');
-    await keyManager.removeKey(key);
-    console.log('Key removed successfully');
+    await prisma.apiKey.delete({
+      where: { id }
+    });
 
-    return NextResponse.json({ success: true, error: null });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error in DELETE /api/admin/api-keys:', error);
-    return NextResponse.json(
-      { error: 'Failed to remove API key', success: false },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
