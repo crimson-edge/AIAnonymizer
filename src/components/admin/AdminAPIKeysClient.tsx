@@ -8,84 +8,72 @@ import useSWR from 'swr';
 
 interface APIKey {
   id: string;
-  key: string;
-  inUse: boolean;
-  lastUsed?: string;
-  totalUsage: number;
+  isInUse: boolean;
+  lastUsed: string | null;
+  totalRequests: number;
+  totalTokens: number;
+  totalCost: number;
+  errorCount: number;
+  currentSession: string | null;
+  lastRequest: string | null;
+  successRate: number;
+  lastNRequests: number;
   createdAt: string;
+  updatedAt: string;
+  totalUsage: number;
 }
 
 interface APIStats {
   totalKeys: number;
   activeKeys: number;
-  totalUsage: number;
+  inUseKeys: number;
 }
 
 export default function AdminAPIKeysClient() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
-  const fetcher = async (url: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
-    const fullUrl = `${baseUrl}${url}`;
-    console.log('Fetching from:', fullUrl);
-    const res = await fetch(fullUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    if (!res.ok) {
-      throw new Error('Failed to fetch data');
-    }
-    return res.json();
-  };
+  const { data, error } = useSWR<{
+    keys: APIKey[];
+    total: number;
+    error: string | null;
+  }>('/api/admin/api-keys');
 
-  // Use static mock data
+  const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState('');
+
   const keysData = {
-    keys: [
-      {
-        id: '1',
-        key: 'sk-mock-key-1',
-        inUse: true,
-        lastUsed: new Date().toISOString(),
-        totalUsage: 150,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        key: 'sk-mock-key-2',
-        inUse: false,
-        lastUsed: new Date().toISOString(),
-        totalUsage: 75,
-        createdAt: new Date().toISOString()
-      }
-    ],
-    total: 2
+    keys: data?.keys || [],
+    total: data?.total || 0
   };
 
   const statsData = {
-    totalKeys: 2,
-    activeKeys: 1,
-    inUseKeys: 1
+    totalKeys: keysData.total,
+    activeKeys: keysData.keys.filter(k => !k.errorCount).length,
+    inUseKeys: keysData.keys.filter(k => k.isInUse).length
   };
 
-  console.log('Using mock data:', keysData);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   useEffect(() => {
-    if (sessionStatus === 'loading') return;
-    
-    if (!session) {
-      router.push('/auth/signin');
+    if (!session?.user?.email) {
+      router.push('/');
       return;
     }
 
-    setLoading(false);
-  }, [session, sessionStatus, router]);
+    if (error) {
+      setErrorState('Failed to load API keys');
+      setLoading(false);
+    } else if (data) {
+      setLoading(false);
+    }
+  }, [session, sessionStatus, router, data, error]);
+
+  if (!session?.user?.email) {
+    return null;
+  }
+
+  console.log('Data state:', { data, error, loading, statsData });
+
+  const apiKeys = keysData.keys;
 
   const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
@@ -133,7 +121,7 @@ export default function AdminAPIKeysClient() {
       }
     } catch (err) {
       console.error('Error deleting key:', err);
-      setError('Failed to delete key');
+      setErrorState('Failed to delete key');
     }
   };
 
@@ -150,7 +138,7 @@ export default function AdminAPIKeysClient() {
       }
 
       const data = await res.json();
-      if (keysData?.keys) {
+      if (keysData.keys) {
         const updatedKeys = keysData.keys.map(k => 
           k.id === keyId ? { ...k, key: data.key } : k
         );
@@ -158,7 +146,7 @@ export default function AdminAPIKeysClient() {
       }
     } catch (err) {
       console.error('Error refreshing key:', err);
-      setError('Failed to refresh key');
+      setErrorState('Failed to refresh key');
     }
   };
 
@@ -175,24 +163,22 @@ export default function AdminAPIKeysClient() {
     );
   }
 
-  const apiKeys = keysData?.keys || [];
-
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Keys</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.totalKeys || 0}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData.totalKeys}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Active Keys</h3>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData?.activeKeys || 0}</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{statsData.activeKeys}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-sm font-medium text-gray-500">Total Usage</h3>
           <p className="mt-2 text-3xl font-semibold text-gray-900">
-            {statsData?.inUseKeys?.toLocaleString() || 0}
+            {statsData.inUseKeys?.toLocaleString() || 0}
           </p>
         </div>
       </div>
@@ -210,12 +196,12 @@ export default function AdminAPIKeysClient() {
             </button>
           </div>
 
-          {error ? (
+          {errorState ? (
             <div className="rounded-md bg-red-50 p-4 mb-4">
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <div className="mt-2 text-sm text-red-700">{error}</div>
+                  <div className="mt-2 text-sm text-red-700">{errorState}</div>
                 </div>
               </div>
             </div>
@@ -251,14 +237,14 @@ export default function AdminAPIKeysClient() {
                     <tr key={key.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-mono text-gray-900">
-                          {maskKey(key.key)}
+                          {maskKey(key.id)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          key.inUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          key.isInUse ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {key.inUse ? 'In Use' : 'Available'}
+                          {key.isInUse ? 'In Use' : 'Available'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -275,7 +261,7 @@ export default function AdminAPIKeysClient() {
                           Refresh
                         </button>
                         <button
-                          onClick={() => deleteKey(key.key)}
+                          onClick={() => deleteKey(key.id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           Delete
