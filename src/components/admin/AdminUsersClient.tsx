@@ -313,8 +313,8 @@ export default function AdminUsersClient() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List Table - Full width on mobile, 7 columns on desktop */}
           <div className="lg:col-span-7 relative">
-            <div className="w-full overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="w-full table-fixed" style={{ minWidth: '1200px' }}>
+  <div className="w-full overflow-x-auto border border-gray-200 rounded-lg" style={{ maxWidth: '100%' }}>
+    <table className="w-full table-fixed" style={{ minWidth: '1400px' }}>
                 <colgroup>
                   <col style={{ width: '25%' }} /> {/* User */}
                   <col style={{ width: '10%' }} /> {/* Status */}
