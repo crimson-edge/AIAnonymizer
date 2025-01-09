@@ -333,17 +333,12 @@ export default function AdminUsersClient() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List Table */}
-          <div className="lg:col-span-7 overflow-hidden">
-            <div className="overflow-x-scroll">
-              <div className="border border-gray-200 rounded-lg min-w-[1200px]">
-                <table className="w-full">
-                  <colgroup>
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '30%' }} />
-                  </colgroup>
+<div className="lg:col-span-7">
+  <div className="overflow-x-auto">
+    <div className="inline-block min-w-full align-middle">
+      <div className="overflow-hidden border-b border-gray-200 shadow sm:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+                  
                   <thead className="bg-gray-50">
   <tr>
     <th 
@@ -428,7 +423,7 @@ export default function AdminUsersClient() {
               </div>
             </div>
           </div>
-  
+        </div>
           {/* User Details Panel */}
           <div className="lg:col-span-5">
             {selectedUserId && users.find(u => u.id === selectedUserId) ? (
