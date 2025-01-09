@@ -1,54 +1,60 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { isAdmin } from '@/lib/auth/utils';
-import prisma from '@/lib/prisma';
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
 
-export async function POST(request: Request) {
+export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { key } = await request.json();
+    const session = await getServerSession(authOptions)
     
-    if (!key) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+    if (!session?.user?.email) {
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    const apiKey = await prisma.apiKey.create({
-      data: {
-        key,
-        status: 'available',
-        totalTokensUsed: 0,
-        lastUsed: null
-      }
-    });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
 
-    return NextResponse.json({ success: true, key: apiKey });
+    if (!user?.isAdmin) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const apiKeys = await prisma.apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return new Response(JSON.stringify(apiKeys), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('Error creating API key:', error);
-    return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 });
+    console.error('Error fetching API keys:', error)
+    return new Response('Internal Server Error', { status: 500 })
   }
 }
 
-export async function GET(request: Request) {
+export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { id } = await req.json()
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    const keys = await prisma.apiKey.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
 
-    return NextResponse.json({ keys, total: keys.length });
+    if (!user?.isAdmin) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    await prisma.apiKey.delete({
+      where: { id }
+    })
+
+    return new Response('Success', { status: 200 })
   } catch (error) {
-    console.error('Error fetching API keys:', error);
-    return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 });
+    console.error('Error deleting API key:', error)
+    return new Response('Internal Server Error', { status: 500 })
   }
 }

@@ -1,245 +1,106 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-
-interface Pagination {
-  currentPage: number;
-  perPage: number;
-  total: number;
-  pages: number;
-}
-
-interface APIKey {
-  id: string;
-  key: string;
-  status: string;
-  totalTokensUsed: number;
-  lastUsed: string | null;
-  createdAt: string;
-}
+import { useEffect, useState } from "react"
+import { ApiKey } from "@prisma/client"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { toast } from "react-hot-toast"
+import { formatDate } from "@/lib/auth/utils"
 
 export default function AdminAPIKeysClient() {
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [keys, setKeys] = useState<APIKey[]>([]);
-  const [newKey, setNewKey] = useState('');
-  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
-  const [pagination, setPagination] = useState<Pagination>({
-    currentPage: 1,
-    perPage: 10,
-    total: 0,
-    pages: 1
-  });
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const fetchKeys = async (page = pagination.currentPage) => {
-    setLoading(true);
-    setError(null);
+  const fetchApiKeys = async () => {
     try {
-      const searchParams = new URLSearchParams({
-        page: page.toString(),
-        limit: pagination.perPage.toString()
-      });
+      const response = await fetch('/api/admin/api-keys')
+      if (!response.ok) throw new Error('Failed to fetch API keys')
+      const data = await response.json()
+      setApiKeys(data)
+    } catch (error) {
+      console.error('Error fetching API keys:', error)
+      toast.error('Failed to fetch API keys')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      const res = await fetch(`/api/admin/api-keys?${searchParams}`, {
-        method: 'GET',
+  const deleteApiKey = async (id: string) => {
+    try {
+      const response = await fetch('/api/admin/api-keys', {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        cache: 'no-store'
-      });
+        body: JSON.stringify({ id }),
+      })
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch');
-      }
-
-      const data = await res.json();
-      setKeys(data.keys);
-      setPagination(prev => ({
-        ...prev,
-        total: data.total,
-        pages: Math.ceil(data.total / prev.perPage)
-      }));
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to fetch keys');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addKey = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+      if (!response.ok) throw new Error('Failed to delete API key')
       
-      if (!newKey.trim()) {
-        setError('API key is required');
-        return;
-      }
-
-      const res = await fetch('/api/admin/api-keys', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ key: newKey.trim() }),
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to add key');
-      }
-
-      await fetchKeys();
-      setIsAddKeyModalOpen(false);
-      setNewKey('');
+      toast.success('API key deleted successfully')
+      fetchApiKeys()
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to add key');
-    } finally {
-      setLoading(false);
+      console.error('Error deleting API key:', error)
+      toast.error('Failed to delete API key')
     }
-  };
+  }
 
   useEffect(() => {
-    if (session?.user) {
-      fetchKeys();
-    }
-  }, [session, pagination.currentPage]);
+    fetchApiKeys()
+  }, [])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">API Keys Management</h1>
-        <button
-          onClick={() => setIsAddKeyModalOpen(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Add New Key
-        </button>
-      </div>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Key
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Tokens Used
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Used
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {keys.map((key) => (
-              <tr key={key.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {key.key}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {key.status}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {key.totalTokensUsed.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex-1 flex justify-between sm:hidden">
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
-            disabled={pagination.currentPage === 1}
-            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.pages, prev.currentPage + 1) }))}
-            disabled={pagination.currentPage === pagination.pages}
-            className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing page <span className="font-medium">{pagination.currentPage}</span> of{' '}
-              <span className="font-medium">{pagination.pages}</span>
-            </p>
-          </div>
-          <div>
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-              {[...Array(pagination.pages)].map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setPagination(prev => ({ ...prev, currentPage: idx + 1 }))}
-                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                    pagination.currentPage === idx + 1
-                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  }`}
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">API Keys Management</h2>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Key</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Total Usage</TableHead>
+            <TableHead>Total Tokens</TableHead>
+            <TableHead>Last Used</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {apiKeys.map((apiKey) => (
+            <TableRow key={apiKey.id}>
+              <TableCell className="font-mono">{apiKey.key}</TableCell>
+              <TableCell>{apiKey.status}</TableCell>
+              <TableCell>{apiKey.totalUsage}</TableCell>
+              <TableCell>{apiKey.totalTokensUsed}</TableCell>
+              <TableCell>{apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}</TableCell>
+              <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this API key?')) {
+                      deleteApiKey(apiKey.id)
+                    }
+                  }}
                 >
-                  {idx + 1}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Key Modal */}
-      {isAddKeyModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Add New API Key</h2>
-            <input
-              type="text"
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              placeholder="Enter API key"
-              className="w-full p-2 border rounded mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsAddKeyModalOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addKey}
-                disabled={loading}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-              >
-                {loading ? 'Adding...' : 'Add Key'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
-  );
+  )
 }

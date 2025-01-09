@@ -46,6 +46,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/dotenv": "^6.1.1",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
     "husky": "^9.1.7"
