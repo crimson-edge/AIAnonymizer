@@ -14,9 +14,12 @@ import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
 import { formatDate } from "@/lib/auth/utils"
 
+const ITEMS_PER_PAGE = 10
+
 export default function AdminAPIKeysClient() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const fetchApiKeys = async () => {
     try {
@@ -29,6 +32,20 @@ export default function AdminAPIKeysClient() {
       toast.error('Failed to fetch API keys')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createApiKey = async () => {
+    try {
+      const response = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+      })
+      if (!response.ok) throw new Error('Failed to create API key')
+      toast.success('API key created successfully')
+      fetchApiKeys()
+    } catch (error) {
+      console.error('Error creating API key:', error)
+      toast.error('Failed to create API key')
     }
   }
 
@@ -60,9 +77,20 @@ export default function AdminAPIKeysClient() {
     return <div>Loading...</div>
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(apiKeys.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const currentKeys = apiKeys.slice(startIndex, endIndex)
+
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">API Keys Management</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">API Keys Management</h2>
+        <Button onClick={createApiKey}>
+          Add New API Key
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -76,7 +104,7 @@ export default function AdminAPIKeysClient() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {apiKeys.map((apiKey) => (
+          {currentKeys.map((apiKey) => (
             <TableRow key={apiKey.id}>
               <TableCell className="font-mono">{apiKey.key}</TableCell>
               <TableCell>{apiKey.status}</TableCell>
@@ -101,6 +129,27 @@ export default function AdminAPIKeysClient() {
           ))}
         </TableBody>
       </Table>
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="py-2 px-4">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
