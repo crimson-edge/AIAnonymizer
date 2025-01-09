@@ -98,44 +98,46 @@ export default function AdminAPIKeysClient() {
           Add New API Key
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Key</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Total Usage</TableHead>
-            <TableHead>Total Tokens</TableHead>
-            <TableHead>Last Used</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {currentKeys.map((apiKey) => (
-            <TableRow key={apiKey.id}>
-              <TableCell className="font-mono">{apiKey.key}</TableCell>
-              <TableCell>{apiKey.status}</TableCell>
-              <TableCell>{apiKey.totalUsage}</TableCell>
-              <TableCell>{apiKey.totalTokensUsed}</TableCell>
-              <TableCell>{apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}</TableCell>
-              <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this API key?')) {
-                      deleteApiKey(apiKey.id)
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
-              </TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Key</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Total Usage</TableHead>
+              <TableHead>Total Tokens</TableHead>
+              <TableHead>Last Used</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {currentKeys.map((apiKey) => (
+              <TableRow key={apiKey.id}>
+                <TableCell className="font-mono">{apiKey.key}</TableCell>
+                <TableCell>{apiKey.status}</TableCell>
+                <TableCell>{apiKey.totalUsage}</TableCell>
+                <TableCell>{apiKey.totalTokensUsed}</TableCell>
+                <TableCell>{apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Never'}</TableCell>
+                <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this API key?')) {
+                        deleteApiKey(apiKey.id)
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
           <Button
