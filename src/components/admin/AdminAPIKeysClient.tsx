@@ -36,9 +36,16 @@ export default function AdminAPIKeysClient() {
   }
 
   const createApiKey = async () => {
+    const key = window.prompt('Enter the API key:')
+    if (!key) return // User cancelled or entered empty string
+    
     try {
       const response = await fetch('/api/admin/api-keys', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key }),
       })
       if (!response.ok) throw new Error('Failed to create API key')
       toast.success('API key created successfully')
