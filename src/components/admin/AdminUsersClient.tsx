@@ -125,7 +125,29 @@ export default function AdminUsersClient() {
 
     fetchUsers();
   }, [session, sessionStatus, router, filters]);
-
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/admin/users`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+  
+      if (!res.ok) {
+        throw new Error('Failed to delete user');
+      }
+  
+      await fetchUsers();
+      if (selectedUserId === userId) {
+        setSelectedUserId(null);
+      }
+    } catch (err) {
+      setError('Failed to delete user');
+      console.error('Error deleting user:', err);
+    }
+  };
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, search: value }));
   };
@@ -323,20 +345,31 @@ export default function AdminUsersClient() {
                     <col style={{ width: '30%' }} />
                   </colgroup>
                   <thead className="bg-gray-50">
-                    <tr>
-                      <th 
-                        scope="col" 
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                        onClick={() => handleSort('email')}
-                      >
-                        User
-                        {filters.sortBy === 'email' && (
-                          <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-                        )}
-                      </th>
-                      {/* Add other header cells here */}
-                    </tr>
-                  </thead>
+  <tr>
+    <th 
+      scope="col" 
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+      onClick={() => handleSort('email')}
+    >
+      User
+      {filters.sortBy === 'email' && (
+        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+      )}
+    </th>
+    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Status
+    </th>
+    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Plan
+    </th>
+    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Joined
+    </th>
+    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Actions
+    </th>
+  </tr>
+</thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {users.map((user) => (
                       <tr 
@@ -347,9 +380,50 @@ export default function AdminUsersClient() {
                         }`}
                       >
                         {/* Add table cells here */}
-                      </tr>
-                    ))}
-                  </tbody>
+                        <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900">{user.email}</div>
+            <div className="text-sm text-gray-500">{user.id}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {user.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {user.subscription?.tier || 'No Plan'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {new Date(user.createdAt).toLocaleDateString()}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setTokenDialog({ isOpen: true, userId: user.id, userName: user.email });
+          }}
+          className="text-indigo-600 hover:text-indigo-900 mr-4"
+        >
+          Add Tokens
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteUser(user.id);
+          }}
+          className="text-red-600 hover:text-red-900"
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
+  ))}
+ </tbody>
                 </table>
               </div>
             </div>
