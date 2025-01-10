@@ -1,8 +1,6 @@
 import { Session } from "next-auth";
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 
 export function isAdmin(session: Session | null): boolean {
   return session?.user?.isAdmin === true;
@@ -19,26 +17,17 @@ export const formatDate = (date: Date | string) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  });
 }
 
-export const formatBytes = (bytes: number) => {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let size = bytes
-  let unitIndex = 0
+export function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 Bytes';
 
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
-  }
+  const units = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = bytes / Math.pow(1024, i);
 
-  return `${size.toFixed(2)} ${units[unitIndex]}`
-}
+  if (!size || size === Infinity) return '0 Bytes';
 
-export function generateResetToken(): string {
-  return crypto.randomUUID();
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
+  return `${size.toFixed(2)} ${units[i]}`;
 }
