@@ -129,25 +129,28 @@ export default function AdminUsersClient() {
     fetchUsers();
   }, [session, sessionStatus, router, filters]);
 
-  const handleDeleteUser = async (userId: string) => {
+  const deleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`/api/admin/users?userId=${userId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-        },
+        }
       });
 
       if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to delete user');
+        const errorData = await res.text();
+        throw new Error(errorData || 'Failed to delete user');
       }
 
-      await fetchUsers();
-      setError('');
+      fetchUsers(pagination.currentPage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
       console.error('Error deleting user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
 
@@ -291,28 +294,6 @@ export default function AdminUsersClient() {
     } catch (err) {
       console.error('Error updating admin status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update admin status');
-    }
-  };
-
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/admin/users?userId=${userId}`, {
-        method: 'DELETE'
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to delete user');
-      }
-
-      fetchUsers(pagination.currentPage);
-    } catch (err) {
-      console.error('Error deleting user:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
 
@@ -532,7 +513,7 @@ export default function AdminUsersClient() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteUser(user.id);
+                                deleteUser(user.id);
                               }}
                               className="text-red-600 hover:text-red-900"
                             >
