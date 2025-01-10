@@ -1,9 +1,43 @@
-export const dynamic = 'force-dynamic';
-
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { subscriptionLimits } from '@/config/subscription-limits';
+import { SubscriptionTier, User, Subscription, ApiKey, UserActivity, Usage } from '@prisma/client';
+
+interface ProcessedUser {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  isAdmin: boolean;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  apiKeys: ApiKey[];
+  activities: UserActivity[];
+  usage: {
+    monthly: number;
+    total: number;
+  };
+  subscription: {
+    tier: SubscriptionTier;
+    status: string;
+    monthlyLimit: number;
+    tokenLimit: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+  };
+}
+
+type UserWithRelations = User & {
+  subscription: Subscription | null;
+  apiKeys: ApiKey[];
+  activities: UserActivity[];
+  usageRecords: Usage[];
+};
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -78,39 +112,70 @@ export async function GET(req: Request) {
         orderBy.createdAt = 'desc';
     }
 
+    // Get start of month for usage calculation
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
     // Get users with filters and sorting
     const users = await prisma.user.findMany({
       where,
       orderBy,
       skip: exportData ? undefined : (page - 1) * limit,
       take: exportData ? undefined : limit,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        isAdmin: true,
-        status: true,
-        subscription: {
-          select: {
-            tier: true,
-            status: true,
-            monthlyLimit: true,
-            tokenLimit: true,
-            createdAt: true,
-            updatedAt: true
+      include: {
+        subscription: true,
+        apiKeys: true,
+        activities: {
+          take: 5,
+          orderBy: {
+            createdAt: 'desc'
           }
         },
-        monthlyUsage: true,
-        totalUsage: true,
-        createdAt: true,
-        updatedAt: true
+        usageRecords: {
+          where: {
+            createdAt: {
+              gte: startOfMonth
+            }
+          }
+        }
       }
+    }) as UserWithRelations[];
+
+    // Process users to include correct token limits and usage
+    const processedUsers: ProcessedUser[] = users.map(user => {
+      const tier = (user.subscription?.tier || 'FREE') as SubscriptionTier;
+      const monthlyLimit = subscriptionLimits[tier].monthlyTokens;
+      const monthlyUsage = user.usageRecords.reduce((sum, record) => sum + (record.tokens || 0), 0);
+      
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        apiKeys: user.apiKeys,
+        activities: user.activities,
+        usage: {
+          monthly: monthlyUsage,
+          total: user.totalUsage
+        },
+        subscription: {
+          tier,
+          status: user.subscription?.status || 'inactive',
+          monthlyLimit,
+          tokenLimit: monthlyLimit, // Keep tokenLimit for backwards compatibility
+          createdAt: user.subscription?.createdAt,
+          updatedAt: user.subscription?.updatedAt
+        }
+      };
     });
 
-    // Handle data export
     if (exportData) {
-      const csvData = users.map(user => ({
+      const csvData = processedUsers.map(user => ({
         'User ID': user.id,
         'First Name': user.firstName,
         'Last Name': user.lastName,
@@ -121,8 +186,8 @@ export async function GET(req: Request) {
         'Subscription Active': user.subscription?.status || 'None',
         'Monthly Limit': user.subscription?.monthlyLimit || 0,
         'Token Limit': user.subscription?.tokenLimit || 0,
-        'Monthly Usage': user.monthlyUsage,
-        'Total Usage': user.totalUsage,
+        'Monthly Usage': user.usage?.monthly || 0,
+        'Total Usage': user.usage?.total || 0,
         'Created At': user.createdAt.toISOString(),
         'Updated At': user.updatedAt.toISOString()
       }));
@@ -136,7 +201,7 @@ export async function GET(req: Request) {
 
     // Return paginated response
     return NextResponse.json({
-      users,
+      users: processedUsers,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
