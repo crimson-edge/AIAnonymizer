@@ -173,13 +173,13 @@ export default function SubscriptionManager({
               <div className="mb-2">
                 <p className="text-sm text-gray-600">Monthly Token Usage</p>
                 <p className="text-2xl font-semibold">
-                  {formatNumber(monthlyTokensUsed)} / {formatNumber(currentMonthlyQuota)}
+                  {formatNumber(monthlyTokensUsed)} / {formatNumber(totalAvailableTokens)}
                 </p>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
                 <div 
-                  className={`h-2.5 rounded-full ${monthlyTokensUsed > currentMonthlyQuota ? 'bg-red-600' : 'bg-blue-600'}`}
-                  style={{ width: `${Math.min((monthlyTokensUsed / currentMonthlyQuota) * 100, 100)}%` }}
+                  className={`h-2.5 rounded-full ${monthlyTokensUsed >= totalAvailableTokens * 0.9 ? 'bg-red-600' : 'bg-blue-600'}`}
+                  style={{ width: `${Math.min((monthlyTokensUsed / totalAvailableTokens) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>

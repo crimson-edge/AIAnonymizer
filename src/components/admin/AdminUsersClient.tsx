@@ -127,6 +127,7 @@ export default function AdminUsersClient() {
 
     fetchUsers();
   }, [session, sessionStatus, router, filters]);
+
   const handleDeleteUser = async (userId: string) => {
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -313,6 +314,55 @@ export default function AdminUsersClient() {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
+
+  const calculateTokenUsage = (user: User) => {
+    const monthlyLimit = user.subscription?.monthlyLimit || 0;
+    const additionalTokens = user.subscription?.tokenLimit || 0;
+    const totalAvailableTokens = monthlyLimit + additionalTokens;
+    const usedTokens = user.usage?.monthly || 0;
+    const usagePercentage = Math.min((usedTokens / totalAvailableTokens) * 100, 100);
+
+    return {
+      usedTokens,
+      totalAvailableTokens,
+      usagePercentage,
+      formattedUsage: `${usedTokens.toLocaleString()} of ${totalAvailableTokens.toLocaleString()}`
+    };
+  };
+
+  const renderTokenUsage = (user: User) => {
+    const { usedTokens, totalAvailableTokens, usagePercentage, formattedUsage } = calculateTokenUsage(user);
+    const isNearLimit = usagePercentage >= 90;
+
+    return (
+      <div className="flex flex-col space-y-2">
+        <div className="text-sm text-gray-600">
+          {formattedUsage} tokens used
+          {isNearLimit && (
+            <span className="ml-2 text-red-600 text-xs">
+              Near limit!
+            </span>
+          )}
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full ${isNearLimit ? 'bg-red-600' : 'bg-blue-600'}`}
+            style={{ width: `${usagePercentage}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const handleTokenDialog = (user: User) => {
+    const { totalAvailableTokens } = calculateTokenUsage(user);
+    setTokenDialog({
+      isOpen: true,
+      userId: user.id,
+      userName: user.email || ''
+    });
+  };
+
   if (loading) {
     return (
       <div className="rounded-lg bg-white p-8 shadow-sm">
@@ -369,125 +419,126 @@ export default function AdminUsersClient() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List Table */}
-<div className="lg:col-span-7">
-  <div className="overflow-x-auto">
-    <div className="inline-block min-w-full align-middle">
-      <div className="overflow-hidden border-b border-gray-200 shadow sm:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-                  
-                  <thead className="bg-gray-50">
-  <tr>
-    <th 
-      scope="col" 
-      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-      onClick={() => handleSort('email')}
-    >
-      User
-      {filters.sortBy === 'email' && (
-        <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
-      )}
-    </th>
-    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Status
-    </th>
-    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Plan
-    </th>
-    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Joined
-    </th>
-    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Actions
-    </th>
-  </tr>
-</thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr 
-                        key={user.id} 
-                        onClick={() => setSelectedUserId(user.id)}
-                        className={`cursor-pointer transition-colors ${
-                          selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {/* Add table cells here */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{user.email}</div>
-            <div className="text-sm text-gray-500">{user.id}</div>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-          user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-          user.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
-          'bg-yellow-100 text-yellow-800'
-        }`}>
-          {user.status === 'ACTIVE' ? 'Active' :
-           user.status === 'SUSPENDED' ? 'Suspended' :
-           'Unverified'}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {user.subscription?.tier || 'No Plan'}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {new Date(user.createdAt).toLocaleDateString()}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleUserStatus(user.id, user.status);
-          }}
-          className={`${
-            user.status === 'PENDING_VERIFICATION' ? 'text-gray-400 cursor-not-allowed' :
-            user.status === 'SUSPENDED' ? 'text-green-600 hover:text-green-900' : 
-            'text-red-600 hover:text-red-900'
-          } mr-4`}
-          disabled={user.status === 'PENDING_VERIFICATION'}
-        >
-          {user.status === 'PENDING_VERIFICATION' ? 'Cannot Modify' :
-           user.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleAdmin(user.id, user.isAdmin);
-          }}
-          className="text-blue-600 hover:text-blue-900 mr-4"
-        >
-          {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setTokenDialog({ isOpen: true, userId: user.id, userName: user.email });
-          }}
-          className="text-indigo-600 hover:text-indigo-900 mr-4"
-        >
-          Add Tokens
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteUser(user.id);
-          }}
-          className="text-red-600 hover:text-red-900"
-        >
-          Delete
-        </button>
-      </td>
-    </tr>
-  ))}
- </tbody>
-                </table>
+          <div className="lg:col-span-7">
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden border-b border-gray-200 shadow sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('email')}
+                        >
+                          User
+                          {filters.sortBy === 'email' && (
+                            <span className="ml-1">{filters.sortOrder === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Plan
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Joined
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {users.map((user) => (
+                        <tr 
+                          key={user.id} 
+                          onClick={() => setSelectedUserId(user.id)}
+                          className={`cursor-pointer transition-colors ${
+                            selectedUserId === user.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {/* Add table cells here */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                                <div className="text-sm text-gray-500">{user.id}</div>
+                                <div className="text-sm text-gray-500">{renderTokenUsage(user)}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                              user.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {user.status === 'ACTIVE' ? 'Active' :
+                               user.status === 'SUSPENDED' ? 'Suspended' :
+                               'Unverified'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.subscription?.tier || 'No Plan'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleUserStatus(user.id, user.status);
+                              }}
+                              className={`${
+                                user.status === 'PENDING_VERIFICATION' ? 'text-gray-400 cursor-not-allowed' :
+                                user.status === 'SUSPENDED' ? 'text-green-600 hover:text-green-900' : 
+                                'text-red-600 hover:text-red-900'
+                              } mr-4`}
+                              disabled={user.status === 'PENDING_VERIFICATION'}
+                            >
+                              {user.status === 'PENDING_VERIFICATION' ? 'Cannot Modify' :
+                               user.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleAdmin(user.id, user.isAdmin);
+                              }}
+                              className="text-blue-600 hover:text-blue-900 mr-4"
+                            >
+                              {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTokenDialog(user);
+                              }}
+                              className="text-indigo-600 hover:text-indigo-900 mr-4"
+                            >
+                              Add Tokens
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteUser(user.id);
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
-        </div>
           {/* User Details Panel */}
           <div className="lg:col-span-5">
             {selectedUserId && users.find(u => u.id === selectedUserId) ? (
@@ -523,20 +574,7 @@ export default function AdminUsersClient() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="bg-gray-50 rounded-md p-3">
                               <p className="text-xs text-gray-500">Monthly Usage</p>
-                              <p className="text-lg font-medium text-gray-900">
-                                {user.usage?.monthly?.toLocaleString() || 0} / {user.subscription?.monthlyLimit?.toLocaleString() || 0}
-                              </p>
-                              <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-blue-500"
-                                  style={{
-                                    width: `${Math.min(
-                                      ((user.usage?.monthly || 0) / (user.subscription?.monthlyLimit || 1)) * 100,
-                                      100
-                                    )}%`
-                                  }}
-                                />
-                              </div>
+                              {renderTokenUsage(user)}
                             </div>
                             <div className="bg-gray-50 rounded-md p-3">
                               <p className="text-xs text-gray-500">Total Usage</p>

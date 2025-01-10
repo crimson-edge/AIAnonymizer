@@ -61,18 +61,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify SMTP configuration
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.error('Missing SMTP configuration');
-      return NextResponse.json(
-        { error: 'Email service not configured' },
-        { status: 500 }
-      );
-    }
-
     // Send reset email
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    console.log('Using base URL:', baseUrl);
+    console.log('Environment check:', {
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_USER: process.env.SMTP_USER,
+      SMTP_FROM: process.env.SMTP_FROM,
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      baseUrl: baseUrl
+    });
     
     if (!baseUrl) {
       console.error('NEXT_PUBLIC_BASE_URL is not configured');
@@ -86,7 +83,8 @@ export async function POST(req: Request) {
     console.log('Reset URL:', resetUrl);
 
     try {
-      await sendEmail({
+      console.log('Attempting to send email to:', email);
+      const emailResult = await sendEmail({
         to: email,
         subject: 'Reset Your Password - AI Anonymizer',
         html: `
@@ -97,11 +95,26 @@ export async function POST(req: Request) {
           <p>If you didn't request this, please ignore this email.</p>
         `,
       });
-      console.log('Reset email sent successfully');
+      console.log('Reset email sent successfully:', emailResult);
     } catch (emailError) {
       console.error('Email sending error:', emailError);
+      if (emailError instanceof Error) {
+        console.error('Error details:', emailError.message, emailError.stack);
+      }
+      // Revert the reset token if email fails
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            resetToken: null,
+            resetTokenExpiry: null,
+          },
+        });
+      } catch (revertError) {
+        console.error('Failed to revert reset token:', revertError);
+      }
       return NextResponse.json(
-        { error: 'Failed to send reset email' },
+        { error: 'Email service not configured correctly' },
         { status: 500 }
       );
     }

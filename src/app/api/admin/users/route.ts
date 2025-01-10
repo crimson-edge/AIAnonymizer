@@ -81,6 +81,9 @@ export async function GET(req: Request) {
     // Get users with filters and sorting
     const users = await prisma.user.findMany({
       where,
+      orderBy,
+      skip: exportData ? undefined : (page - 1) * limit,
+      take: exportData ? undefined : limit,
       select: {
         id: true,
         firstName: true,
@@ -98,27 +101,28 @@ export async function GET(req: Request) {
             updatedAt: true
           }
         },
+        monthlyUsage: true,
+        totalUsage: true,
         createdAt: true,
         updatedAt: true
-      },
-      orderBy,
-      skip: exportData ? undefined : (page - 1) * limit,
-      take: exportData ? undefined : limit
+      }
     });
 
     // Handle data export
     if (exportData) {
       const csvData = users.map(user => ({
-        ID: user.id,
-        Email: user.email,
+        'User ID': user.id,
         'First Name': user.firstName,
         'Last Name': user.lastName,
+        'Email': user.email,
         Status: user.status,
         'Is Admin': user.isAdmin ? 'Yes' : 'No',
         'Subscription Tier': user.subscription?.tier || 'None',
         'Subscription Active': user.subscription?.status || 'None',
         'Monthly Limit': user.subscription?.monthlyLimit || 0,
         'Token Limit': user.subscription?.tokenLimit || 0,
+        'Monthly Usage': user.monthlyUsage,
+        'Total Usage': user.totalUsage,
         'Created At': user.createdAt.toISOString(),
         'Updated At': user.updatedAt.toISOString()
       }));
@@ -227,7 +231,7 @@ export async function PUT(req: Request) {
       }
 
       await prisma.subscription.update({
-        where: { userId },
+        where: { id: user.subscription.id },
         data: {
           tokenLimit: {
             increment: addTokens
@@ -309,7 +313,7 @@ export async function DELETE(req: Request) {
     }
 
     // Delete user's subscription first (due to foreign key constraint)
-    await prisma.subscription.delete({
+    await prisma.subscription.deleteMany({
       where: { userId }
     });
 
