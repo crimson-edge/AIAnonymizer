@@ -19,7 +19,6 @@ interface User {
   subscription?: {
     tier: string;
     monthlyLimit: number;
-    tokenLimit: number;
   };
   apiKeys?: {
     id: string;
@@ -317,16 +316,14 @@ export default function AdminUsersClient() {
 
   const calculateTokenUsage = (user: User) => {
     const monthlyLimit = user.subscription?.monthlyLimit || 0;
-    const additionalTokens = user.subscription?.tokenLimit || 0;
-    const totalAvailableTokens = monthlyLimit + additionalTokens;
     const usedTokens = user.usage?.monthly || 0;
-    const usagePercentage = Math.min((usedTokens / totalAvailableTokens) * 100, 100);
+    const usagePercentage = Math.min((usedTokens / monthlyLimit) * 100, 100);
 
     return {
       usedTokens,
-      totalAvailableTokens,
+      totalAvailableTokens: monthlyLimit,
       usagePercentage,
-      formattedUsage: `${usedTokens.toLocaleString()} of ${totalAvailableTokens.toLocaleString()}`
+      formattedUsage: `${usedTokens.toLocaleString()} of ${monthlyLimit.toLocaleString()}`
     };
   };
 

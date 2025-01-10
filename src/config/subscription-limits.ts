@@ -31,7 +31,7 @@ export const subscriptionLimits: Record<SubscriptionTier, TierLimits> = {
     requestsPerMinute: 30,
     requestsPerHour: 300,
     requestsPerDay: 3000,
-    maxTokensPerRequest: 8000,
+    maxTokensPerRequest: 10000,
     concurrentRequests: 5
   },
   ENTERPRISE: {
@@ -39,7 +39,7 @@ export const subscriptionLimits: Record<SubscriptionTier, TierLimits> = {
     requestsPerMinute: 120,
     requestsPerHour: 1200,
     requestsPerDay: 12000,
-    maxTokensPerRequest: 32000,
+    maxTokensPerRequest: 10000,
     concurrentRequests: 20
   }
 }

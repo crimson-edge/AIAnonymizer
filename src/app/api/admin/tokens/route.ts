@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { subscriptionLimits } from '@/config/subscription-limits';
 
 export async function GET(req: Request) {
   try {
@@ -43,12 +44,13 @@ export async function GET(req: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Calculate total token usage for current month
+    // Get start of month for usage calculation
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const monthlyUsage = await prisma.usage.aggregate({
+    // Calculate current monthly usage
+    const currentMonthUsage = await prisma.usage.aggregate({
       where: {
         userId,
         createdAt: {
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
         id: user.id,
         email: user.email,
         subscription: user.subscription,
-        monthlyUsage: monthlyUsage._sum.tokens || 0,
+        monthlyUsage: currentMonthUsage._sum.tokens || 0,
         usageHistory: user.usageRecords,
       },
     });
@@ -93,7 +95,7 @@ export async function POST(req: Request) {
     const data = await req.json();
     const { userId, action, amount } = data;
 
-    if (!userId || !action || !amount) {
+    if (!userId || !action || (action !== 'reset' && !amount)) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
@@ -110,13 +112,31 @@ export async function POST(req: Request) {
       return new NextResponse('User has no subscription', { status: 400 });
     }
 
+    // Get start of month for usage calculation
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // Calculate current monthly usage
+    const currentMonthUsage = await prisma.usage.aggregate({
+      where: {
+        userId,
+        createdAt: {
+          gte: startOfMonth,
+        },
+      },
+      _sum: {
+        tokens: true,
+      },
+    });
+
     // Handle different token management actions
     switch (action) {
       case 'add':
         await prisma.subscription.update({
           where: { userId },
           data: {
-            tokenLimit: {
+            availableTokens: {
               increment: amount,
             },
           },
@@ -127,23 +147,16 @@ export async function POST(req: Request) {
         await prisma.subscription.update({
           where: { userId },
           data: {
-            tokenLimit: amount,
+            availableTokens: amount,
           },
         });
         break;
 
       case 'reset':
-        // Reset to default limit based on subscription tier
-        const defaultLimit = user.subscription.tier === 'PREMIUM' 
-          ? 100000 
-          : user.subscription.tier === 'BASIC' 
-            ? 10000 
-            : 1000;
-
         await prisma.subscription.update({
           where: { userId },
           data: {
-            tokenLimit: defaultLimit,
+            availableTokens: user.subscription.monthlyLimit - (currentMonthUsage._sum.tokens || 0),
           },
         });
         break;
@@ -153,13 +166,20 @@ export async function POST(req: Request) {
     }
 
     // Log the token management action
-    await prisma.usage.create({
+    await prisma.adminAuditLog.create({
       data: {
-        id: crypto.randomUUID(),
-        userId,
-        tokens: amount,
-        type: `ADMIN_${action.toUpperCase()}`,
-        cost: 0, // Admin actions don't incur costs
+        adminId: admin.id,
+        actionType: `TOKEN_${action.toUpperCase()}`,
+        targetUserId: userId,
+        details: {
+          amount,
+          previousAvailable: user.subscription.availableTokens,
+          newAvailable: action === 'add' 
+            ? user.subscription.availableTokens + amount
+            : action === 'set' 
+              ? amount 
+              : user.subscription.monthlyLimit - (currentMonthUsage._sum.tokens || 0)
+        },
       },
     });
 

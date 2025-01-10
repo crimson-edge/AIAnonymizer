@@ -19,12 +19,12 @@ interface ProcessedUser {
   usage: {
     monthly: number;
     total: number;
+    available: number;
   };
   subscription: {
     tier: SubscriptionTier;
     status: string;
     monthlyLimit: number;
-    tokenLimit: number;
     createdAt?: Date;
     updatedAt?: Date;
   };
@@ -145,7 +145,8 @@ export async function GET(req: Request) {
     // Process users to include correct token limits and usage
     const processedUsers: ProcessedUser[] = users.map(user => {
       const tier = (user.subscription?.tier || 'FREE') as SubscriptionTier;
-      const monthlyLimit = subscriptionLimits[tier].monthlyTokens;
+      const monthlyLimit = user.subscription?.monthlyLimit || subscriptionLimits[tier].monthlyTokens;
+      const availableTokens = user.subscription?.availableTokens || monthlyLimit;
       const monthlyUsage = user.usageRecords.reduce((sum, record) => sum + (record.tokens || 0), 0);
       
       return {
@@ -161,13 +162,13 @@ export async function GET(req: Request) {
         activities: user.activities,
         usage: {
           monthly: monthlyUsage,
-          total: user.totalUsage
+          total: user.totalUsage,
+          available: availableTokens
         },
         subscription: {
           tier,
           status: user.subscription?.status || 'inactive',
           monthlyLimit,
-          tokenLimit: monthlyLimit, // Keep tokenLimit for backwards compatibility
           createdAt: user.subscription?.createdAt,
           updatedAt: user.subscription?.updatedAt
         }
@@ -185,9 +186,9 @@ export async function GET(req: Request) {
         'Subscription Tier': user.subscription?.tier || 'None',
         'Subscription Active': user.subscription?.status || 'None',
         'Monthly Limit': user.subscription?.monthlyLimit || 0,
-        'Token Limit': user.subscription?.tokenLimit || 0,
         'Monthly Usage': user.usage?.monthly || 0,
         'Total Usage': user.usage?.total || 0,
+        'Available Tokens': user.usage?.available || 0,
         'Created At': user.createdAt.toISOString(),
         'Updated At': user.updatedAt.toISOString()
       }));
@@ -321,8 +322,7 @@ export async function PUT(req: Request) {
           select: {
             tier: true,
             status: true,
-            monthlyLimit: true,
-            tokenLimit: true
+            monthlyLimit: true
           }
         }
       }
