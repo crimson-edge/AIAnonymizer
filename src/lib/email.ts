@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 interface EmailOptions {
   to: string;
@@ -9,73 +9,35 @@ interface EmailOptions {
 export async function sendEmail({ to, subject, html }: EmailOptions) {
   console.log('Starting email send process...');
   
-  // Check all required environment variables
-  const requiredVars = {
-    SMTP_HOST: process.env.SMTP_HOST,
-    SMTP_PORT: process.env.SMTP_PORT,
-    SMTP_USER: process.env.SMTP_USER,
-    SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
-    SMTP_FROM: process.env.SMTP_FROM,
-    SMTP_SECURE: process.env.SMTP_SECURE
-  };
-
-  console.log('Environment variables check:', {
-    ...Object.keys(requiredVars).reduce((acc, key) => ({
-      ...acc,
-      [key]: !!requiredVars[key]
-    }), {})
-  });
-
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SENDGRID_API_KEY || !process.env.SMTP_FROM) {
-    console.error('Missing email configuration:', {
-      host: !!process.env.SMTP_HOST,
-      user: !!process.env.SMTP_USER,
-      apiKey: !!process.env.SENDGRID_API_KEY,
-      from: !!process.env.SMTP_FROM
-    });
-    throw new Error('Email service not properly configured');
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SENDGRID_API_KEY is not set');
+    throw new Error('Email service not properly configured: SENDGRID_API_KEY not set');
   }
 
-  const transportConfig = {
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: 'apikey',
-      pass: process.env.SENDGRID_API_KEY
-    }
-  };
-
-  console.log('Creating transport with config:', {
-    host: transportConfig.host,
-    port: transportConfig.port,
-    secure: transportConfig.secure,
-    authUser: transportConfig.auth.user
-  });
-
-  const transporter = nodemailer.createTransport(transportConfig);
+  if (!process.env.SMTP_FROM) {
+    console.error('SMTP_FROM is not set');
+    throw new Error('Email service not properly configured: SMTP_FROM not set');
+  }
 
   try {
-    // Verify transporter configuration
-    console.log('Verifying transporter configuration...');
-    await transporter.verify();
-    console.log('Transporter verification successful');
+    console.log('Setting SendGrid API key...');
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    const mailOptions = {
-      from: process.env.SMTP_FROM,
+    const msg = {
       to,
+      from: process.env.SMTP_FROM,
       subject,
       html,
     };
 
     console.log('Sending email with options:', {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      subject: mailOptions.subject
+      to: msg.to,
+      from: msg.from,
+      subject: msg.subject
     });
 
-    const result = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', result.messageId);
+    const result = await sgMail.send(msg);
+    console.log('Email sent successfully:', result[0].statusCode);
     return result;
   } catch (error) {
     console.error('Failed to send email:', error);

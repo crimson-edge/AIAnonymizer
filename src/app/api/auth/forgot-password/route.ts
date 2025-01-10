@@ -1,134 +1,119 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
-import { generateResetToken } from '@/lib/auth/server-utils';
+import { randomBytes } from 'crypto';
+import { addDays } from 'date-fns';
 
 export async function POST(req: Request) {
   try {
-    if (!req.body) {
-      return NextResponse.json(
-        { error: 'Request body is missing' },
-        { status: 400 }
-      );
-    }
-
     const { email } = await req.json();
-    console.log('Processing password reset for email:', email);
 
-    // Validate email
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
+    console.log('Received forgot password request for:', email);
+
+    if (!email) {
+      console.log('No email provided');
+      return new NextResponse('Email is required', { status: 400 });
     }
 
-    // Find user with this email
+    // Find user
     const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        resetToken: true,
-        resetTokenExpiry: true
-      }
+      where: { email }
     });
 
+    console.log('User found:', !!user);
+
     if (!user) {
-      console.log('User not found, returning success to prevent enumeration');
-      return NextResponse.json({ success: true });
+      // For security, don't reveal if user exists
+      return NextResponse.json({ 
+        success: true,
+        message: 'If an account exists with this email, a reset link will be sent.' 
+      });
     }
 
-    // Generate reset token and expiry (24 hours)
-    const resetToken = generateResetToken();
-    const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    console.log('Generated reset token:', resetToken);
+    // Generate reset token
+    const resetToken = randomBytes(32).toString('hex');
+    const resetTokenExpiry = addDays(new Date(), 1);
 
+    console.log('Generated reset token and expiry');
+
+    // Save reset token to user
     try {
-      // Update user with reset token
       await prisma.user.update({
-        where: { id: user.id },
+        where: { email },
         data: {
           resetToken,
-          resetTokenExpiry,
-        },
+          resetTokenExpiry
+        }
       });
-    } catch (dbError) {
-      console.error('Database error updating reset token:', dbError);
-      return NextResponse.json(
-        { error: 'Database error' },
-        { status: 500 }
-      );
+      console.log('Reset token saved to user');
+    } catch (error) {
+      console.error('Error saving reset token:', error);
+      throw error;
     }
 
     // Send reset email
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://aianonymizer.com';
     console.log('Environment check:', {
-      SMTP_HOST: process.env.SMTP_HOST,
-      SMTP_USER: process.env.SMTP_USER,
-      SMTP_FROM: process.env.SMTP_FROM,
-      hasApiKey: !!process.env.SENDGRID_API_KEY,
-      baseUrl: baseUrl
+      SENDGRID_API_KEY: !!process.env.SENDGRID_API_KEY,
+      SMTP_FROM: !!process.env.SMTP_FROM,
+      baseUrl
     });
     
-    if (!baseUrl) {
-      console.error('NEXT_PUBLIC_BASE_URL is not configured');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-    console.log('Reset URL:', resetUrl);
+    console.log('Reset URL generated:', resetUrl);
 
     try {
       console.log('Attempting to send password reset email to:', email);
-      const emailResult = await sendEmail({
+      await sendEmail({
         to: email,
         subject: 'Reset Your Password - AI Anonymizer',
         html: `
-          <p>Hello,</p>
-          <p>You requested to reset your password. Click the link below to set a new password:</p>
-          <p><a href="${resetUrl}">Reset Password</a></p>
-          <p>This link will expire in 24 hours.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-          <p>Best regards,<br>AI Anonymizer Team</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Reset Your Password</h2>
+            <p>You requested to reset your password. Click the button below to set a new password:</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetUrl}" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              This link will expire in 24 hours. If you didn't request this, please ignore this email.
+            </p>
+            <p style="color: #666; font-size: 12px; margin-top: 20px;">
+              If the button doesn't work, copy and paste this URL into your browser:<br>
+              ${resetUrl}
+            </p>
+          </div>
         `,
       });
-      console.log('Reset email sent successfully:', emailResult);
-    } catch (emailError) {
-      console.error('Email sending error:', emailError);
-      if (emailError instanceof Error) {
-        console.error('Error details:', emailError.message, emailError.stack);
-      }
+      console.log('Reset email sent successfully');
+      
+      return NextResponse.json({ 
+        success: true,
+        message: 'If an account exists with this email, a reset link will be sent.' 
+      });
+    } catch (error) {
+      console.error('Error sending reset email:', error);
+      
       // Revert the reset token if email fails
       try {
         await prisma.user.update({
-          where: { id: user.id },
+          where: { email },
           data: {
             resetToken: null,
-            resetTokenExpiry: null,
-          },
+            resetTokenExpiry: null
+          }
         });
+        console.log('Reset token reverted due to email failure');
       } catch (revertError) {
-        console.error('Failed to revert reset token:', revertError);
+        console.error('Error reverting reset token:', revertError);
       }
-      return NextResponse.json(
-        { error: 'Email service not configured correctly' },
-        { status: 500 }
-      );
+      
+      throw error;
     }
-
-    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Password reset error:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', error.message, error.stack);
-    }
-    return NextResponse.json(
-      { error: 'Failed to process password reset request' },
-      { status: 500 }
-    );
+    console.error('Forgot password error:', error);
+    return new NextResponse('Internal server error', { status: 500 });
   }
 }
