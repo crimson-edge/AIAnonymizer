@@ -5,7 +5,6 @@ const nextConfig = {
     esmExternals: true,
     serverComponentsExternalPackages: ['@prisma/client', 'prisma']
   },
-  transpilePackages: ['@prisma/client'],
   images: {
     remotePatterns: [
       {
@@ -27,9 +26,6 @@ const nextConfig = {
       ? 'https://aianonymizer.com'
       : 'http://localhost:3010',
   },
-  // Disable static optimization for admin routes
-  unstable_runtimeJS: true,
-  unstable_JsPreload: false,
   // Prevent static asset generation
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   async headers() {
@@ -56,7 +52,7 @@ const nextConfig = {
 if (process.env.NODE_ENV !== 'production') {
   process.env.NEXTAUTH_URL = process.env.NEXT_PUBLIC_BASE_URL;
 } else {
-  process.env.NEXTAUTH_URL = 'https://aianonymizer.com';
+  process.env.NEXTAUTH_URL = process.env.NEXT_PUBLIC_BASE_URL;
 }
 
 module.exports = nextConfig;
