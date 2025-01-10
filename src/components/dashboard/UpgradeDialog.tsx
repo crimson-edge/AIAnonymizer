@@ -18,7 +18,7 @@ export default function UpgradeDialog({
   const plans = [
     {
       name: 'BASIC',
-      price: '$10/month',
+      price: '$8/month',
       features: [
         `${formatNumber(subscriptionLimits.BASIC.monthlyTokens)} tokens/month`,
         `${subscriptionLimits.BASIC.requestsPerMinute} requests/minute`,
@@ -28,7 +28,7 @@ export default function UpgradeDialog({
     },
     {
       name: 'PREMIUM',
-      price: '$50/month',
+      price: '$15/month',
       features: [
         `${formatNumber(subscriptionLimits.PREMIUM.monthlyTokens)} tokens/month`,
         `${subscriptionLimits.PREMIUM.requestsPerMinute} requests/minute`,

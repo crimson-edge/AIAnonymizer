@@ -50,49 +50,46 @@ export default function DashboardClient() {
   useEffect(() => {
     if (status === 'loading') return;
 
-    const fetchData = async () => {
+    const fetchUsage = async () => {
       try {
-        const response = await fetch('/api/dashboard/subscription');
-        const data = await response.json();
-
-        if (data.error) {
-          setError(data.error);
-          return;
-        }
-
-        setSubscriptionData(data.subscription);
+        const res = await fetch('/api/dashboard/usage');
+        if (!res.ok) throw new Error('Failed to fetch usage data');
+        const data = await res.json();
         setUsageData({
-          monthlyTokensUsed: data.usage?.monthly || 0,
-          totalAvailableTokens: data.usage?.total || 0,
-          currentMonthlyQuota: data.subscription?.monthlyLimit || 1000,
+          monthlyTokensUsed: data.monthlyTokensUsed,
+          totalAvailableTokens: data.totalAvailableTokens,
+          currentMonthlyQuota: data.currentMonthlyQuota
+        });
+        setUsage({
+          used: data.monthlyTokensUsed,
+          total: data.currentMonthlyQuota
         });
       } catch (err) {
-        console.error('Error fetching subscription data:', err);
-        setError('Failed to load subscription data');
+        console.error('Error fetching usage:', err);
+        setError('Failed to fetch usage data');
       }
     };
 
-    fetchData();
-  }, [status]);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchSubscription = async () => {
       try {
-        setLoading(true);
-        const response = await fetch('/api/dashboard/data');
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-        const data = await response.json();
-        setUsage(data.usage);
+        const res = await fetch('/api/dashboard/subscription');
+        if (!res.ok) throw new Error('Failed to fetch subscription data');
+        const data = await res.json();
+        setSubscriptionData({
+          tier: data.tier,
+          isActive: data.isActive,
+          stripeCustomerId: data.stripeCustomerId,
+          stripeSubscriptionId: data.stripeSubscriptionId,
+          monthlyLimit: data.monthlyLimit
+        });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+        console.error('Error fetching subscription:', err);
+        setError('Failed to fetch subscription data');
       }
     };
 
-    fetchDashboardData();
+    Promise.all([fetchUsage(), fetchSubscription()])
+      .finally(() => setLoading(false));
   }, [status]);
 
   if (status === 'loading' || loading) {

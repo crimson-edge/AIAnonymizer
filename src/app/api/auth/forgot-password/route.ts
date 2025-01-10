@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     // Send reset email
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://aianonymizer.com';
     console.log('Environment check:', {
       SMTP_HOST: process.env.SMTP_HOST,
       SMTP_USER: process.env.SMTP_USER,
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     console.log('Reset URL:', resetUrl);
 
     try {
-      console.log('Attempting to send email to:', email);
+      console.log('Attempting to send password reset email to:', email);
       const emailResult = await sendEmail({
         to: email,
         subject: 'Reset Your Password - AI Anonymizer',
@@ -93,6 +93,7 @@ export async function POST(req: Request) {
           <p><a href="${resetUrl}">Reset Password</a></p>
           <p>This link will expire in 24 hours.</p>
           <p>If you didn't request this, please ignore this email.</p>
+          <p>Best regards,<br>AI Anonymizer Team</p>
         `,
       });
       console.log('Reset email sent successfully:', emailResult);

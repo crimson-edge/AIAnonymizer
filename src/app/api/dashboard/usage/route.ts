@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { startOfDay } from 'date-fns';
+import { subscriptionLimits } from '@/config/subscription-limits';
+import { SubscriptionTier } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,19 +56,28 @@ export async function GET() {
       _sum: {
         tokens: true,
         cost: true
-      },
-      _count: true
+      }
     });
 
+    // Get subscription tier and limits
+    const tier = user.subscription?.tier || 'FREE' as SubscriptionTier;
+    const tierLimits = subscriptionLimits[tier];
+    const monthlyLimit = tierLimits.monthlyTokens;
+    const monthlyTokensUsed = monthlyUsage._sum.tokens || 0;
+    const totalAvailableTokens = Math.max(0, monthlyLimit - monthlyTokensUsed);
+
     return NextResponse.json({
-      totalTokens: monthlyUsage._sum.tokens || 0,
-      monthlyLimit: user.subscription?.monthlyLimit || 1000,
-      tokenLimit: user.subscription?.tokenLimit || user.subscription?.monthlyLimit || 1000,
-      requestsToday: todayUsage._count || 0,
-      costToday: todayUsage._sum.cost || 0
+      monthlyTokensUsed,
+      totalAvailableTokens,
+      currentMonthlyQuota: monthlyLimit,
+      dailyUsage: todayUsage._sum.tokens || 0,
+      monthlyUsage: monthlyTokensUsed,
+      monthlyLimit: monthlyLimit,
+      dailyCost: todayUsage._sum.cost || 0,
+      monthlyCost: monthlyUsage._sum.cost || 0
     });
   } catch (error) {
-    console.error('Error fetching usage stats:', error);
+    console.error('Error fetching usage:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
