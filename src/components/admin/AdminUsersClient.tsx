@@ -135,17 +135,16 @@ export default function AdminUsersClient() {
           'Content-Type': 'application/json',
         },
       });
-  
+
       if (!res.ok) {
-        throw new Error('Failed to delete user');
+        const error = await res.text();
+        throw new Error(error || 'Failed to delete user');
       }
-  
+
       await fetchUsers();
-      if (selectedUserId === userId) {
-        setSelectedUserId(null);
-      }
+      setError('');
     } catch (err) {
-      setError('Failed to delete user');
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
       console.error('Error deleting user:', err);
     }
   };

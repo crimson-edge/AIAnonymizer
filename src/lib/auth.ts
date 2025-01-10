@@ -39,53 +39,50 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log('Starting authorization for:', credentials?.email);
-        
         if (!credentials?.email || !credentials?.password) {
-          console.error('Missing credentials');
-          throw new Error('Missing credentials');
+          throw new Error('Please enter your email and password');
         }
 
-        try {
-          console.log('Looking up user in database...');
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
-            select: {
-              id: true,
-              email: true,
-              password: true,
-              firstName: true,
-              lastName: true,
-              isAdmin: true,
-              status: true,
-            },
-          });
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email.toLowerCase(),
+          },
+          select: {
+            id: true,
+            email: true,
+            password: true,
+            firstName: true,
+            lastName: true,
+            isAdmin: true,
+            status: true,
+          },
+        });
 
-          if (!user?.password) {
-            console.error('User not found or no password');
-            throw new Error('Invalid credentials');
-          }
-
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-
-          if (!isValid) {
-            console.error('Invalid password');
-            throw new Error('Invalid credentials');
-          }
-
-          console.log('Authorization successful');
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            isAdmin: user.isAdmin,
-            status: user.status,
-          };
-        } catch (error) {
-          console.error('Authorization error:', error);
-          throw error;
+        if (!user) {
+          throw new Error('No user found with this email');
         }
+
+        if (user.status === 'SUSPENDED') {
+          throw new Error('Your account has been suspended. Please contact support for assistance.');
+        }
+
+        const isValidPassword = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isValidPassword) {
+          throw new Error('Invalid password');
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isAdmin: user.isAdmin,
+          status: user.status,
+        };
       },
     }),
   ],

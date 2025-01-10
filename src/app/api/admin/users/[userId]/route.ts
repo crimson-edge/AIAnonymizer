@@ -22,9 +22,34 @@ export async function DELETE(
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    await prisma.user.delete({
+    // Check if user exists
+    const user = await prisma.user.findUnique({
       where: { id: params.userId },
     });
+
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    // Delete all related records first
+    await prisma.$transaction([
+      // Delete user's API keys
+      prisma.apiKey.deleteMany({
+        where: { userId: params.userId },
+      }),
+      // Delete user's activity records
+      prisma.userActivity.deleteMany({
+        where: { userId: params.userId },
+      }),
+      // Delete user's subscription if it exists
+      prisma.subscription.deleteMany({
+        where: { userId: params.userId },
+      }),
+      // Finally delete the user
+      prisma.user.delete({
+        where: { id: params.userId },
+      }),
+    ]);
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
