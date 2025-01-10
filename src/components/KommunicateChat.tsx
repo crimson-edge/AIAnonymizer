@@ -26,7 +26,7 @@ export default function KommunicateChat() {
     window.kommunicateSettings = {
       "appId": "1a1569123e0df223da536d8a26c5417ff",
       "popupWidget": true,
-      "automaticChatOpenOnNavigation": true,
+      "automaticChatOpenOnNavigation": false,
       "onInit": function() {
         // Ensure Kommunicate is properly initialized before using it
         if (window.Kommunicate) {
@@ -40,7 +40,13 @@ export default function KommunicateChat() {
     script.type = 'text/javascript';
     script.async = true;
     script.src = 'https://widget.kommunicate.io/v2/kommunicate.app';
-    script.onload = () => console.log('Kommunicate script loaded');
+    script.onload = () => {
+      console.log('Kommunicate script loaded');
+      // Ensure the widget is hidden initially
+      if (window.Kommunicate) {
+        window.Kommunicate.displayKommunicateWidget(true);
+      }
+    };
     script.onerror = (error) => console.error('Error loading Kommunicate:', error);
 
     // Add script to document
