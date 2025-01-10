@@ -19,6 +19,7 @@ interface User {
   subscription?: {
     tier: string;
     monthlyLimit: number;
+    availableTokens: number;
   };
   apiKeys?: {
     id: string;
@@ -27,6 +28,7 @@ interface User {
   usage?: {
     monthly: number;
     total: number;
+    available: number;
   };
   activity?: {
     id: string;
@@ -315,12 +317,14 @@ export default function AdminUsersClient() {
   };
 
   const calculateTokenUsage = (user: User) => {
-    const monthlyLimit = user.subscription?.monthlyLimit || 0;
+    const monthlyLimit = user.subscription?.monthlyLimit || 10000; // Default to FREE tier limit
     const usedTokens = user.usage?.monthly || 0;
+    const availableTokens = user.usage?.available || monthlyLimit;
     const usagePercentage = Math.min((usedTokens / monthlyLimit) * 100, 100);
 
     return {
       usedTokens,
+      availableTokens,
       totalAvailableTokens: monthlyLimit,
       usagePercentage,
       formattedUsage: `${usedTokens.toLocaleString()} of ${monthlyLimit.toLocaleString()}`
@@ -328,7 +332,7 @@ export default function AdminUsersClient() {
   };
 
   const renderTokenUsage = (user: User) => {
-    const { usedTokens, totalAvailableTokens, usagePercentage, formattedUsage } = calculateTokenUsage(user);
+    const { usedTokens, availableTokens, totalAvailableTokens, usagePercentage, formattedUsage } = calculateTokenUsage(user);
     const isNearLimit = usagePercentage >= 90;
 
     return (
@@ -346,6 +350,9 @@ export default function AdminUsersClient() {
             className={`h-2 rounded-full ${isNearLimit ? 'bg-red-600' : 'bg-blue-600'}`}
             style={{ width: `${usagePercentage}%` }}
           />
+        </div>
+        <div className="text-sm text-gray-600">
+          Available tokens: {availableTokens.toLocaleString()}
         </div>
       </div>
     );

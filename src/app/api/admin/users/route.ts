@@ -25,6 +25,7 @@ interface ProcessedUser {
     tier: SubscriptionTier;
     status: string;
     monthlyLimit: number;
+    availableTokens: number;
     createdAt?: Date;
     updatedAt?: Date;
   };
@@ -146,8 +147,8 @@ export async function GET(req: Request) {
     const processedUsers: ProcessedUser[] = users.map(user => {
       const tier = (user.subscription?.tier || 'FREE') as SubscriptionTier;
       const monthlyLimit = user.subscription?.monthlyLimit || subscriptionLimits[tier].monthlyTokens;
-      const availableTokens = user.subscription?.availableTokens || monthlyLimit;
       const monthlyUsage = user.usageRecords.reduce((sum, record) => sum + (record.tokens || 0), 0);
+      const availableTokens = user.subscription?.availableTokens ?? (monthlyLimit - monthlyUsage);
       
       return {
         id: user.id,
@@ -169,6 +170,7 @@ export async function GET(req: Request) {
           tier,
           status: user.subscription?.status || 'inactive',
           monthlyLimit,
+          availableTokens,
           createdAt: user.subscription?.createdAt,
           updatedAt: user.subscription?.updatedAt
         }
