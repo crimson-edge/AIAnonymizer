@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function PUT(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
@@ -22,29 +22,13 @@ export async function PUT(
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    const { status } = await request.json();
-    if (!status || !['ACTIVE', 'SUSPENDED'].includes(status)) {
-      return new NextResponse('Invalid status', { status: 400 });
-    }
-
-    // Check if user is unverified
-    const user = await prisma.user.findUnique({
+    await prisma.user.delete({
       where: { id: params.userId },
-      select: { status: true },
     });
 
-    if (user?.status === 'PENDING_VERIFICATION') {
-      return new NextResponse('Cannot modify status of unverified users', { status: 400 });
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: params.userId },
-      data: { status },
-    });
-
-    return NextResponse.json(updatedUser);
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error updating user status:', error);
+    console.error('Error deleting user:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

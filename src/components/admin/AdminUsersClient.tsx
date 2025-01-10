@@ -33,6 +33,11 @@ interface User {
     id: string;
     action: string;
     timestamp: string;
+    sessionId?: string;
+    startTime?: string;
+    endTime?: string;
+    tokensUsed?: number;
+    type?: 'session' | 'admin' | 'system';
   }[];
 }
 
@@ -45,7 +50,6 @@ interface PaginationData {
 
 interface Filters {
   search: string;
-  status: string;
   tier: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
@@ -72,7 +76,6 @@ export default function AdminUsersClient() {
   });
   const [filters, setFilters] = useState<Filters>({
     search: '',
-    status: '',
     tier: '',
     sortBy: 'createdAt',
     sortOrder: 'desc'
@@ -91,7 +94,6 @@ export default function AdminUsersClient() {
         page: page.toString(),
         limit: '10',
         ...(filters.search && { search: filters.search }),
-        ...(filters.status && { status: filters.status }),
         ...(filters.tier && { tier: filters.tier }),
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder
@@ -127,12 +129,11 @@ export default function AdminUsersClient() {
   }, [session, sessionStatus, router, filters]);
   const handleDeleteUser = async (userId: string) => {
     try {
-      const res = await fetch(`/api/admin/users`, {
+      const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
       });
   
       if (!res.ok) {
@@ -151,7 +152,13 @@ export default function AdminUsersClient() {
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     try {
-      const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+      // Don't allow toggling if user is unverified
+      if (currentStatus === 'PENDING_VERIFICATION') {
+        setError('Cannot modify status of unverified users');
+        return;
+      }
+
+      const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
       const res = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: {
@@ -194,10 +201,6 @@ export default function AdminUsersClient() {
 
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, search: value }));
-  };
-
-  const handleStatusFilter = (value: string) => {
-    setFilters(prev => ({ ...prev, status: value }));
   };
 
   const handleTierFilter = (value: string) => {
@@ -352,16 +355,6 @@ export default function AdminUsersClient() {
               className="px-3 py-2 border rounded-md w-full sm:w-auto"
             />
             <select
-              value={filters.status}
-              onChange={(e) => handleStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-md w-full sm:w-auto"
-            >
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="PENDING_VERIFICATION">Pending Verification</option>
-            </select>
-            <select
               value={filters.tier}
               onChange={(e) => handleTierFilter(e.target.value)}
               className="px-3 py-2 border rounded-md w-full sm:w-auto"
@@ -429,9 +422,13 @@ export default function AdminUsersClient() {
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-          user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+          user.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
+          'bg-yellow-100 text-yellow-800'
         }`}>
-          {user.status}
+          {user.status === 'ACTIVE' ? 'Active' :
+           user.status === 'SUSPENDED' ? 'Suspended' :
+           'Unverified'}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -447,10 +444,14 @@ export default function AdminUsersClient() {
             handleToggleUserStatus(user.id, user.status);
           }}
           className={`${
-            user.status === 'suspended' ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900'
+            user.status === 'PENDING_VERIFICATION' ? 'text-gray-400 cursor-not-allowed' :
+            user.status === 'SUSPENDED' ? 'text-green-600 hover:text-green-900' : 
+            'text-red-600 hover:text-red-900'
           } mr-4`}
+          disabled={user.status === 'PENDING_VERIFICATION'}
         >
-          {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
+          {user.status === 'PENDING_VERIFICATION' ? 'Cannot Modify' :
+           user.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
         </button>
         <button
           onClick={(e) => {
@@ -558,6 +559,31 @@ export default function AdminUsersClient() {
                                   <p className="text-xs text-gray-500 mt-1">
                                     {new Date(item.timestamp).toLocaleDateString()}
                                   </p>
+                                  {item.sessionId && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Session ID: {item.sessionId}
+                                    </p>
+                                  )}
+                                  {item.startTime && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Start Time: {new Date(item.startTime).toLocaleString()}
+                                    </p>
+                                  )}
+                                  {item.endTime && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      End Time: {new Date(item.endTime).toLocaleString()}
+                                    </p>
+                                  )}
+                                  {item.tokensUsed && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Tokens Used: {item.tokensUsed}
+                                    </p>
+                                  )}
+                                  {item.type && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Type: {item.type}
+                                    </p>
+                                  )}
                                 </div>
                               ))
                             ) : (
