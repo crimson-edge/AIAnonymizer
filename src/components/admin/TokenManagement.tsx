@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface TokenManagementProps {
   userId: string;
@@ -70,7 +70,9 @@ export default function TokenManagement({ userId, onSuccess }: TokenManagementPr
 
       await fetchTokenData();
       setTokenAmount('');
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        onSuccess(); // Call the onSuccess callback to refresh parent
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -79,9 +81,9 @@ export default function TokenManagement({ userId, onSuccess }: TokenManagementPr
   };
 
   // Fetch token data on mount
-  useState(() => {
+  useEffect(() => {
     fetchTokenData();
-  });
+  }, [userId]);
 
   if (loading && !tokenData) {
     return (

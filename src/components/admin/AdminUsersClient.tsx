@@ -366,6 +366,11 @@ export default function AdminUsersClient() {
     });
   };
 
+  const handleTokenManagementSuccess = () => {
+    // Refresh the users list to show updated token values
+    fetchUsers(pagination.currentPage);
+  };
+
   if (loading) {
     return (
       <div className="rounded-lg bg-white p-8 shadow-sm">
@@ -746,7 +751,7 @@ export default function AdminUsersClient() {
             >
               <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
                 <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                  Add Tokens for {tokenDialog.userName}
+                  Manage Tokens - {tokenDialog.userName}
                 </Dialog.Title>
   
                 <div className="mt-4">
@@ -775,6 +780,53 @@ export default function AdminUsersClient() {
                     Add Tokens
                   </button>
                 </div>
+              </div>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
+  
+      {/* Token Management Dialog */}
+      <Transition appear show={tokenDialog.isOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-10 overflow-y-auto"
+          onClose={() => setTokenDialog({ isOpen: false, userId: null, userName: '' })}
+        >
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-black bg-opacity-30" aria-hidden="true" />
+            </Transition.Child>
+  
+            <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+  
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                  Manage Tokens - {tokenDialog.userName}
+                </Dialog.Title>
+                {tokenDialog.userId && (
+                  <TokenManagement
+                    userId={tokenDialog.userId}
+                    onSuccess={handleTokenManagementSuccess}
+                  />
+                )}
               </div>
             </Transition.Child>
           </div>
