@@ -62,12 +62,21 @@ export async function GET(req: Request) {
       },
     });
 
+    const tier = user.subscription?.tier || 'FREE';
+    const monthlyLimit = subscriptionLimits[tier].monthlyTokens;
+    const usedTokens = currentMonthUsage._sum.tokens || 0;
+    const availableTokens = monthlyLimit - usedTokens;
+
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        subscription: user.subscription,
-        monthlyUsage: currentMonthUsage._sum.tokens || 0,
+        subscription: {
+          ...user.subscription,
+          monthlyLimit,
+          availableTokens,
+        },
+        monthlyUsage: usedTokens,
         usageHistory: user.usageRecords,
       },
     });
@@ -133,32 +142,47 @@ export async function POST(req: Request) {
     // Handle different token management actions
     switch (action) {
       case 'add':
-        await prisma.subscription.update({
-          where: { userId },
+        // Create a negative usage record to effectively add tokens
+        await prisma.usage.create({
           data: {
-            availableTokens: {
-              increment: amount,
-            },
+            userId,
+            tokens: -amount, // Negative tokens = adding tokens
+            type: 'ADMIN_ADDED',
+            cost: 0,
           },
         });
         break;
 
       case 'set':
-        await prisma.subscription.update({
-          where: { userId },
+        // Calculate how many tokens to add/remove to reach the desired amount
+        const currentAvailable = subscriptionLimits[user.subscription.tier].monthlyTokens - (currentMonthUsage._sum.tokens || 0);
+        const difference = amount - currentAvailable;
+        
+        await prisma.usage.create({
           data: {
-            availableTokens: amount,
+            userId,
+            tokens: -difference, // Negative if adding tokens, positive if removing
+            type: 'ADMIN_SET',
+            cost: 0,
           },
         });
         break;
 
       case 'reset':
-        await prisma.subscription.update({
-          where: { userId },
-          data: {
-            availableTokens: user.subscription.monthlyLimit - (currentMonthUsage._sum.tokens || 0),
-          },
-        });
+        // Calculate how many tokens to add to reset to monthly limit
+        const usedTokens = currentMonthUsage._sum.tokens || 0;
+        const monthlyLimit = subscriptionLimits[user.subscription.tier].monthlyTokens;
+        
+        if (usedTokens > 0) {
+          await prisma.usage.create({
+            data: {
+              userId,
+              tokens: -usedTokens, // Cancel out all usage
+              type: 'ADMIN_RESET',
+              cost: 0,
+            },
+          });
+        }
         break;
 
       default:
@@ -173,12 +197,7 @@ export async function POST(req: Request) {
         targetUserId: userId,
         details: {
           amount,
-          previousAvailable: user.subscription.availableTokens,
-          newAvailable: action === 'add' 
-            ? user.subscription.availableTokens + amount
-            : action === 'set' 
-              ? amount 
-              : user.subscription.monthlyLimit - (currentMonthUsage._sum.tokens || 0)
+          action,
         },
       },
     });
