@@ -17,40 +17,21 @@ declare global {
 
 export default function KommunicateChat() {
   useEffect(() => {
-    // Prevent multiple initializations
-    if (window.kommunicate || document.getElementById('kommunicate-widget-iframe')) {
-      return;
-    }
-
-    // Initialize Kommunicate settings
-    window.kommunicateSettings = {
-      "appId": "1a1569123e0df223da536d8a26c5417ff",
-      "popupWidget": true,
-      "automaticChatOpenOnNavigation": false,
-      "onInit": function() {
-        // Ensure Kommunicate is properly initialized before using it
-        if (window.Kommunicate) {
-          window.Kommunicate.displayKommunicateWidget(true);
-        }
-      }
-    };
-
-    // Create script element
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.async = true;
-    script.src = 'https://widget.kommunicate.io/v2/kommunicate.app';
-    script.onload = () => {
-      console.log('Kommunicate script loaded');
-      // Ensure the widget is hidden initially
-      if (window.Kommunicate) {
-        window.Kommunicate.displayKommunicateWidget(true);
-      }
-    };
-    script.onerror = (error) => console.error('Error loading Kommunicate:', error);
-
-    // Add script to document
-    document.head.appendChild(script);
+    (function(d, m){
+      var kommunicateSettings = {
+        "appId": "1a1569123e0df223da536d8a26c5417ff",
+        "popupWidget": true,
+        "automaticChatOpenOnNavigation": false
+      };
+      var s = document.createElement("script"); 
+      s.type = "text/javascript"; 
+      s.async = true;
+      s.src = "https://widget.kommunicate.io/v2/kommunicate.app";
+      var h = document.getElementsByTagName("head")[0]; 
+      h.appendChild(s);
+      (window as any).kommunicate = m; 
+      m._globals = kommunicateSettings;
+    })(document, (window as any).kommunicate || {});
 
     // Cleanup function
     return () => {
@@ -58,15 +39,13 @@ export default function KommunicateChat() {
       if (widget) {
         widget.remove();
       }
-      // Remove the script
       const kmScript = document.querySelector('script[src*="kommunicate.app"]');
       if (kmScript) {
         kmScript.remove();
       }
-      // Clean up global variables
-      delete window.kommunicate;
-      delete window.Kommunicate;
-      delete window.kommunicateSettings;
+      delete (window as any).kommunicate;
+      delete (window as any).Kommunicate;
+      delete (window as any).kommunicateSettings;
     };
   }, []);
 

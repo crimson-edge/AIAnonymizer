@@ -94,13 +94,18 @@ export default function PricingUI() {
 
   const handleEnterpriseContact = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.Kommunicate) {
-      // Open chat widget with pre-filled enterprise inquiry
-      window.Kommunicate.displayKommunicateWidget(true);
-      window.Kommunicate.startNewConversation({
-        message: "Hi, I'm interested in learning more about the Enterprise plan. Could you please provide more information about custom solutions and pricing?",
-      });
-    }
+    // Wait for Kommunicate to be available
+    const checkKommunicate = setInterval(() => {
+      if ((window as any).Kommunicate) {
+        clearInterval(checkKommunicate);
+        (window as any).Kommunicate.launchConversation();
+        setTimeout(() => {
+          (window as any).Kommunicate.sendMessage({
+            message: "Hi, I'm interested in learning more about the Enterprise plan. Could you please provide more information about custom solutions and pricing?"
+          });
+        }, 1000);
+      }
+    }, 100);
   };
 
   return (
