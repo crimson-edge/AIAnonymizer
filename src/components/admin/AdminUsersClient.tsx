@@ -319,14 +319,13 @@ export default function AdminUsersClient() {
   const calculateTokenUsage = (user: User) => {
     const monthlyLimit = user.subscription?.monthlyLimit || 10000; // Default to FREE tier limit
     const usedTokens = user.usage?.monthly || 0;
-    const availableTokens = user.usage?.available || monthlyLimit;
-    const usagePercentage = Math.min((usedTokens / monthlyLimit) * 100, 100);
+    const availableTokens = user.usage?.available || monthlyLimit; // Use available tokens from API
 
     return {
       usedTokens,
       availableTokens,
       totalAvailableTokens: monthlyLimit,
-      usagePercentage,
+      usagePercentage: Math.min((usedTokens / monthlyLimit) * 100, 100),
       formattedUsage: `${usedTokens.toLocaleString()} of ${monthlyLimit.toLocaleString()}`
     };
   };
