@@ -27,7 +27,7 @@ export const subscriptionLimits: Record<SubscriptionTier, TierLimits> = {
     concurrentRequests: 2
   },
   PREMIUM: {
-    monthlyTokens: 1000000,
+    monthlyTokens: 500000,
     requestsPerMinute: 30,
     requestsPerHour: 300,
     requestsPerDay: 3000,

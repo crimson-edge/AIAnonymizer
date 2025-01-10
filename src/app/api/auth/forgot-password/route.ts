@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     });
 
     // Send reset email
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${resetToken}`;
     await sendEmail({
       to: email,
       subject: 'Reset Your Password - AI Anonymizer',
