@@ -447,10 +447,10 @@ export default function AdminUsersClient() {
             handleToggleUserStatus(user.id, user.status);
           }}
           className={`${
-            user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+            user.status === 'suspended' ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900'
           } mr-4`}
         >
-          {user.status === 'active' ? 'Suspend' : 'Unsuspend'}
+          {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
         </button>
         <button
           onClick={(e) => {
