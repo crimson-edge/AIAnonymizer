@@ -1,6 +1,8 @@
 import { Session } from "next-auth";
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 export function isAdmin(session: Session | null): boolean {
   return session?.user?.isAdmin === true;
@@ -31,4 +33,12 @@ export const formatBytes = (bytes: number) => {
   }
 
   return `${size.toFixed(2)} ${units[unitIndex]}`
+}
+
+export function generateResetToken(): string {
+  return crypto.randomUUID();
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, 10);
 }

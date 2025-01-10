@@ -146,26 +146,18 @@ export default function SubscriptionManager({
             </p>
           </div>
           <div className="flex gap-4">
-            {currentTier === 'FREE' && (
+            {(currentTier === 'FREE' || currentTier === 'BASIC') && (
               <button
                 onClick={() => setShowUpgradeDialog(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
-                Upgrade Plan
-              </button>
-            )}
-            {currentTier === 'BASIC' && (
-              <button
-                onClick={() => setShowUpgradeDialog(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Upgrade to Premium
+                {currentTier === 'FREE' ? 'Upgrade Plan' : 'Upgrade to Premium'}
               </button>
             )}
             {currentTier === 'PREMIUM' && (
               <button
                 onClick={onPurchaseTokens}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
               >
                 Purchase Additional Tokens
               </button>

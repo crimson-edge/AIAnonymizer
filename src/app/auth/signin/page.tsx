@@ -1,5 +1,6 @@
 import { getProviders } from 'next-auth/react';
 import SignInForm from '@/components/auth/SignInForm';
+import Link from 'next/link';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,14 @@ export default async function SignIn() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <SignInForm providers={providers} />
+          <div className="mt-6 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-blue-600 hover:text-blue-500"
+            >
+              Forgot your password?
+            </Link>
+          </div>
         </div>
       </div>
     </div>
