@@ -31,18 +31,34 @@ export async function GET() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const monthlyUsage = await prisma.usage.aggregate({
+    // Get all usage records for this month
+    const monthlyUsageRecords = await prisma.usage.findMany({
       where: {
         userId: user.id,
         createdAt: {
           gte: startOfMonth
         }
       },
-      _sum: {
+      select: {
         tokens: true,
-        cost: true
+        cost: true,
+        type: true
       }
     });
+
+    // Calculate actual token usage (only positive values)
+    const monthlyTokensUsed = monthlyUsageRecords
+      .filter(record => record.tokens > 0)
+      .reduce((sum, record) => sum + record.tokens, 0);
+
+    // Calculate admin token additions (negative values)
+    const adminTokenAdditions = monthlyUsageRecords
+      .filter(record => record.tokens < 0)
+      .reduce((sum, record) => sum - record.tokens, 0); // Convert to positive number
+
+    // Calculate monthly costs
+    const monthlyCost = monthlyUsageRecords
+      .reduce((sum, record) => sum + (record.cost || 0), 0);
 
     // Get today's usage
     const todayStart = startOfDay(new Date());
@@ -51,6 +67,9 @@ export async function GET() {
         userId: user.id,
         createdAt: {
           gte: todayStart
+        },
+        tokens: {
+          gt: 0 // Only count positive token usage for daily stats
         }
       },
       _sum: {
@@ -63,8 +82,9 @@ export async function GET() {
     const tier = user.subscription?.tier || 'FREE' as SubscriptionTier;
     const tierLimits = subscriptionLimits[tier];
     const monthlyLimit = tierLimits.monthlyTokens;
-    const monthlyTokensUsed = monthlyUsage._sum.tokens || 0;
-    const totalAvailableTokens = Math.max(0, monthlyLimit - monthlyTokensUsed);
+
+    // Calculate total available tokens including admin additions
+    const totalAvailableTokens = Math.max(0, monthlyLimit - monthlyTokensUsed + adminTokenAdditions);
 
     return NextResponse.json({
       monthlyTokensUsed,
@@ -74,7 +94,7 @@ export async function GET() {
       monthlyUsage: monthlyTokensUsed,
       monthlyLimit: monthlyLimit,
       dailyCost: todayUsage._sum.cost || 0,
-      monthlyCost: monthlyUsage._sum.cost || 0
+      monthlyCost
     });
   } catch (error) {
     console.error('Error fetching usage:', error);

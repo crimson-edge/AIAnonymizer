@@ -147,8 +147,27 @@ export async function GET(req: Request) {
     const processedUsers: ProcessedUser[] = users.map(user => {
       const tier = (user.subscription?.tier || 'FREE') as SubscriptionTier;
       const monthlyLimit = subscriptionLimits[tier].monthlyTokens;  // Always use the limit from config
-      const monthlyUsage = user.usageRecords.reduce((sum, record) => sum + (record.tokens || 0), 0);
-      const availableTokens = monthlyLimit - monthlyUsage;  // Calculate available tokens
+      
+      // Calculate net usage (including negative values from admin token additions)
+      const monthlyUsage = user.usageRecords.reduce((sum, record) => {
+        // Only add positive token usage (ignore negative values from admin additions)
+        if (record.tokens > 0) {
+          return sum + record.tokens;
+        }
+        return sum;
+      }, 0);
+
+      // Calculate admin token additions (negative values)
+      const adminAdditions = user.usageRecords.reduce((sum, record) => {
+        // Only add negative token records (admin additions)
+        if (record.tokens < 0) {
+          return sum - record.tokens; // Convert to positive number
+        }
+        return sum;
+      }, 0);
+
+      // Available tokens = monthly limit - usage + admin additions
+      const availableTokens = monthlyLimit - monthlyUsage + adminAdditions;
       
       return {
         id: user.id,
