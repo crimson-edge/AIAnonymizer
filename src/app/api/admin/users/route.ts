@@ -146,9 +146,9 @@ export async function GET(req: Request) {
     // Process users to include correct token limits and usage
     const processedUsers: ProcessedUser[] = users.map(user => {
       const tier = (user.subscription?.tier || 'FREE') as SubscriptionTier;
-      const monthlyLimit = user.subscription?.monthlyLimit || subscriptionLimits[tier].monthlyTokens;
+      const monthlyLimit = subscriptionLimits[tier].monthlyTokens;  // Always use the limit from config
       const monthlyUsage = user.usageRecords.reduce((sum, record) => sum + (record.tokens || 0), 0);
-      const availableTokens = user.subscription?.availableTokens ?? (monthlyLimit - monthlyUsage);
+      const availableTokens = monthlyLimit - monthlyUsage;  // Calculate available tokens
       
       return {
         id: user.id,

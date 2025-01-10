@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 import { sendVerificationEmail } from '@/lib/sendgrid';
 import crypto from 'crypto';
+import { subscriptionLimits } from '@/config/subscription-limits';
 
 export async function POST(req: Request) {
   try {
@@ -60,8 +61,8 @@ export async function POST(req: Request) {
           subscription: {
             create: {
               tier: SubscriptionTier.FREE,
-              monthlyLimit: 2000,
-              tokenLimit: 2000,
+              monthlyLimit: subscriptionLimits.FREE.monthlyTokens,
+              availableTokens: subscriptionLimits.FREE.monthlyTokens,
               status: 'ACTIVE'
             }
           }
