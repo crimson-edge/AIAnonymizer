@@ -148,6 +148,50 @@ export default function AdminUsersClient() {
       console.error('Error deleting user:', err);
     }
   };
+
+  const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+      const res = await fetch(`/api/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update user status');
+      }
+
+      await fetchUsers();
+    } catch (err) {
+      setError('Failed to update user status');
+      console.error('Error updating user status:', err);
+    }
+  };
+
+  const handleToggleAdmin = async (userId: string, isCurrentlyAdmin: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/admin`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isAdmin: !isCurrentlyAdmin }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update admin status');
+      }
+
+      await fetchUsers();
+    } catch (err) {
+      setError('Failed to update admin status');
+      console.error('Error updating admin status:', err);
+    }
+  };
+
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, search: value }));
   };
@@ -397,6 +441,26 @@ export default function AdminUsersClient() {
         {new Date(user.createdAt).toLocaleDateString()}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleUserStatus(user.id, user.status);
+          }}
+          className={`${
+            user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+          } mr-4`}
+        >
+          {user.status === 'active' ? 'Suspend' : 'Unsuspend'}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleAdmin(user.id, user.isAdmin);
+          }}
+          className="text-blue-600 hover:text-blue-900 mr-4"
+        >
+          {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
