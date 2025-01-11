@@ -9,7 +9,7 @@ const tiers = [
     price: '$0',
     tier: 'FREE',
     features: [
-      'Access to GPT-3.5 Turbo',
+      'Access to Meta LLama 3.3 70B and other LLM models',
       'Basic anonymization',
       '10,000 tokens per month',
       '2 requests per minute',
