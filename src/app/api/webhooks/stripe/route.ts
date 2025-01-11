@@ -67,6 +67,12 @@ export async function POST(req: Request) {
         const subscriptionId = session.subscription as string;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0].price.id;
+        const userId = session.client_reference_id;
+
+        if (!userId) {
+          console.error('No client_reference_id found in session');
+          return new Response('No client_reference_id found in session', { status: 400 });
+        }
 
         // Map price IDs to subscription tiers
         const tierMap: Record<string, SubscriptionTier> = {
@@ -80,32 +86,12 @@ export async function POST(req: Request) {
           return new Response('Unknown price ID', { status: 400 });
         }
 
-        const customerId = session.customer as string;
-        const userId = session.client_reference_id;
-
-        if (!userId) {
-          console.error('No client_reference_id found in session');
-          return new Response('No client_reference_id found in session', { status: 400 });
-        }
-
-        // Create subscription for the user
-        await prisma.subscription.upsert({
+        // Update the subscription with Stripe details and activate it
+        await prisma.subscription.update({
           where: { userId },
-          create: {
-            userId,
+          data: {
             stripeId: subscriptionId,
-            tier,
             status: 'ACTIVE',
-            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
-            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-          },
-          update: {
-            stripeId: subscriptionId,
-            tier,
-            status: 'ACTIVE',
-            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
-            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });

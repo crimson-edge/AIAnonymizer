@@ -17,6 +17,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Determine subscription tier from priceId
+    const tier = priceId === process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID
+      ? SubscriptionTier.BASIC
+      : priceId === process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID
+        ? SubscriptionTier.PREMIUM
+        : SubscriptionTier.FREE;
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
@@ -32,7 +39,7 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with PENDING_VERIFICATION status
+    // Create user with PENDING_VERIFICATION status and correct subscription tier
     const user = await prisma.user.create({
       data: {
         firstName: firstName.trim(),
@@ -40,6 +47,17 @@ export async function POST(request: Request) {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         status: 'PENDING_VERIFICATION',
+        subscription: {
+          create: {
+            tier,
+            status: 'PENDING_PAYMENT',
+            monthlyLimit: subscriptionLimits[tier].monthlyTokens,
+            tokenLimit: subscriptionLimits[tier].monthlyTokens,
+          }
+        }
+      },
+      include: {
+        subscription: true,
       },
     });
 
@@ -51,7 +69,7 @@ export async function POST(request: Request) {
       payment_method_types: ['card'],
       billing_address_collection: 'required',
       customer_email: email,
-      client_reference_id: user.id, // Link session to user
+      client_reference_id: user.id,
       line_items: [
         {
           price: priceId,
@@ -62,6 +80,7 @@ export async function POST(request: Request) {
       allow_promotion_codes: true,
       metadata: {
         userId: user.id,
+        tier: tier,
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/signup/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
