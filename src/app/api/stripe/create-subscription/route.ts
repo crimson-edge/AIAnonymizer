@@ -47,14 +47,26 @@ export async function POST(request: Request) {
 
     // Check if this is an upgrade or downgrade
     const currentTier = user.subscription?.tier || SubscriptionTier.FREE;
-    const isUpgrade = (
-      (currentTier === SubscriptionTier.FREE && newTier !== SubscriptionTier.FREE) ||
-      (currentTier === SubscriptionTier.BASIC && newTier === SubscriptionTier.PREMIUM)
-    );
-    const isDowngrade = (
-      (currentTier === SubscriptionTier.PREMIUM && (newTier === SubscriptionTier.BASIC || newTier === SubscriptionTier.FREE)) ||
-      (currentTier === SubscriptionTier.BASIC && newTier === SubscriptionTier.FREE)
-    );
+    
+    // Helper function to get tier level
+    const getTierLevel = (tier: SubscriptionTier): number => {
+      switch (tier) {
+        case SubscriptionTier.FREE:
+          return 0;
+        case SubscriptionTier.BASIC:
+          return 1;
+        case SubscriptionTier.PREMIUM:
+          return 2;
+        default:
+          return -1;
+      }
+    };
+
+    const currentLevel = getTierLevel(currentTier);
+    const newLevel = getTierLevel(newTier);
+    
+    const isUpgrade = newLevel > currentLevel;
+    const isDowngrade = newLevel < currentLevel;
 
     // If user has an existing subscription in Stripe
     if (user.subscription?.stripeId) {
