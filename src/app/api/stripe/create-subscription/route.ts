@@ -27,6 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { error: 'Please verify your email before upgrading' },
+        { status: 403 }
+      );
+    }
+
     // Determine new tier
     const newTier = priceId === process.env.STRIPE_BASIC_PRICE_ID
       ? SubscriptionTier.BASIC
@@ -38,12 +45,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid price ID' }, { status: 400 });
     }
 
-    // If user has an existing subscription in Stripe, create a checkout session for upgrade
+    // Check if this is an upgrade or downgrade
+    const currentTier = user.subscription?.tier || SubscriptionTier.FREE;
+    const isUpgrade = (
+      (currentTier === SubscriptionTier.FREE && newTier !== SubscriptionTier.FREE) ||
+      (currentTier === SubscriptionTier.BASIC && newTier === SubscriptionTier.PREMIUM)
+    );
+    const isDowngrade = (
+      (currentTier === SubscriptionTier.PREMIUM && (newTier === SubscriptionTier.BASIC || newTier === SubscriptionTier.FREE)) ||
+      (currentTier === SubscriptionTier.BASIC && newTier === SubscriptionTier.FREE)
+    );
+
+    // If user has an existing subscription in Stripe
     if (user.subscription?.stripeId) {
+      // For downgrades, schedule the change for the next billing cycle
+      if (isDowngrade) {
+        const subscription = await stripe.subscriptions.retrieve(user.subscription.stripeId);
+        
+        // Schedule the update for the end of the current period
+        await stripe.subscriptions.update(user.subscription.stripeId, {
+          cancel_at_period_end: true,
+          metadata: {
+            downgradeToTier: newTier,
+            scheduledChange: 'downgrade'
+          }
+        });
+
+        // Update local subscription status
+        await prisma.subscription.update({
+          where: { userId: user.id },
+          data: {
+            status: 'SCHEDULED_DOWNGRADE',
+          },
+        });
+
+        return NextResponse.json({ 
+          message: 'Downgrade scheduled for next billing cycle',
+          scheduledChange: true 
+        });
+      }
+
+      // For upgrades, create an immediate checkout session
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'subscription',
-        customer: user.subscription.stripeId,
+        customer: user.stripeCustomerId!,
         billing_address_collection: 'required',
         line_items: [
           {
@@ -52,10 +98,17 @@ export async function POST(request: Request) {
           },
         ],
         allow_promotion_codes: true,
+        subscription_data: {
+          metadata: {
+            userId: user.id,
+            tier: newTier,
+            type: 'upgrade'
+          }
+        },
         metadata: {
           userId: user.id,
           tier: newTier,
-          type: 'upgrade',
+          type: 'upgrade'
         },
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
@@ -64,7 +117,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ sessionId: stripeSession.id });
     }
 
-    // For users without a Stripe subscription (e.g., FREE tier), create a new checkout session
+    // For new subscriptions (from FREE tier)
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -77,16 +130,23 @@ export async function POST(request: Request) {
         },
       ],
       allow_promotion_codes: true,
+      subscription_data: {
+        metadata: {
+          userId: user.id,
+          tier: newTier,
+          type: 'new'
+        }
+      },
       metadata: {
         userId: user.id,
         tier: newTier,
-        type: 'new',
+        type: 'new'
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
 
-    // Update subscription status to pending upgrade
+    // Update subscription status to pending
     await prisma.subscription.update({
       where: { userId: user.id },
       data: {

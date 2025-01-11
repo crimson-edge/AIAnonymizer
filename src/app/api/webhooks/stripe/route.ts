@@ -76,6 +76,7 @@ export async function POST(req: Request) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0].price.id;
         const userId = session.metadata?.userId || session.client_reference_id;
+        const customerId = session.customer as string;
 
         if (!userId) {
           console.error('No userId found in session');
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
 
         const tier = tierMap[priceId];
         if (!tier) {
-          console.error('Unknown price ID:', priceId);
+          console.error('Unknown price ID:', priceId, 'Available price IDs:', Object.keys(tierMap));
           return new Response('Unknown price ID', { status: 400 });
         }
 
@@ -109,6 +110,72 @@ export async function POST(req: Request) {
           },
         });
 
+        // Update user's Stripe customer ID if not set
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            stripeCustomerId: customerId
+          }
+        });
+
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const customerId = invoice.customer as string;
+
+        // Get user by Stripe customer ID
+        const user = await prisma.user.findFirst({
+          where: { stripeCustomerId: customerId },
+          include: { subscription: true }
+        });
+
+        if (!user) {
+          console.error('User not found for customer:', customerId);
+          return new Response('User not found', { status: 404 });
+        }
+
+        // If this is the final payment attempt, suspend the subscription
+        if (invoice.next_payment_attempt === null) {
+          await prisma.subscription.update({
+            where: { userId: user.id },
+            data: {
+              status: 'SUSPENDED',
+            },
+          });
+        }
+
+        break;
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const customerId = invoice.customer as string;
+
+        // Get user by Stripe customer ID
+        const user = await prisma.user.findFirst({
+          where: { stripeCustomerId: customerId },
+          include: { subscription: true }
+        });
+
+        if (!user) {
+          console.error('User not found for customer:', customerId);
+          return new Response('User not found', { status: 404 });
+        }
+
+        // If subscription was suspended, reactivate it
+        if (user.subscription?.status === 'SUSPENDED') {
+          await prisma.subscription.update({
+            where: { userId: user.id },
+            data: {
+              status: 'ACTIVE',
+            },
+          });
+        }
+
         break;
       }
 
@@ -117,26 +184,41 @@ export async function POST(req: Request) {
         const subscriptionId = subscription.id;
         const priceId = subscription.items.data[0].price.id;
 
+        // Check if this is a scheduled downgrade completing
+        const isScheduledDowngrade = subscription.metadata.scheduledChange === 'downgrade';
+        const downgradeToTier = subscription.metadata.downgradeToTier;
+
+        // Get the subscription from our database
+        const dbSubscription = await prisma.subscription.findFirst({
+          where: { stripeId: subscriptionId },
+          include: { user: true }
+        });
+
+        if (!dbSubscription) {
+          console.error('Subscription not found:', subscriptionId);
+          return new Response('Subscription not found', { status: 404 });
+        }
+
         const tierMap: Record<string, SubscriptionTier> = {
           [process.env.STRIPE_BASIC_PRICE_ID!]: SubscriptionTier.BASIC,
           [process.env.STRIPE_PREMIUM_PRICE_ID!]: SubscriptionTier.PREMIUM,
-          [process.env.STRIPE_ENTERPRISE_PRICE_ID!]: SubscriptionTier.ENTERPRISE,
           [process.env.STRIPE_FREE_PRICE_ID!]: SubscriptionTier.FREE,
         };
 
-        const tier = tierMap[priceId];
-        if (!tier) {
+        const tier = isScheduledDowngrade ? downgradeToTier as SubscriptionTier : tierMap[priceId];
+        if (!tier && !isScheduledDowngrade) {
           console.error('Unknown price ID:', priceId);
           return new Response('Unknown price ID', { status: 400 });
         }
 
-        await prisma.subscription.updateMany({
-          where: { stripeId: subscriptionId },
+        // Update the subscription
+        await prisma.subscription.update({
+          where: { id: dbSubscription.id },
           data: {
-            tier,
-            status: subscription.status === 'active' ? 'ACTIVE' : 'inactive',
-            monthlyLimit: subscriptionLimits[tier].monthlyTokens,
-            tokenLimit: subscriptionLimits[tier].tokenLimit,
+            tier: tier || dbSubscription.tier, // Keep current tier if no new tier
+            status: subscription.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+            monthlyLimit: tier ? subscriptionLimits[tier].monthlyTokens : dbSubscription.monthlyLimit,
+            tokenLimit: tier ? subscriptionLimits[tier].tokenLimit : dbSubscription.tokenLimit,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });
@@ -148,15 +230,34 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const subscriptionId = subscription.id;
 
-        await prisma.subscription.updateMany({
-          where: { stripeId: subscriptionId },
+        // Find the subscription in our database
+        const dbSubscription = await prisma.subscription.findFirst({
+          where: { stripeId: subscriptionId }
+        });
+
+        if (!dbSubscription) {
+          console.error('Subscription not found:', subscriptionId);
+          return new Response('Subscription not found', { status: 404 });
+        }
+
+        // Update to FREE tier with INACTIVE status
+        await prisma.subscription.update({
+          where: { id: dbSubscription.id },
           data: {
-            status: 'inactive',
+            status: 'INACTIVE',
+            tier: SubscriptionTier.FREE,
+            monthlyLimit: subscriptionLimits[SubscriptionTier.FREE].monthlyTokens,
+            tokenLimit: subscriptionLimits[SubscriptionTier.FREE].tokenLimit,
+            stripeId: null // Remove the Stripe subscription ID
           },
         });
 
         break;
       }
+
+      default:
+        console.log('Unhandled event type:', event.type);
+        break;
     }
 
     return NextResponse.json({ received: true });

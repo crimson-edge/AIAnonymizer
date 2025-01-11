@@ -13,6 +13,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 interface SubscriptionProps {
   currentTier: 'FREE' | 'BASIC' | 'PREMIUM';
   isActive: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_PAYMENT' | 'SCHEDULED_DOWNGRADE';
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   onPurchaseOverage: () => void;
@@ -20,18 +21,21 @@ interface SubscriptionProps {
   monthlyTokensUsed: number;
   totalAvailableTokens: number;
   currentMonthlyQuota: number;
+  currentPeriodEnd?: Date;
 }
 
 export default function SubscriptionManager({ 
   currentTier, 
   isActive,
+  status = 'ACTIVE',
   stripeCustomerId,
   stripeSubscriptionId,
   onPurchaseOverage,
   onPurchaseTokens,
   monthlyTokensUsed,
   totalAvailableTokens,
-  currentMonthlyQuota
+  currentMonthlyQuota,
+  currentPeriodEnd
 }: SubscriptionProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -142,6 +146,30 @@ export default function SubscriptionManager({
     }
   };
 
+  const handleManageSubscription = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create portal session');
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open customer portal');
+      console.error('Customer portal error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white shadow sm:rounded-lg">
@@ -151,23 +179,45 @@ export default function SubscriptionManager({
           </h3>
           <div className="mt-2 max-w-xl text-sm text-gray-500">
             <p>Current Plan: {currentTier}</p>
-            <p>Status: {isActive ? 'Active' : 'Inactive'}</p>
+            <p>Status: {status}</p>
+            {status === 'SCHEDULED_DOWNGRADE' && currentPeriodEnd && (
+              <p className="text-yellow-600">
+                Plan will change at the end of current billing period ({new Date(currentPeriodEnd).toLocaleDateString()})
+              </p>
+            )}
+            {status === 'SUSPENDED' && (
+              <p className="text-red-600">
+                Your subscription is suspended due to a failed payment. Please update your payment method.
+              </p>
+            )}
             <p>Monthly Usage: {formatNumber(monthlyTokensUsed)} / {formatNumber(currentMonthlyQuota)} tokens</p>
             <p>Total Available Tokens: {formatNumber(totalAvailableTokens)}</p>
           </div>
-          <div className="mt-5">
+          <div className="mt-5 space-x-3">
+            {stripeCustomerId && (
+              <button
+                type="button"
+                onClick={handleManageSubscription}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Manage Payment Method
+              </button>
+            )}
+            
             <button
               type="button"
               onClick={() => setShowUpgradeDialog(true)}
-              disabled={loading || currentTier === 'PREMIUM'}
+              disabled={loading || currentTier === 'PREMIUM' || status === 'SCHEDULED_DOWNGRADE'}
               className={`inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm ${
-                loading || currentTier === 'PREMIUM'
+                loading || currentTier === 'PREMIUM' || status === 'SCHEDULED_DOWNGRADE'
                   ? 'opacity-50 cursor-not-allowed'
                   : ''
               }`}
             >
               {loading ? 'Processing...' : 'Upgrade Plan'}
             </button>
+            
             {currentTier !== 'FREE' && (
               <button
                 type="button"
@@ -175,18 +225,19 @@ export default function SubscriptionManager({
                   setTargetTier(currentTier === 'PREMIUM' ? 'BASIC' : 'FREE');
                   setShowDowngradeConfirm(true);
                 }}
-                disabled={loading}
-                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={loading || status === 'SCHEDULED_DOWNGRADE'}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Downgrade Plan
+                {status === 'SCHEDULED_DOWNGRADE' ? 'Downgrade Scheduled' : 'Downgrade Plan'}
               </button>
             )}
+            
             {currentTier === 'PREMIUM' && (
               <button
                 type="button"
                 onClick={onPurchaseTokens}
                 disabled={loading}
-                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Purchase Additional Tokens
               </button>
