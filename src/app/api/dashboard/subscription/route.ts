@@ -28,8 +28,10 @@ export async function GET() {
 
     return NextResponse.json({
       tier: user.subscription.tier,
-      isActive: user.subscription.status === 'active',
-      endDate: user.subscription.currentPeriodEnd
+      isActive: user.subscription.status === 'ACTIVE',
+      stripeId: user.subscription.stripeId,
+      monthlyLimit: user.subscription.monthlyLimit,
+      currentPeriodEnd: user.subscription.currentPeriodEnd
     });
   } catch (error) {
     console.error('Error fetching subscription status:', error);

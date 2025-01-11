@@ -52,6 +52,8 @@ export default function SubscriptionManager({
         throw new Error('Invalid price ID for selected tier');
       }
 
+      console.log('Using price ID:', priceId);
+
       // Create new subscription checkout
       const response = await fetch('/api/stripe/create-subscription', {
         method: 'POST',
@@ -93,6 +95,8 @@ export default function SubscriptionManager({
         if (!priceId) {
           throw new Error('Invalid price ID for Basic tier');
         }
+
+        console.log('Using price ID:', priceId);
 
         const response = await fetch('/api/stripe/create-subscription', {
           method: 'POST',

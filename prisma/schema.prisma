@@ -57,7 +57,7 @@ model Subscription {
   monthlyLimit     Int              @default(10000)
   availableTokens  Int              @default(0)
   tokenLimit       Int              @default(100000)
-  status           String           @default("active")
+  status           String           @default("ACTIVE")
   currentPeriodEnd DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
