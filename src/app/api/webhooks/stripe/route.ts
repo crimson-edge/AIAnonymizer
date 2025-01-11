@@ -88,6 +88,7 @@ export async function POST(req: Request) {
           return new Response('No client_reference_id found in session', { status: 400 });
         }
 
+        // Create subscription for the user
         await prisma.subscription.upsert({
           where: { userId },
           create: {

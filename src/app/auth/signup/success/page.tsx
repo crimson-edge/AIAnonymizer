@@ -42,7 +42,7 @@ export default function SignupSuccess() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-        <h2 className="mt-4 text-xl font-semibold">Setting up your account...</h2>
+        <h2 className="mt-4 text-xl font-semibold">Processing your payment...</h2>
         <p className="mt-2 text-sm text-gray-600">This may take a few moments</p>
       </div>
     );
@@ -70,16 +70,27 @@ export default function SignupSuccess() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
       <div className="rounded-lg bg-green-50 p-8 text-center">
-        <h2 className="text-xl font-semibold text-green-800">Welcome aboard!</h2>
-        <p className="mt-2 text-sm text-green-600">
-          Your account has been created successfully.
+        <h2 className="text-xl font-semibold text-green-800">Payment Successful!</h2>
+        <p className="mt-4 text-sm text-green-700">
+          We've sent a verification email to your inbox. Please check your email and click the verification link to activate your account.
         </p>
-        <a
-          href="/dashboard"
-          className="mt-4 inline-block rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
-        >
-          Go to Dashboard
-        </a>
+        <p className="mt-2 text-sm text-green-600">
+          Once verified, you can sign in to your account and start using our services.
+        </p>
+        <div className="mt-6 space-y-3">
+          <a
+            href="/auth/signin"
+            className="block rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            Go to Sign In
+          </a>
+          <a
+            href="/pricing"
+            className="block rounded border border-green-600 px-4 py-2 text-sm font-semibold text-green-600 hover:bg-green-50"
+          >
+            Return to Pricing
+          </a>
+        </div>
       </div>
     </div>
   );
