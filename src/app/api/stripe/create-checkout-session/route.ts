@@ -9,6 +9,12 @@ import { subscriptionLimits } from '@/config/subscription-limits';
 export async function POST(request: Request) {
   try {
     const { priceId, email, firstName, lastName, password } = await request.json();
+    
+    console.log('Received request with priceId:', priceId);
+    console.log('Environment variables:', {
+      basicPriceId: process.env.STRIPE_BASIC_PRICE_ID,
+      premiumPriceId: process.env.STRIPE_PREMIUM_PRICE_ID
+    });
 
     if (!priceId || !email || !firstName || !lastName || !password) {
       return NextResponse.json(
@@ -18,11 +24,13 @@ export async function POST(request: Request) {
     }
 
     // Determine subscription tier from priceId
-    const tier = priceId === process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID
+    const tier = priceId === process.env.STRIPE_BASIC_PRICE_ID
       ? SubscriptionTier.BASIC
-      : priceId === process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID
+      : priceId === process.env.STRIPE_PREMIUM_PRICE_ID
         ? SubscriptionTier.PREMIUM
         : SubscriptionTier.FREE;
+
+    console.log('Determined tier:', tier);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -61,6 +69,8 @@ export async function POST(request: Request) {
       },
     });
 
+    console.log('Created user:', { id: user.id, tier });
+
     // Send verification email
     await sendVerificationEmail(user.email!, user.id);
 
@@ -86,11 +96,13 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
     });
 
+    console.log('Created Stripe session:', session.id);
+
     return NextResponse.json({ sessionId: session.id });
   } catch (err) {
     console.error('Error creating checkout session:', err);
     return NextResponse.json(
-      { error: 'Error creating checkout session' },
+      { error: err instanceof Error ? err.message : 'Error creating checkout session' },
       { status: 500 }
     );
   }

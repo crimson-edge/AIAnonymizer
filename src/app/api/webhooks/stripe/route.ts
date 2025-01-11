@@ -12,6 +12,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+const subscriptionLimits: Record<SubscriptionTier, { monthlyTokens: number; tokenLimit: number }> = {
+  [SubscriptionTier.FREE]: { monthlyTokens: 1000, tokenLimit: 10000 },
+  [SubscriptionTier.BASIC]: { monthlyTokens: 10000, tokenLimit: 100000 },
+  [SubscriptionTier.PREMIUM]: { monthlyTokens: 100000, tokenLimit: 1000000 },
+  [SubscriptionTier.ENTERPRISE]: { monthlyTokens: 1000000, tokenLimit: 10000000 },
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.text();
@@ -63,27 +70,36 @@ export async function POST(req: Request) {
           break;
         }
 
-        // Handle regular subscription
+        // Handle subscription upgrade
+        if (session.metadata?.type === 'upgrade') {
+          const userId = session.metadata.userId;
+          const tier = session.metadata.tier as SubscriptionTier;
+          const subscriptionId = session.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+          await prisma.subscription.update({
+            where: { userId },
+            data: {
+              tier,
+              status: 'ACTIVE',
+              stripeId: subscriptionId,
+              monthlyLimit: subscriptionLimits[tier].monthlyTokens,
+              tokenLimit: subscriptionLimits[tier].tokenLimit,
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+            },
+          });
+
+          break;
+        }
+
+        // Handle new subscription
         const subscriptionId = session.subscription as string;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = subscription.items.data[0].price.id;
         const userId = session.client_reference_id;
 
         if (!userId) {
           console.error('No client_reference_id found in session');
           return new Response('No client_reference_id found in session', { status: 400 });
-        }
-
-        // Map price IDs to subscription tiers
-        const tierMap: Record<string, SubscriptionTier> = {
-          [process.env.STRIPE_BASIC_PRICE_ID!]: SubscriptionTier.BASIC,
-          [process.env.STRIPE_PREMIUM_PRICE_ID!]: SubscriptionTier.PREMIUM,
-        };
-
-        const tier = tierMap[priceId];
-        if (!tier) {
-          console.error('Unknown price ID:', priceId);
-          return new Response('Unknown price ID', { status: 400 });
         }
 
         // Update the subscription with Stripe details and activate it
@@ -107,6 +123,8 @@ export async function POST(req: Request) {
         const tierMap: Record<string, SubscriptionTier> = {
           [process.env.STRIPE_BASIC_PRICE_ID!]: SubscriptionTier.BASIC,
           [process.env.STRIPE_PREMIUM_PRICE_ID!]: SubscriptionTier.PREMIUM,
+          [process.env.STRIPE_ENTERPRISE_PRICE_ID!]: SubscriptionTier.ENTERPRISE,
+          [process.env.STRIPE_FREE_PRICE_ID!]: SubscriptionTier.FREE,
         };
 
         const tier = tierMap[priceId];
@@ -120,8 +138,8 @@ export async function POST(req: Request) {
           data: {
             tier,
             status: subscription.status === 'active' ? 'ACTIVE' : 'inactive',
-            monthlyLimit: tier === SubscriptionTier.BASIC ? 10000 : 100000,
-            tokenLimit: tier === SubscriptionTier.BASIC ? 100000 : 1000000,
+            monthlyLimit: subscriptionLimits[tier].monthlyTokens,
+            tokenLimit: subscriptionLimits[tier].tokenLimit,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });
