@@ -47,50 +47,60 @@ export default function DashboardClient() {
   const [error, setError] = useState('');
   const [showTokenDialog, setShowTokenDialog] = useState(false);
 
+  const fetchUsage = async () => {
+    try {
+      const res = await fetch('/api/dashboard/usage');
+      if (!res.ok) throw new Error('Failed to fetch usage data');
+      const data = await res.json();
+      setUsageData({
+        monthlyTokensUsed: data.monthlyTokensUsed,
+        totalAvailableTokens: data.totalAvailableTokens,
+        currentMonthlyQuota: data.currentMonthlyQuota
+      });
+      setUsage({
+        used: data.monthlyTokensUsed,
+        total: data.currentMonthlyQuota
+      });
+    } catch (err) {
+      console.error('Error fetching usage:', err);
+      setError('Failed to fetch usage data');
+    }
+  };
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await fetch('/api/dashboard/subscription?' + new Date().getTime(), {
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error('Failed to fetch subscription data');
+      const data = await res.json();
+      console.log('Fetched subscription data:', data);
+      setSubscriptionData({
+        tier: data.tier,
+        isActive: data.isActive,
+        stripeCustomerId: data.stripeCustomerId,
+        stripeSubscriptionId: data.stripeSubscriptionId,
+        monthlyLimit: data.monthlyLimit
+      });
+    } catch (err) {
+      console.error('Error fetching subscription:', err);
+      setError('Failed to fetch subscription data');
+    }
+  };
+
   useEffect(() => {
     if (status === 'loading') return;
-
-    const fetchUsage = async () => {
-      try {
-        const res = await fetch('/api/dashboard/usage');
-        if (!res.ok) throw new Error('Failed to fetch usage data');
-        const data = await res.json();
-        setUsageData({
-          monthlyTokensUsed: data.monthlyTokensUsed,
-          totalAvailableTokens: data.totalAvailableTokens,
-          currentMonthlyQuota: data.currentMonthlyQuota
-        });
-        setUsage({
-          used: data.monthlyTokensUsed,
-          total: data.currentMonthlyQuota
-        });
-      } catch (err) {
-        console.error('Error fetching usage:', err);
-        setError('Failed to fetch usage data');
-      }
-    };
-
-    const fetchSubscription = async () => {
-      try {
-        const res = await fetch('/api/dashboard/subscription');
-        if (!res.ok) throw new Error('Failed to fetch subscription data');
-        const data = await res.json();
-        setSubscriptionData({
-          tier: data.tier,
-          isActive: data.isActive,
-          stripeCustomerId: data.stripeCustomerId,
-          stripeSubscriptionId: data.stripeSubscriptionId,
-          monthlyLimit: data.monthlyLimit
-        });
-      } catch (err) {
-        console.error('Error fetching subscription:', err);
-        setError('Failed to fetch subscription data');
-      }
-    };
 
     Promise.all([fetchUsage(), fetchSubscription()])
       .finally(() => setLoading(false));
   }, [status]);
+
+  useEffect(() => {
+    if (searchParams.get('upgrade') === 'success') {
+      fetchSubscription();
+      fetchUsage();
+    }
+  }, [searchParams]);
 
   if (status === 'loading' || loading) {
     return (
