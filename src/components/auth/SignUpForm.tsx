@@ -2,10 +2,16 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const plan = searchParams.get('plan');
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,6 +35,40 @@ export default function SignUpForm() {
     }
 
     try {
+      // If there's a plan parameter, create a Stripe checkout session
+      if (plan && (plan === 'basic' || plan === 'premium')) {
+        const priceId = plan === 'basic' 
+          ? process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID 
+          : process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID;
+
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error('Failed to load Stripe');
+
+        const response = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            priceId,
+            email: formData.email.toLowerCase().trim(),
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            password: formData.password,
+          }),
+        });
+
+        const { sessionId, error: stripeError } = await response.json();
+        if (stripeError) throw new Error(stripeError);
+
+        // Redirect to Stripe checkout
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+        if (error) throw error;
+        
+        return;
+      }
+
+      // For free tier, proceed with normal signup
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -48,10 +88,7 @@ export default function SignUpForm() {
       const contentType = response.headers.get("content-type");
       
       try {
-        // Always try to get the response text first
         errorText = await response.text();
-        
-        // Then try to parse it as JSON if it's a JSON content type
         if (contentType && contentType.indexOf("application/json") !== -1) {
           data = JSON.parse(errorText);
         }
@@ -64,13 +101,11 @@ export default function SignUpForm() {
         throw new Error(data.message || 'Failed to create account');
       }
 
-      // Show verification message
       if (data.requiresVerification) {
         setVerificationSent(true);
         return;
       }
 
-      // Sign in the user after successful registration (only if no verification required)
       const result = await signIn('credentials', {
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
@@ -81,7 +116,6 @@ export default function SignUpForm() {
         throw new Error(result.error);
       }
 
-      // Redirect to dashboard
       router.push('/dashboard');
     } catch (err) {
       console.error('Registration error:', err);
