@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Checkout session completed:', session);
         
         // Handle overage payment
         if (session.metadata?.type === 'overage') {
@@ -70,44 +71,40 @@ export async function POST(req: Request) {
           break;
         }
 
-        // Handle subscription upgrade
-        if (session.metadata?.type === 'upgrade') {
-          const userId = session.metadata.userId;
-          const tier = session.metadata.tier as SubscriptionTier;
-          const subscriptionId = session.subscription as string;
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-          await prisma.subscription.update({
-            where: { userId },
-            data: {
-              tier,
-              status: 'ACTIVE',
-              stripeId: subscriptionId,
-              monthlyLimit: subscriptionLimits[tier].monthlyTokens,
-              tokenLimit: subscriptionLimits[tier].tokenLimit,
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-            },
-          });
-
-          break;
-        }
-
-        // Handle new subscription
+        // Get the subscription details
         const subscriptionId = session.subscription as string;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const userId = session.client_reference_id;
+        const priceId = subscription.items.data[0].price.id;
+        const userId = session.metadata?.userId || session.client_reference_id;
 
         if (!userId) {
-          console.error('No client_reference_id found in session');
-          return new Response('No client_reference_id found in session', { status: 400 });
+          console.error('No userId found in session');
+          return new Response('No userId found in session', { status: 400 });
         }
+
+        // Map price IDs to subscription tiers
+        const tierMap: Record<string, SubscriptionTier> = {
+          [process.env.STRIPE_BASIC_PRICE_ID!]: SubscriptionTier.BASIC,
+          [process.env.STRIPE_PREMIUM_PRICE_ID!]: SubscriptionTier.PREMIUM,
+        };
+
+        const tier = tierMap[priceId];
+        if (!tier) {
+          console.error('Unknown price ID:', priceId);
+          return new Response('Unknown price ID', { status: 400 });
+        }
+
+        console.log('Updating subscription for user:', userId, 'to tier:', tier);
 
         // Update the subscription with Stripe details and activate it
         await prisma.subscription.update({
           where: { userId },
           data: {
+            tier,
             stripeId: subscriptionId,
             status: 'ACTIVE',
+            monthlyLimit: subscriptionLimits[tier].monthlyTokens,
+            tokenLimit: subscriptionLimits[tier].tokenLimit,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000)
           },
         });

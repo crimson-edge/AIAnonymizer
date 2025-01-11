@@ -6,6 +6,9 @@ import { Dialog } from '@headlessui/react';
 import UpgradeDialog from './UpgradeDialog';
 import { subscriptionLimits } from '@/config/subscription-limits';
 import { formatNumber } from '@/lib/utils';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface SubscriptionProps {
   currentTier: 'FREE' | 'BASIC' | 'PREMIUM';
@@ -41,30 +44,38 @@ export default function SubscriptionManager({
     setLoading(true);
     setError('');
     try {
-      // If user has an existing subscription, cancel it first
-      if (stripeSubscriptionId && isActive) {
-        await fetch('/api/subscription/cancel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscriptionId: stripeSubscriptionId })
-        });
+      const priceId = tier === 'BASIC' 
+        ? process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID 
+        : process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID;
+
+      if (!priceId) {
+        throw new Error('Invalid price ID for selected tier');
       }
 
       // Create new subscription checkout
-      const response = await fetch('/api/subscription/create-checkout-session', {
+      const response = await fetch('/api/stripe/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier })
+        body: JSON.stringify({ priceId })
       });
 
-      const data = await response.json();
-      if (data.url) {
-        router.push(data.url);
-      } else {
-        throw new Error('No checkout URL received');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
+      }
+
+      const { sessionId } = await response.json();
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe not initialized');
+      }
+
+      const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+      if (stripeError) {
+        throw stripeError;
       }
     } catch (err) {
-      setError('Failed to start upgrade process. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to start upgrade process');
       console.error('Upgrade error:', err);
     } finally {
       setLoading(false);
@@ -76,58 +87,51 @@ export default function SubscriptionManager({
     setLoading(true);
     setError('');
     try {
-      // Cancel current subscription in Stripe
-      if (stripeSubscriptionId && isActive) {
-        const response = await fetch('/api/subscription/cancel', {
+      // If downgrading to BASIC, create new subscription
+      if (tier === 'BASIC') {
+        const priceId = process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID;
+        if (!priceId) {
+          throw new Error('Invalid price ID for Basic tier');
+        }
+
+        const response = await fetch('/api/stripe/create-subscription', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            subscriptionId: stripeSubscriptionId,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priceId })
         });
 
         if (!response.ok) {
-          throw new Error('Failed to cancel current subscription');
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create checkout session');
         }
-      }
 
-      // If downgrading to BASIC, create new subscription
-      if (tier === 'BASIC') {
-        const checkoutResponse = await fetch('/api/subscription/create-checkout-session', {
+        const { sessionId } = await response.json();
+        const stripe = await stripePromise;
+        if (!stripe) {
+          throw new Error('Stripe not initialized');
+        }
+
+        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+        if (stripeError) {
+          throw stripeError;
+        }
+      } else {
+        // For FREE tier, just update the subscription in the database
+        const response = await fetch('/api/subscription/downgrade', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: 'BASIC' })
+          body: JSON.stringify({ tier: 'FREE' })
         });
 
-        const data = await checkoutResponse.json();
-        if (data.url) {
-          router.push(data.url);
-          return;
+        if (!response.ok) {
+          throw new Error('Failed to downgrade subscription');
         }
+
+        router.refresh();
       }
-
-      // For FREE tier, just update the database
-      const response = await fetch('/api/subscription/downgrade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tier,
-          stripeSubscriptionId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to downgrade subscription');
-      }
-
-      router.refresh();
     } catch (err) {
-      console.error('Error downgrading subscription:', err);
-      setError('Failed to downgrade subscription. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to process downgrade');
+      console.error('Downgrade error:', err);
     } finally {
       setLoading(false);
       setShowDowngradeConfirm(false);
@@ -135,97 +139,61 @@ export default function SubscriptionManager({
   };
 
   return (
-    <>
-      <div className="bg-white border rounded-lg p-6">
-        {/* Plan Status */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-1">{currentTier} Plan</h3>
-            <p className="text-gray-600">
-              Status: {isActive ? 'Active' : 'Inactive'}
-            </p>
+    <div className="space-y-6">
+      <div className="bg-white shadow sm:rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <h3 className="text-lg font-medium leading-6 text-gray-900">
+            Subscription Status
+          </h3>
+          <div className="mt-2 max-w-xl text-sm text-gray-500">
+            <p>Current Plan: {currentTier}</p>
+            <p>Status: {isActive ? 'Active' : 'Inactive'}</p>
+            <p>Monthly Usage: {formatNumber(monthlyTokensUsed)} / {formatNumber(currentMonthlyQuota)} tokens</p>
+            <p>Total Available Tokens: {formatNumber(totalAvailableTokens)}</p>
           </div>
-          <div className="flex gap-4">
-            {(currentTier === 'FREE' || currentTier === 'BASIC') && (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setShowUpgradeDialog(true)}
+              disabled={loading || currentTier === 'PREMIUM'}
+              className={`inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm ${
+                loading || currentTier === 'PREMIUM'
+                  ? 'opacity-50 cursor-not-allowed'
+                  : ''
+              }`}
+            >
+              {loading ? 'Processing...' : 'Upgrade Plan'}
+            </button>
+            {currentTier !== 'FREE' && (
               <button
-                onClick={() => setShowUpgradeDialog(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                type="button"
+                onClick={() => {
+                  setTargetTier(currentTier === 'PREMIUM' ? 'BASIC' : 'FREE');
+                  setShowDowngradeConfirm(true);
+                }}
+                disabled={loading}
+                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {currentTier === 'FREE' ? 'Upgrade Plan' : 'Upgrade to Premium'}
+                Downgrade Plan
               </button>
             )}
             {currentTier === 'PREMIUM' && (
               <button
+                type="button"
                 onClick={onPurchaseTokens}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                disabled={loading}
+                className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Purchase Additional Tokens
               </button>
             )}
           </div>
+          {error && (
+            <div className="mt-2 text-sm text-red-600">{error}</div>
+          )}
         </div>
-
-        {/* Usage Display */}
-        <div className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Token Usage */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="mb-2">
-                <p className="text-sm text-gray-600">Monthly Token Usage</p>
-                <p className="text-2xl font-semibold">
-                  {formatNumber(monthlyTokensUsed)} / {formatNumber(totalAvailableTokens)}
-                </p>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className={`h-2.5 rounded-full ${monthlyTokensUsed >= totalAvailableTokens * 0.9 ? 'bg-red-600' : 'bg-blue-600'}`}
-                  style={{ width: `${Math.min((monthlyTokensUsed / totalAvailableTokens) * 100, 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Rate Limits */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">Current Limits</p>
-              <ul className="text-sm space-y-1">
-                <li className="flex justify-between">
-                  <span>Per Request:</span>
-                  <span className="font-medium">{formatNumber(subscriptionLimits[currentTier].maxTokensPerRequest)} tokens</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Rate Limit:</span>
-                  <span className="font-medium">{subscriptionLimits[currentTier].requestsPerMinute}/min</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Total Available:</span>
-                  <span className="font-medium">{formatNumber(totalAvailableTokens)} tokens</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {error && (
-          <div className="text-red-600 mb-4">{error}</div>
-        )}
-
-        {/* Downgrade Option */}
-        {(currentTier === 'BASIC' || currentTier === 'PREMIUM') && (
-          <div className="mt-4 pt-4 border-t">
-            <button
-              onClick={() => {
-                setTargetTier(currentTier === 'PREMIUM' ? 'BASIC' : 'FREE');
-                setShowDowngradeConfirm(true);
-              }}
-              className="text-gray-600 hover:text-gray-800 underline"
-            >
-              Downgrade Plan
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Upgrade Dialog */}
       <UpgradeDialog
         isOpen={showUpgradeDialog}
         onClose={() => setShowUpgradeDialog(false)}
@@ -233,50 +201,41 @@ export default function SubscriptionManager({
         currentTier={currentTier}
       />
 
-      {/* Downgrade Confirmation Dialog */}
       <Dialog
         open={showDowngradeConfirm}
         onClose={() => setShowDowngradeConfirm(false)}
-        className="relative z-50"
+        className="fixed inset-0 z-10 overflow-y-auto"
       >
-        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-        
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="mx-auto max-w-md bg-white rounded-xl shadow-lg p-6">
-            <Dialog.Title className="text-xl font-semibold mb-4">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="fixed inset-0 bg-black opacity-30" />
+          <div className="relative bg-white rounded max-w-sm mx-auto p-6">
+            <Dialog.Title className="text-lg font-medium">
               Confirm Downgrade
             </Dialog.Title>
-            
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to downgrade to the {targetTier} plan? This will:
-              <ul className="list-disc ml-6 mt-2">
-                <li>Cancel your current subscription</li>
-                <li>Reduce your monthly token quota to {formatNumber(subscriptionLimits[targetTier || 'FREE'].monthlyTokens)}</li>
-                <li>Lower your rate limits</li>
-                {currentTier === 'PREMIUM' && targetTier === 'FREE' && (
-                  <li>Remove ability to purchase additional tokens</li>
-                )}
-              </ul>
-            </p>
-
-            <div className="flex justify-end gap-4">
+            <div className="mt-2">
+              <p className="text-sm text-gray-500">
+                Are you sure you want to downgrade to the {targetTier} plan? This will take effect at the end of your current billing period.
+              </p>
+            </div>
+            <div className="mt-4 space-x-3">
               <button
+                type="button"
+                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500"
+                onClick={() => targetTier && handleDowngrade(targetTier)}
+              >
+                Yes, Downgrade
+              </button>
+              <button
+                type="button"
+                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
                 onClick={() => setShowDowngradeConfirm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
               >
                 Cancel
               </button>
-              <button
-                onClick={() => targetTier && handleDowngrade(targetTier)}
-                disabled={loading}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : 'Confirm Downgrade'}
-              </button>
             </div>
-          </Dialog.Panel>
+          </div>
         </div>
       </Dialog>
-    </>
+    </div>
   );
 }
