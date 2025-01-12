@@ -160,15 +160,9 @@ export default function DashboardClient() {
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Subscription & Usage</h2>
         <SubscriptionManager
-          currentTier={currentTier}
-          isActive={subscriptionData?.isActive || false}
-          stripeCustomerId={subscriptionData?.stripeCustomerId}
-          stripeSubscriptionId={subscriptionData?.stripeSubscriptionId}
-          onPurchaseOverage={() => setShowTokenDialog(true)}
-          onPurchaseTokens={() => setShowTokenDialog(true)}
-          monthlyTokensUsed={usageData.monthlyTokensUsed}
-          totalAvailableTokens={usageData.totalAvailableTokens}
-          currentMonthlyQuota={usageData.currentMonthlyQuota}
+          currentTier={subscriptionData?.tier}
+          monthlyUsage={usageData.monthlyTokensUsed}
+          totalTokens={usageData.totalAvailableTokens}
         />
       </div>
 
