@@ -8,20 +8,20 @@ const TOKEN_AMOUNT = 500000; // 500k tokens
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { email: authSession.user.email }
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [
@@ -39,7 +39,7 @@ export async function POST() {
       }
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
     console.error('Error creating token purchase session:', error);
     return NextResponse.json(
