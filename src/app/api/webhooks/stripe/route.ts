@@ -86,12 +86,20 @@ export async function POST(req: Request) {
           [process.env.STRIPE_PREMIUM_PRICE_ID!]: SubscriptionTier.PREMIUM,
         };
 
+        console.log('Price ID mapping:', {
+          receivedPriceId: priceId,
+          basicPriceIdLastFour: process.env.STRIPE_BASIC_PRICE_ID?.slice(-4),
+          premiumPriceIdLastFour: process.env.STRIPE_PREMIUM_PRICE_ID?.slice(-4),
+          matchesBasic: priceId === process.env.STRIPE_BASIC_PRICE_ID,
+          matchesPremium: priceId === process.env.STRIPE_PREMIUM_PRICE_ID
+        });
+
         const tier = tierMap[priceId];
         if (!tier) {
           console.error('Unknown price ID:', priceId, 'Available price IDs:', {
-            basic: process.env.STRIPE_BASIC_PRICE_ID,
-            premium: process.env.STRIPE_PREMIUM_PRICE_ID,
-            received: priceId
+            basicLastFour: process.env.STRIPE_BASIC_PRICE_ID?.slice(-4),
+            premiumLastFour: process.env.STRIPE_PREMIUM_PRICE_ID?.slice(-4),
+            receivedLastFour: priceId?.slice(-4)
           });
           return new Response('Unknown price ID', { status: 400 });
         }
