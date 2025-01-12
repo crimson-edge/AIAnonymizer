@@ -36,16 +36,16 @@ export default function TokenPurchaseDialog({ open, onOpenChange }: TokenPurchas
       }
 
       const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
-      } else {
+      if (!url) {
         throw new Error('No checkout URL returned');
       }
+      
+      window.location.href = url;
     } catch (error) {
       console.error('Error purchasing tokens:', error);
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to purchase tokens',
+        description: error instanceof Error ? error.message : 'Failed to purchase tokens. Please try again.',
         variant: 'destructive',
       });
     } finally {

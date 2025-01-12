@@ -30,6 +30,7 @@ export default function SubscriptionManager({
   const [showDowngradeConfirm, setShowDowngradeConfirm] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleUpgrade = async (tier: 'BASIC' | 'PREMIUM') => {
@@ -66,6 +67,7 @@ export default function SubscriptionManager({
       }
     } catch (error) {
       console.error('Upgrade error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start upgrade process');
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to start upgrade process',
@@ -78,8 +80,8 @@ export default function SubscriptionManager({
   };
 
   const handleDowngrade = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch('/api/subscription/downgrade', {
         method: 'POST',
         headers: {
@@ -99,18 +101,19 @@ export default function SubscriptionManager({
       
       toast({
         title: 'Subscription Update',
-        description: `Your subscription will be downgraded to ${data.newTier} tier on ${endDate}. You'll continue to have access to your current features until then.`,
+        description: `Your subscription will be downgraded to ${currentTier === 'PREMIUM' ? 'BASIC' : 'FREE'} tier on ${endDate}. You'll continue to have access to your current features until then.`,
         variant: 'default',
       });
 
+      // Close the dialog and refresh subscription data
       setShowDowngradeConfirm(false);
-      // Refresh the page to show updated subscription status
       window.location.reload();
     } catch (error) {
       console.error('Error downgrading subscription:', error);
+      setError(error instanceof Error ? error.message : 'Failed to downgrade subscription');
       toast({
         title: 'Error',
-        description: 'Failed to downgrade subscription. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to downgrade subscription',
         variant: 'destructive',
       });
     } finally {
@@ -119,8 +122,8 @@ export default function SubscriptionManager({
   };
 
   const handleManagePayment = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch('/api/stripe/customer-portal', {
         method: 'POST',
         headers: {
@@ -136,9 +139,10 @@ export default function SubscriptionManager({
       window.location.href = url;
     } catch (error) {
       console.error('Error accessing customer portal:', error);
+      setError(error instanceof Error ? error.message : 'Failed to access payment portal');
       toast({
         title: 'Error',
-        description: 'Failed to access payment portal. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to access payment portal',
         variant: 'destructive',
       });
     } finally {
@@ -197,6 +201,12 @@ export default function SubscriptionManager({
           </Button>
         )}
       </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
 
       <Dialog
         open={showDowngradeConfirm}
