@@ -5,6 +5,8 @@ import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 
+const TOKEN_AMOUNT = 500000; // 500k tokens
+
 export async function POST(request: Request) {
   try {
     const authSession = await getServerSession(authOptions);
@@ -32,6 +34,7 @@ export async function POST(request: Request) {
     if (!user.stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
         metadata: {
           userId: user.id
         }
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
       user.stripeCustomerId = customer.id;
     }
 
-    const priceId = process.env.STRIPE_OVERAGE_PRICE_ID;
+    const priceId = process.env.STRIPE_TOKEN_PRICE_ID;
     if (!priceId) {
       return NextResponse.json(
         { error: 'Token purchase price not configured' },
@@ -61,17 +64,21 @@ export async function POST(request: Request) {
         {
           price: priceId,
           quantity: 1,
-        },
+        }
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?purchase=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?purchase=cancelled`,
       metadata: {
         userId: user.id,
-        type: 'token_purchase'
-      },
+        type: 'token_purchase',
+        tokenAmount: TOKEN_AMOUNT.toString()
+      }
     });
 
-    return NextResponse.json({ sessionId: checkoutSession.id });
+    return NextResponse.json({ 
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url 
+    });
   } catch (err) {
     console.error('Error creating token purchase session:', err);
     return NextResponse.json(

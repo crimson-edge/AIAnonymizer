@@ -1,27 +1,64 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signupSchema } from '@/lib/validations/auth';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
+import { SubscriptionTier } from '@prisma/client';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+const TIER_DETAILS = {
+  FREE: {
+    name: 'Free',
+    description: 'Get started with basic features',
+    tokens: '10,000 tokens/month',
+    price: 'Free forever'
+  },
+  BASIC: {
+    name: 'Basic',
+    description: 'Perfect for regular users',
+    tokens: '100,000 tokens/month',
+    price: '$10/month'
+  },
+  PREMIUM: {
+    name: 'Premium',
+    description: 'For power users',
+    tokens: '1,000,000 tokens/month',
+    price: '$49/month'
+  }
+};
 
 export default function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const plan = searchParams.get('plan');
+  const defaultTier = (searchParams.get('plan')?.toUpperCase() || 'FREE') as SubscriptionTier;
   
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    selectedTier: defaultTier
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,79 +72,35 @@ export default function SignUpForm() {
     }
 
     try {
-      // If there's a plan parameter, create a Stripe checkout session
-      if (plan && (plan === 'basic' || plan === 'premium')) {
-        const priceId = plan === 'basic' 
-          ? process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID 
-          : process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID;
-
-        const stripe = await stripePromise;
-        if (!stripe) throw new Error('Failed to load Stripe');
-
-        const response = await fetch('/api/stripe/create-checkout-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            priceId,
-            email: formData.email.toLowerCase().trim(),
-            firstName: formData.firstName.trim(),
-            lastName: formData.lastName.trim(),
-            password: formData.password,
-          }),
-        });
-
-        const { sessionId, error: stripeError } = await response.json();
-        if (stripeError) throw new Error(stripeError);
-
-        // Redirect to Stripe checkout
-        const { error } = await stripe.redirectToCheckout({ sessionId });
-        if (error) throw error;
-        
-        return;
-      }
-
-      // For free tier, proceed with normal signup
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({
-          firstName: formData.firstName.trim(),
-          lastName: formData.lastName.trim(),
-          email: formData.email.toLowerCase().trim(),
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
           password: formData.password,
+          selectedTier: formData.selectedTier
         }),
       });
 
-      let data;
-      let errorText;
-      const contentType = response.headers.get("content-type");
-      
-      try {
-        errorText = await response.text();
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          data = JSON.parse(errorText);
-        }
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        throw new Error(`Server response error: ${errorText}`);
-      }
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create account');
       }
 
-      if (data.requiresVerification) {
-        setVerificationSent(true);
+      // If it's a paid tier, redirect to Stripe checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
         return;
       }
 
+      // For free tier, sign in and redirect
       const result = await signIn('credentials', {
-        email: formData.email.toLowerCase().trim(),
+        email: formData.email,
         password: formData.password,
         redirect: false,
       });
@@ -118,144 +111,107 @@ export default function SignUpForm() {
 
       router.push('/dashboard');
     } catch (err) {
-      console.error('Registration error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to register');
+      console.error('Signup error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create account');
     } finally {
       setLoading(false);
     }
   };
 
-  if (verificationSent) {
-    return (
-      <div className="text-center">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Check your email</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          We've sent a verification link to<br />
-          <span className="font-medium text-gray-900">{formData.email}</span>
-        </p>
-        <p className="text-sm text-gray-600">
-          Click the link in the email to verify your account.<br />
-          Once verified, you can sign in to access your dashboard.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md">
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="firstName">First Name</Label>
+            <Input
+              id="firstName"
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              required
+            />
           </div>
         </div>
-      )}
-      <div>
-        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-          First Name
-        </label>
-        <div className="mt-1">
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            required
-            value={formData.firstName}
-            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          />
-        </div>
-      </div>
 
-      <div>
-        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-          Last Name
-        </label>
-        <div className="mt-1">
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            required
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email address
-        </label>
-        <div className="mt-1">
-          <input
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
             id="email"
-            name="email"
             type="email"
-            autoComplete="email"
-            required
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            required
           />
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
-        <div className="mt-1">
-          <input
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input
             id="password"
-            name="password"
             type="password"
-            autoComplete="new-password"
-            required
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            required
           />
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-          Confirm Password
-        </label>
-        <div className="mt-1">
-          <input
+        <div>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input
             id="confirmPassword"
-            name="confirmPassword"
             type="password"
-            autoComplete="new-password"
-            required
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            required
           />
+        </div>
+
+        <div className="space-y-4">
+          <Label>Select Your Plan</Label>
+          <RadioGroup
+            value={formData.selectedTier}
+            onValueChange={(value) => setFormData({ ...formData, selectedTier: value as SubscriptionTier })}
+            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+          >
+            {Object.entries(TIER_DETAILS).map(([tier, details]) => (
+              <div key={tier} className={`relative flex cursor-pointer rounded-lg px-5 py-4 border ${
+                formData.selectedTier === tier ? 'border-primary bg-primary/5' : 'border-border'
+              }`}>
+                <RadioGroupItem value={tier} id={tier} className="sr-only" />
+                <div className="flex flex-col">
+                  <Label htmlFor={tier} className="font-medium">
+                    {details.name}
+                  </Label>
+                  <span className="text-sm text-muted-foreground">{details.description}</span>
+                  <span className="mt-1 font-medium">{details.price}</span>
+                  <span className="text-sm text-muted-foreground">{details.tokens}</span>
+                </div>
+              </div>
+            ))}
+          </RadioGroup>
         </div>
       </div>
 
-      <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-            loading ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {loading ? 'Creating Account...' : 'Create Account'}
-        </button>
-      </div>
+      {error && (
+        <div className="text-sm text-red-500">
+          {error}
+        </div>
+      )}
+
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? 'Creating Account...' : 'Create Account'}
+      </Button>
     </form>
   );
 }

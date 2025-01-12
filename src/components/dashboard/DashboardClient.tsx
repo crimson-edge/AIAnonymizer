@@ -172,9 +172,8 @@ export default function DashboardClient() {
       {/* Token Purchase Dialog */}
       {showTokenDialog && (
         <TokenPurchaseDialog
-          isOpen={showTokenDialog}
-          onClose={() => setShowTokenDialog(false)}
-          onPurchase={handleTokenPurchase}
+          open={showTokenDialog}
+          onOpenChange={() => setShowTokenDialog(false)}
         />
       )}
     </div>

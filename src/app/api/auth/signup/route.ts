@@ -5,12 +5,15 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 import { sendVerificationEmail } from '@/lib/sendgrid';
-import crypto from 'crypto';
 import { subscriptionLimits } from '@/config/subscription-limits';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-08-16'
+});
 
 export async function POST(req: Request) {
   try {
-    // Parse JSON body
     let body;
     try {
       body = await req.json();
@@ -23,12 +26,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const { firstName, lastName, email, password } = body;
+    const { firstName, lastName, email, password, selectedTier = 'FREE' } = body;
 
     if (!firstName || !lastName || !email || !password) {
       console.error('Missing fields:', { firstName, lastName, email, password: !!password });
       return NextResponse.json(
         { message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate tier
+    if (!Object.values(SubscriptionTier).includes(selectedTier)) {
+      return NextResponse.json(
+        { message: 'Invalid subscription tier selected' },
         { status: 400 }
       );
     }
@@ -49,8 +60,42 @@ export async function POST(req: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // If user selected BASIC or PREMIUM, create a Stripe checkout session
+    if (selectedTier !== 'FREE') {
+      const priceId = selectedTier === 'BASIC' 
+        ? process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID 
+        : process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID;
+
+      if (!priceId) {
+        return NextResponse.json(
+          { message: 'Invalid price ID for selected tier' },
+          { status: 500 }
+        );
+      }
+
+      // Create a customer in Stripe
+      const customer = await stripe.customers.create({
+        email: email.toLowerCase().trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`
+      });
+
+      // Create a checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customer.id,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/complete-signup?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&hashedPassword=${encodeURIComponent(hashedPassword)}&tier=${selectedTier}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/signup?error=payment_cancelled`,
+      });
+
+      return NextResponse.json({
+        checkoutUrl: session.url,
+        sessionId: session.id
+      });
+    }
+
+    // For FREE tier, create user immediately
     try {
-      // Create new user
       const user = await prisma.user.create({
         data: {
           firstName: firstName.trim(),
@@ -74,13 +119,11 @@ export async function POST(req: Request) {
 
       console.log('User created successfully:', user.id);
 
-      // Send verification email
       try {
         await sendVerificationEmail(user.email!, user.id);
         console.log('Verification email sent successfully');
       } catch (emailError) {
         console.error('Error sending verification email:', emailError);
-        // Don't fail if email sending fails
       }
 
       return NextResponse.json({
@@ -96,26 +139,16 @@ export async function POST(req: Request) {
       }, { status: 201 });
 
     } catch (dbError) {
-      console.error('Database error details:', {
-        name: dbError.name,
-        message: dbError.message,
-        code: dbError.code,
-        stack: dbError.stack
-      });
+      console.error('Database error details:', dbError);
       return NextResponse.json(
-        { message: 'Error creating account: ' + dbError.message },
+        { message: 'Error creating user account' },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Signup error details:', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack
-    });
+    console.error('Signup error:', error);
     return NextResponse.json(
-      { message: 'Error creating account: ' + error.message },
+      { message: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -1,16 +1,22 @@
+'use client';
+
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { loadStripe } from '@stripe/stripe-js';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface TokenPurchaseDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onPurchase: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function TokenPurchaseDialog({ isOpen, onClose, onPurchase }: TokenPurchaseDialogProps) {
+export default function TokenPurchaseDialog({ open, onOpenChange }: TokenPurchaseDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -29,15 +35,11 @@ export default function TokenPurchaseDialog({ isOpen, onClose, onPurchase }: Tok
         throw new Error(error.error || 'Failed to create purchase session');
       }
 
-      const { sessionId } = await response.json();
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe not initialized');
-      }
-
-      const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
-      if (stripeError) {
-        throw stripeError;
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Error purchasing tokens:', error);
@@ -51,29 +53,33 @@ export default function TokenPurchaseDialog({ isOpen, onClose, onPurchase }: Tok
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg">
-        <h2 className="text-lg font-semibold mb-4">Purchase Tokens</h2>
-        <p className="mb-4">Would you like to purchase 500,000 additional tokens?</p>
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handlePurchase}
-            disabled={loading}
-            className={`px-4 py-2 ${loading ? 'bg-gray-400' : 'bg-blue-600'} text-white rounded hover:bg-blue-700`}
-          >
-            {loading ? 'Processing...' : 'Purchase'}
-          </button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Purchase Additional Tokens</DialogTitle>
+          <DialogDescription>
+            Add 500,000 tokens to your account for $12
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <div className="rounded-lg border p-4">
+            <div className="flex flex-col">
+              <span className="text-lg font-medium">500,000 Tokens</span>
+              <span className="text-sm text-muted-foreground">Additional tokens for AI text anonymization</span>
+              <span className="mt-2 text-lg font-medium">$12</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+        <div className="flex justify-end gap-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handlePurchase} disabled={loading}>
+            {loading ? 'Processing...' : 'Purchase'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
