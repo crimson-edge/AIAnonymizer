@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
+import { SubscriptionTier } from '@prisma/client';
 
 const TOKEN_PRICES = {
   '10000': process.env.STRIPE_10K_TOKENS_PRICE_ID,
@@ -17,14 +18,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { tokenAmount } = body;
-
-    const priceId = TOKEN_PRICES[tokenAmount as keyof typeof TOKEN_PRICES];
-    if (!priceId) {
-      return NextResponse.json({ error: 'Invalid token amount' }, { status: 400 });
-    }
-
     const user = await prisma.user.findUnique({
       where: { email: authSession.user.email },
       include: { subscription: true },
@@ -32,6 +25,22 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Check if user is on premium tier
+    if (!user.subscription || user.subscription.tier !== SubscriptionTier.PREMIUM) {
+      return NextResponse.json(
+        { error: 'Token purchase is only available for premium subscribers' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { tokenAmount } = body;
+
+    const priceId = TOKEN_PRICES[tokenAmount as keyof typeof TOKEN_PRICES];
+    if (!priceId) {
+      return NextResponse.json({ error: 'Invalid token amount' }, { status: 400 });
     }
 
     if (!user.stripeCustomerId) {
@@ -56,7 +65,7 @@ export async function POST(request: Request) {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price: process.env.STRIPE_OVERAGE_PRICE_ID,
           quantity: 1,
         },
       ],

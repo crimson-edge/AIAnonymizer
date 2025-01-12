@@ -91,6 +91,31 @@ export async function POST(req: Request) {
           break;
         }
 
+        // Handle overage purchase
+        if (type === 'overage_purchase') {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { subscription: true },
+          });
+
+          if (!user?.subscription) {
+            throw new Error('User subscription not found');
+          }
+
+          // Add 500,000 tokens to user's total
+          await prisma.subscription.update({
+            where: { userId },
+            data: {
+              availableTokens: {
+                increment: 500000
+              }
+            }
+          });
+
+          console.log(`Added 500,000 tokens to user ${userId} from overage purchase`);
+          break;
+        }
+
         // Focus on the main subscription flow
         if (event.type === 'checkout.session.completed') {
           const session = event.data.object as Stripe.Checkout.Session;
