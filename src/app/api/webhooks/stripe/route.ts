@@ -41,14 +41,13 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const { userId, type } = session.metadata || {};
-
+        const userId = session.metadata?.userId;
         if (!userId) {
-          throw new Error('No userId in session metadata');
+          throw new Error('No user ID in session metadata');
         }
 
         // Handle token purchase
-        if (type === 'token_purchase') {
+        if (session.metadata?.type === 'token_purchase') {
           console.log('Processing token purchase webhook:', {
             userId,
             metadata: session.metadata,
