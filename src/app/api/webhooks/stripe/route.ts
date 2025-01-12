@@ -19,6 +19,10 @@ const subscriptionLimits: Record<SubscriptionTier, { monthlyTokens: number; toke
   ENTERPRISE: { monthlyTokens: 1000000, tokenLimit: 10000000 },
 };
 
+export async function GET(req: Request) {
+  return new Response('Stripe webhook endpoint is alive', { status: 200 });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.text();
