@@ -54,14 +54,32 @@ export async function POST(req: Request) {
             throw new Error('Invalid token amount');
           }
 
-          await prisma.subscription.update({
-            where: { userId },
-            data: {
-              availableTokens: {
-                increment: tokenAmount
-              }
-            }
+          // Get existing subscription or create one
+          const subscription = await prisma.subscription.findUnique({
+            where: { userId }
           });
+
+          if (subscription) {
+            // Update existing subscription
+            await prisma.subscription.update({
+              where: { userId },
+              data: {
+                availableTokens: {
+                  increment: tokenAmount
+                }
+              }
+            });
+          } else {
+            // Create new subscription record
+            await prisma.subscription.create({
+              data: {
+                userId,
+                tier: SubscriptionTier.FREE,
+                availableTokens: tokenAmount,
+                status: 'active'
+              }
+            });
+          }
 
           console.log(`Added ${tokenAmount} tokens to user ${userId}`);
           break;
