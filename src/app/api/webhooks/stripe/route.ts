@@ -26,16 +26,26 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.text();
-    const signature = headers().get('stripe-signature')!;
+    const signature = headers().get('stripe-signature');
+
+    if (!signature) {
+      console.error('No stripe signature found in webhook request');
+      return new Response('No stripe signature found in request', { status: 400 });
+    }
 
     console.log('Webhook received with signature:', signature.slice(-10));
+
+    if (!webhookSecret) {
+      console.error('Stripe webhook secret is not configured');
+      return new Response('Webhook secret is not configured', { status: 500 });
+    }
 
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error('⚠️  Webhook signature verification failed.', err);
-      return new Response('Webhook signature verification failed.', { status: 400 });
+      return new Response(`Webhook signature verification failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { status: 400 });
     }
 
     console.log('Received Stripe webhook event:', event.type);
