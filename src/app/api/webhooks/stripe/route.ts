@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = headers().get('stripe-signature')!;
 
+    console.log('Webhook received with signature:', signature.slice(-10));
+
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -33,6 +35,7 @@ export async function POST(req: Request) {
     }
 
     console.log('Received Stripe webhook event:', event.type);
+    console.log('Full event data:', JSON.stringify(event.data.object, null, 2));
 
     // Focus on the main subscription flow
     if (event.type === 'checkout.session.completed') {
@@ -40,7 +43,9 @@ export async function POST(req: Request) {
       console.log('Checkout session completed:', {
         sessionId: session.id,
         customerId: session.customer,
-        subscription: session.subscription
+        subscription: session.subscription,
+        metadata: session.metadata,
+        clientReferenceId: session.client_reference_id
       });
 
       if (!session.subscription) {
@@ -50,10 +55,20 @@ export async function POST(req: Request) {
 
       // Get the subscription details
       const subscriptionId = session.subscription as string;
+      console.log('Retrieving subscription:', subscriptionId);
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      console.log('Full subscription details:', JSON.stringify(subscription, null, 2));
+
       const priceId = subscription.items.data[0].price.id;
       const userId = session.metadata?.userId || session.client_reference_id;
       const customerId = session.customer as string;
+
+      console.log('Processing subscription update:', {
+        subscriptionId,
+        priceId,
+        userId,
+        customerId
+      });
 
       if (!userId) {
         console.error('No userId found in session');
@@ -87,11 +102,30 @@ export async function POST(req: Request) {
       });
 
       try {
+        // First verify the user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { subscription: true }
+        });
+
+        if (!user) {
+          console.error('User not found:', userId);
+          return new Response('User not found', { status: 404 });
+        }
+
+        console.log('Found user:', {
+          id: user.id,
+          email: user.email,
+          currentSubscription: user.subscription
+        });
+
         // Update the user's Stripe customer ID
         await prisma.user.update({
           where: { id: userId },
           data: { stripeCustomerId: customerId }
         });
+
+        console.log('Updated user with Stripe customer ID:', customerId);
 
         // Update or create the subscription
         const updatedSubscription = await prisma.subscription.upsert({
@@ -116,6 +150,13 @@ export async function POST(req: Request) {
         });
 
         console.log('Successfully updated subscription:', updatedSubscription);
+
+        // Verify the update worked
+        const verifySubscription = await prisma.subscription.findUnique({
+          where: { userId }
+        });
+        console.log('Verified subscription state:', verifySubscription);
+
       } catch (error) {
         console.error('Failed to update subscription in database:', error);
         throw error;
