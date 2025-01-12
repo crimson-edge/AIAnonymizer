@@ -89,84 +89,46 @@ export default function SubscriptionManager({
     }
   };
 
-  const handleDowngrade = async (tier: 'FREE' | 'BASIC') => {
-    setLoading(true);
-    setError('');
+  const handleDowngrade = async () => {
     try {
-      // If downgrading to BASIC, create new subscription
-      if (tier === 'BASIC') {
-        const priceId = process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID;
-        if (!priceId) {
-          throw new Error('Invalid price ID for Basic tier');
-        }
-
-        console.log('Using price ID:', priceId);
-
-        const response = await fetch('/api/stripe/create-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priceId })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create checkout session');
-        }
-
-        const { sessionId } = await response.json();
-        const stripe = await stripePromise;
-        if (!stripe) {
-          throw new Error('Stripe not initialized');
-        }
-
-        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
-        if (stripeError) {
-          throw stripeError;
-        }
-      } else {
-        // For FREE tier, just update the subscription in the database
-        const response = await fetch('/api/subscription/downgrade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: 'FREE' })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to downgrade subscription');
-        }
-
-        router.refresh();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process downgrade');
-      console.error('Downgrade error:', err);
-    } finally {
-      setLoading(false);
-      setShowDowngradeConfirm(false);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await fetch('/api/stripe/customer-portal', {
+      const response = await fetch('/api/subscription/downgrade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: currentTier === 'PREMIUM' ? 'BASIC' : 'FREE'
+        })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create portal session');
+        throw new Error('Failed to downgrade subscription');
+      }
+
+      // Refresh the page to show updated subscription status
+      window.location.reload();
+    } catch (error) {
+      console.error('Error downgrading subscription:', error);
+    }
+  };
+
+  const handleManagePayment = async () => {
+    try {
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to access customer portal');
       }
 
       const { url } = await response.json();
       window.location.href = url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to open customer portal');
-      console.error('Customer portal error:', err);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error accessing customer portal:', error);
     }
   };
 
@@ -197,7 +159,7 @@ export default function SubscriptionManager({
             {stripeCustomerId && (
               <button
                 type="button"
-                onClick={handleManageSubscription}
+                onClick={handleManagePayment}
                 disabled={loading}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
@@ -276,7 +238,7 @@ export default function SubscriptionManager({
               <button
                 type="button"
                 className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500"
-                onClick={() => targetTier && handleDowngrade(targetTier)}
+                onClick={handleDowngrade}
               >
                 Yes, Downgrade
               </button>

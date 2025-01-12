@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import SubscriptionManager from '@/components/dashboard/SubscriptionManager';
 import OveragePurchaseDialog from '@/components/dashboard/OveragePurchaseDialog';
 import TokenPurchaseDialog from '@/components/dashboard/TokenPurchaseDialog';
-import { useSession } from 'next-auth/react';
 
 interface UsageData {
   used: number;
@@ -124,7 +125,7 @@ export default function DashboardClient() {
 
   const handleTokenPurchase = async () => {
     try {
-      const response = await fetch('/api/billing/purchase-tokens', {
+      const response = await fetch('/api/stripe/create-token-purchase', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,9 +136,15 @@ export default function DashboardClient() {
         throw new Error('Failed to initiate token purchase');
       }
 
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
+      const { sessionId } = await response.json();
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+      if (!stripe) {
+        throw new Error('Failed to load Stripe');
+      }
+
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+      if (error) {
+        throw error;
       }
     } catch (error) {
       console.error('Error purchasing tokens:', error);
