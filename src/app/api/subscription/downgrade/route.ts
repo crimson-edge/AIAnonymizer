@@ -1,69 +1,57 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
-import Stripe from 'stripe';
 import { SubscriptionTier } from '@prisma/client';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-08-16'
-});
-
-export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    const body = await request.json();
+    const { tier } = body;
+
+    if (tier !== 'FREE' && tier !== 'BASIC') {
+      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-      include: {
-        subscription: true,
-      },
+      where: { email: session.user.email },
+      include: { subscription: true },
     });
 
     if (!user) {
-      return new NextResponse('User not found', { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (!user.stripeCustomerId) {
-      return new NextResponse('No active subscription', { status: 400 });
+    if (!user.subscription?.stripeId) {
+      return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
     }
 
-    // Get all active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: 'active',
+    // Cancel the subscription at period end
+    await stripe.subscriptions.update(user.subscription.stripeId, {
+      cancel_at_period_end: true,
     });
 
-    if (subscriptions.data.length === 0) {
-      return new NextResponse('No active subscription found', { status: 400 });
-    }
-
-    // Cancel all active subscriptions
-    for (const subscription of subscriptions.data) {
-      await stripe.subscriptions.cancel(subscription.id);
-    }
-
-    // Update subscription in database
+    // Update the subscription status in the database
     await prisma.subscription.update({
       where: { userId: user.id },
       data: {
-        tier: SubscriptionTier.FREE,
-        monthlyLimit: 2000,
-        tokenLimit: 2000,
-        status: 'ACTIVE',
-        currentPeriodEnd: new Date(),
+        status: 'SCHEDULED_DOWNGRADE',
+        tier: tier as SubscriptionTier,
       },
     });
 
-    return new NextResponse('Subscription downgraded successfully');
-  } catch (error) {
-    console.error('Error downgrading subscription:', error);
-    return new NextResponse('Error downgrading subscription', { status: 500 });
+    return NextResponse.json({ message: 'Subscription scheduled for downgrade' });
+  } catch (err) {
+    console.error('Error downgrading subscription:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Error downgrading subscription' },
+      { status: 500 }
+    );
   }
 }

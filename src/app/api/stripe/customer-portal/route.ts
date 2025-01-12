@@ -21,12 +21,26 @@ export async function POST(request: Request) {
     }
 
     if (!user.stripeCustomerId) {
-      return NextResponse.json({ error: 'No Stripe customer found' }, { status: 404 });
+      // Create a Stripe customer if they don't have one
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: user.id
+        }
+      });
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: customer.id }
+      });
+
+      user.stripeCustomerId = customer.id;
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID
     });
 
     return NextResponse.json({ url: portalSession.url });
