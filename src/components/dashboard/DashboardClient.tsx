@@ -163,6 +163,9 @@ export default function DashboardClient() {
           currentTier={subscriptionData?.tier}
           monthlyUsage={usageData.monthlyTokensUsed}
           totalTokens={usageData.totalAvailableTokens}
+          stripeCustomerId={subscriptionData?.stripeCustomerId}
+          stripeSubscriptionId={subscriptionData?.stripeSubscriptionId}
+          onPurchaseTokens={() => setShowTokenDialog(true)}
         />
       </div>
 
