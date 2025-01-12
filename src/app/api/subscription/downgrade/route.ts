@@ -32,10 +32,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
     }
 
-    // Cancel the subscription at period end
-    await stripe.subscriptions.update(user.subscription.stripeId, {
-      cancel_at_period_end: true,
-    });
+    // Get the current subscription from Stripe
+    const subscription = await stripe.subscriptions.retrieve(user.subscription.stripeId);
+    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+
+    // For downgrade to Basic, update the subscription to the Basic price at period end
+    if (tier === 'BASIC' && user.subscription.tier === 'PREMIUM') {
+      const basicPriceId = process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID;
+      if (!basicPriceId) {
+        return NextResponse.json(
+          { error: 'Basic tier price not configured' },
+          { status: 500 }
+        );
+      }
+
+      await stripe.subscriptions.update(user.subscription.stripeId, {
+        cancel_at_period_end: false,
+        proration_behavior: 'none',
+        items: [{
+          id: subscription.items.data[0].id,
+          price: basicPriceId,
+        }],
+        metadata: {
+          tier: 'BASIC'
+        }
+      });
+    } else if (tier === 'FREE') {
+      // For downgrade to Free, cancel the subscription at period end
+      await stripe.subscriptions.update(user.subscription.stripeId, {
+        cancel_at_period_end: true,
+      });
+    }
 
     // Update the subscription status in the database
     await prisma.subscription.update({
@@ -46,7 +73,11 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ message: 'Subscription scheduled for downgrade' });
+    return NextResponse.json({
+      message: 'Subscription scheduled for downgrade',
+      currentPeriodEnd: currentPeriodEnd.toISOString(),
+      newTier: tier
+    });
   } catch (err) {
     console.error('Error downgrading subscription:', err);
     return NextResponse.json(

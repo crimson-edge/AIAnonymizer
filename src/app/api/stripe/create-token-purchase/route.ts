@@ -5,12 +5,6 @@ import { stripe } from '@/lib/stripe';
 import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 
-const TOKEN_PRICES = {
-  '10000': process.env.STRIPE_10K_TOKENS_PRICE_ID,
-  '50000': process.env.STRIPE_50K_TOKENS_PRICE_ID,
-  '100000': process.env.STRIPE_100K_TOKENS_PRICE_ID,
-};
-
 export async function POST(request: Request) {
   try {
     const authSession = await getServerSession(authOptions);
@@ -35,14 +29,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { tokenAmount } = body;
-
-    const priceId = TOKEN_PRICES[tokenAmount as keyof typeof TOKEN_PRICES];
-    if (!priceId) {
-      return NextResponse.json({ error: 'Invalid token amount' }, { status: 400 });
-    }
-
     if (!user.stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -59,13 +45,21 @@ export async function POST(request: Request) {
       user.stripeCustomerId = customer.id;
     }
 
+    const priceId = process.env.STRIPE_OVERAGE_PRICE_ID;
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Token purchase price not configured' },
+        { status: 500 }
+      );
+    }
+
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: user.stripeCustomerId,
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [
         {
-          price: process.env.STRIPE_OVERAGE_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -73,7 +67,6 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?purchase=cancelled`,
       metadata: {
         userId: user.id,
-        tokenAmount: tokenAmount.toString(),
         type: 'token_purchase'
       },
     });

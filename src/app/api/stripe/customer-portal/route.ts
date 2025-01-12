@@ -37,10 +37,15 @@ export async function POST(request: Request) {
       user.stripeCustomerId = customer.id;
     }
 
+    const config: { configuration?: string } = {};
+    if (process.env.STRIPE_PORTAL_CONFIGURATION_ID) {
+      config.configuration = process.env.STRIPE_PORTAL_CONFIGURATION_ID;
+    }
+
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID
+      ...config
     });
 
     return NextResponse.json({ url: portalSession.url });

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog } from '@headlessui/react';
 import UpgradeDialog from './UpgradeDialog';
 import { subscriptionLimits } from '@/config/subscription-limits';
 import { formatNumber } from '@/lib/utils';
 import { loadStripe } from '@stripe/stripe-js';
+import { useToast } from '@/components/ui/use-toast';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -105,10 +106,26 @@ export default function SubscriptionManager({
         throw new Error('Failed to downgrade subscription');
       }
 
+      const data = await response.json();
+      const endDate = new Date(data.currentPeriodEnd).toLocaleDateString();
+      
+      const { toast } = useToast();
+      toast({
+        title: 'Subscription Update',
+        description: `Your subscription will be downgraded to ${data.newTier} tier on ${endDate}. You'll continue to have access to your current features until then.`,
+        variant: 'default',
+      });
+
       // Refresh the page to show updated subscription status
       window.location.reload();
     } catch (error) {
       console.error('Error downgrading subscription:', error);
+      const { toast } = useToast();
+      toast({
+        title: 'Error',
+        description: 'Failed to downgrade subscription. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
