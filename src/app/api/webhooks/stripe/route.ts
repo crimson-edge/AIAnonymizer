@@ -49,22 +49,45 @@ export async function POST(req: Request) {
 
         // Handle token purchase
         if (type === 'token_purchase') {
+          console.log('Processing token purchase webhook:', {
+            userId,
+            metadata: session.metadata,
+            eventType: event.type
+          });
+
           const tokenAmount = parseInt(session.metadata?.tokenAmount || '0', 10);
+          console.log('Token amount to add:', tokenAmount);
+          
           if (tokenAmount <= 0) {
+            console.error('Invalid token amount:', tokenAmount);
             throw new Error('Invalid token amount');
           }
 
-          // Simply increment the available tokens
-          await prisma.subscription.update({
-            where: { userId },
-            data: {
-              availableTokens: {
-                increment: tokenAmount
-              }
-            }
-          });
+          try {
+            // Get current subscription for logging
+            const beforeSubscription = await prisma.subscription.findUnique({
+              where: { userId },
+              select: { availableTokens: true }
+            });
+            console.log('Before update - available tokens:', beforeSubscription?.availableTokens);
 
-          console.log(`Added ${tokenAmount} tokens to user ${userId}`);
+            // Increment the available tokens
+            const updatedSubscription = await prisma.subscription.update({
+              where: { userId },
+              data: {
+                availableTokens: {
+                  increment: tokenAmount
+                }
+              },
+              select: { availableTokens: true }
+            });
+
+            console.log('After update - available tokens:', updatedSubscription.availableTokens);
+            console.log(`Successfully added ${tokenAmount} tokens to user ${userId}`);
+          } catch (error) {
+            console.error('Error updating subscription tokens:', error);
+            throw error;
+          }
           break;
         }
 
