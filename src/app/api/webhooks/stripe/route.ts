@@ -46,34 +46,12 @@ export async function POST(req: Request) {
         
         // Handle overage payment
         if (session.metadata?.type === 'overage') {
-          const userId = session.metadata.userId;
-          if (!userId) {
-            console.error('No userId found in overage session metadata');
-            return new Response('No userId found in session metadata', { status: 400 });
-          }
+          return handleOveragePayment(session);
+        }
 
-          // Add 100,000 tokens to the user's limit
-          const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: { subscription: true }
-          });
-
-          if (!user || !user.subscription) {
-            console.error('User or subscription not found:', userId);
-            return new Response('User or subscription not found', { status: 404 });
-          }
-
-          // Update user's token limit
-          await prisma.subscription.update({
-            where: { userId: user.id },
-            data: {
-              tokenLimit: {
-                increment: 100000 // Add 100,000 tokens
-              }
-            }
-          });
-
-          break;
+        if (!session.subscription) {
+          console.error('No subscription found in session');
+          return new Response('No subscription found in session', { status: 400 });
         }
 
         // Get the subscription details
@@ -83,7 +61,8 @@ export async function POST(req: Request) {
         console.log('Subscription details:', {
           id: subscription.id,
           status: subscription.status,
-          items: subscription.items.data
+          items: subscription.items.data,
+          customer: subscription.customer
         });
         
         const priceId = subscription.items.data[0].price.id;
@@ -120,10 +99,17 @@ export async function POST(req: Request) {
         console.log('Mapped tier:', tier);
 
         try {
-          // Update the subscription with Stripe details and activate it
-          const updatedSubscription = await prisma.subscription.update({
+          // First update the user's Stripe customer ID if not set
+          await prisma.user.update({
+            where: { id: userId },
+            data: { stripeCustomerId: customerId }
+          });
+
+          // Then update or create the subscription
+          const updatedSubscription = await prisma.subscription.upsert({
             where: { userId },
-            data: {
+            create: {
+              userId,
               tier,
               stripeId: subscriptionId,
               status: 'ACTIVE',
@@ -131,6 +117,14 @@ export async function POST(req: Request) {
               tokenLimit: subscriptionLimits[tier].tokenLimit,
               currentPeriodEnd: new Date(subscription.current_period_end * 1000)
             },
+            update: {
+              tier,
+              stripeId: subscriptionId,
+              status: 'ACTIVE',
+              monthlyLimit: subscriptionLimits[tier].monthlyTokens,
+              tokenLimit: subscriptionLimits[tier].tokenLimit,
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+            }
           });
 
           console.log('Successfully updated subscription:', updatedSubscription);
@@ -138,15 +132,6 @@ export async function POST(req: Request) {
           console.error('Failed to update subscription in database:', error);
           throw error;
         }
-
-        // Update user's Stripe customer ID if not set
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            stripeCustomerId: customerId
-          }
-        });
-
         break;
       }
 
@@ -294,4 +279,33 @@ export async function POST(req: Request) {
     console.error('Error processing webhook:', error);
     return new Response('Webhook error', { status: 500 });
   }
+}
+
+async function handleOveragePayment(session: Stripe.Checkout.Session) {
+  const userId = session.metadata.userId;
+  if (!userId) {
+    console.error('No userId found in overage session metadata');
+    return new Response('No userId found in session metadata', { status: 400 });
+  }
+
+  // Add 100,000 tokens to the user's limit
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { subscription: true }
+  });
+
+  if (!user || !user.subscription) {
+    console.error('User or subscription not found:', userId);
+    return new Response('User or subscription not found', { status: 404 });
+  }
+
+  // Update user's token limit
+  await prisma.subscription.update({
+    where: { userId: user.id },
+    data: {
+      tokenLimit: {
+        increment: 100000 // Add 100,000 tokens
+      }
+    }
+  });
 }
