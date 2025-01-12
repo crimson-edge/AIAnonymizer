@@ -27,9 +27,12 @@ export async function POST(req: Request) {
       return new Response('No stripe signature found in request', { status: 400 });
     }
 
+    console.log('Received Stripe webhook. Verifying signature...');
+
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log('Webhook signature verified. Event type:', event.type);
     } catch (err) {
       console.error('⚠️  Webhook signature verification failed.', err);
       return new Response(`Webhook signature verification failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { status: 400 });
@@ -41,6 +44,11 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Processing completed checkout session:', {
+          sessionId: session.id,
+          metadata: session.metadata
+        });
+
         const userId = session.metadata?.userId;
         if (!userId) {
           throw new Error('No user ID in session metadata');
